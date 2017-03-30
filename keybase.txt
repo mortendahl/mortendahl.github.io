@@ -1,0 +1,54 @@
+==================================================================
+https://keybase.io/mortendahl
+--------------------------------------------------------------------
+
+I hereby claim:
+
+  * I am an admin of https://mortendahl.github.io
+  * I am mortendahl (https://keybase.io/mortendahl) on keybase.
+  * I have a public key ASDdDuI6lcdbsr1eYxqwQkD7Sdqwxt5WuzM1OWDSvwwWMgo
+
+To do so, I am signing this object:
+
+{
+    "body": {
+        "key": {
+            "eldest_kid": "01200a42343a68f7bff43b918bcc1d21f6ad7e8a586cc25545c0b6aacae3b971104e0a",
+            "host": "keybase.io",
+            "kid": "0120dd0ee23a95c75bb2bd5e631ab04240fb49dab0c6de56bb33353960d2bf0c16320a",
+            "uid": "fd0935cf2d669f041c5e00f979ad9e19",
+            "username": "mortendahl"
+        },
+        "service": {
+            "hostname": "mortendahl.github.io",
+            "protocol": "https:"
+        },
+        "type": "web_service_binding",
+        "version": 1
+    },
+    "client": {
+        "name": "keybase.io go client",
+        "version": "1.0.20"
+    },
+    "ctime": 1490865830,
+    "expire_in": 504576000,
+    "merkle_root": {
+        "ctime": 1490865812,
+        "hash": "a9b8ecfa27da8c57e6f2b426fa668831da7b95b77c980c1f1efac526d63d26cfeaae78cfbdf64ce6cdae983bc71d0c20c752a930d73eaf6c4d79b35d8a647fda",
+        "seqno": 987916
+    },
+    "prev": "c3d05cdd2f80380548e85e70dd00563936ef360df1136da6981182b614b383e7",
+    "seqno": 43,
+    "tag": "signature"
+}
+
+which yields the signature:
+
+hKRib2R5hqhkZXRhY2hlZMOpaGFzaF90eXBlCqNrZXnEIwEg3Q7iOpXHW7K9XmMasEJA+0nasMbeVrszNTlg0r8MFjIKp3BheWxvYWTFAv97ImJvZHkiOnsia2V5Ijp7ImVsZGVzdF9raWQiOiIwMTIwMGE0MjM0M2E2OGY3YmZmNDNiOTE4YmNjMWQyMWY2YWQ3ZThhNTg2Y2MyNTU0NWMwYjZhYWNhZTNiOTcxMTA0ZTBhIiwiaG9zdCI6ImtleWJhc2UuaW8iLCJraWQiOiIwMTIwZGQwZWUyM2E5NWM3NWJiMmJkNWU2MzFhYjA0MjQwZmI0OWRhYjBjNmRlNTZiYjMzMzUzOTYwZDJiZjBjMTYzMjBhIiwidWlkIjoiZmQwOTM1Y2YyZDY2OWYwNDFjNWUwMGY5NzlhZDllMTkiLCJ1c2VybmFtZSI6Im1vcnRlbmRhaGwifSwic2VydmljZSI6eyJob3N0bmFtZSI6Im1vcnRlbmRhaGwuZ2l0aHViLmlvIiwicHJvdG9jb2wiOiJodHRwczoifSwidHlwZSI6IndlYl9zZXJ2aWNlX2JpbmRpbmciLCJ2ZXJzaW9uIjoxfSwiY2xpZW50Ijp7Im5hbWUiOiJrZXliYXNlLmlvIGdvIGNsaWVudCIsInZlcnNpb24iOiIxLjAuMjAifSwiY3RpbWUiOjE0OTA4NjU4MzAsImV4cGlyZV9pbiI6NTA0NTc2MDAwLCJtZXJrbGVfcm9vdCI6eyJjdGltZSI6MTQ5MDg2NTgxMiwiaGFzaCI6ImE5YjhlY2ZhMjdkYThjNTdlNmYyYjQyNmZhNjY4ODMxZGE3Yjk1Yjc3Yzk4MGMxZjFlZmFjNTI2ZDYzZDI2Y2ZlYWFlNzhjZmJkZjY0Y2U2Y2RhZTk4M2JjNzFkMGMyMGM3NTJhOTMwZDczZWFmNmM0ZDc5YjM1ZDhhNjQ3ZmRhIiwic2Vxbm8iOjk4NzkxNn0sInByZXYiOiJjM2QwNWNkZDJmODAzODA1NDhlODVlNzBkZDAwNTYzOTM2ZWYzNjBkZjExMzZkYTY5ODExODJiNjE0YjM4M2U3Iiwic2Vxbm8iOjQzLCJ0YWciOiJzaWduYXR1cmUifaNzaWfEQAII3jSvnLHVWz4Aah+SMi8CJ3sDZyGM/E7290Vwg0No+J3EGLuxh01LvFACLRoBFtrdSpFeStw8DGm/sqR70Q+oc2lnX3R5cGUgpGhhc2iCpHR5cGUIpXZhbHVlxCBLFfl3MtpUxGYqxLR71t/8mXWpO0BlHQJ99ygJHkyIEqN0YWfNAgKndmVyc2lvbgE=
+
+And finally, I am proving ownership of this host by posting or
+appending to this document.
+
+View my publicly-auditable identity here: https://keybase.io/mortendahl
+
+==================================================================

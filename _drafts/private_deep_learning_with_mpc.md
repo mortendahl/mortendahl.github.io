@@ -9,12 +9,12 @@ header-img: "img/post-bg-01.jpg"
 
 Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same, but replacing homomorphic encryption with secure multi-party computation.
 
-Below we'll build a simple secure computation protocol from scratch, and experiment with it for learning binary functions using basic neural networks. As a result, we need to be able to securely compute on rational numbers with a certain precision, in particular to be able to add and multiply these.
+Below we'll build a simple secure computation protocol from scratch, and experiment with it for learning boolean functions using basic neural networks. As a result, we need to be able to securely compute on rational numbers with a certain precision, in particular to be able to add and multiply these.
 
 One challenge is how to compute the Sigmoid function `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
 
 
-## Secure Multi-Party Computation
+# Secure Multi-Party Computation
 
 Homomorphic encryption (HE) and secure multi-party computation (MPC) are closely related fields in modern cryptography, with one often using techniques from the other in order to solve roughly the same problem: computing a function of some input data privately, i.e. without revealing any of the inputs. As such, one is often replaceable by the other.
 
@@ -34,7 +34,7 @@ To start the tutorial, let's build a basic protocol that allows the three partie
 But let's move on to something concrete.
 
 
-### Fixed-point arithmetic
+## Fixed-point arithmetic
 
 The computation is going to take place over a [field](https://en.wikipedia.org/wiki/Finite_field) and hence we first need to decide on how to represent rational numbers `r` as field elements, i.e. as integers `x` from `0, 1, ..., q-1` for some prime `q`. Taking a typical approach, we're going to scale a rational number by a fixed constant, say `10**6`, and let the integer part of the result be our fixed-point presentation; in this case with a fractional precision of `6` digits. For instance, with `Q = 10000019` we get `encode(0.5) == 500000` and `encode(-0.5) == 10000019 - 500000 == 9500019`.
 
@@ -53,13 +53,13 @@ def decode(field_element):
 Note that addition in this representation is straight-forward, `(r * 10**6) + (s * 10**6) == (r + s) * 10**6`, while multiplication adds an extra scaling factor that we will have to get rid of to keep the precision and avoid exploding the numbers: `(r * 10**6) * (s * 10**6) == (r * s) * 10**6 * 10**6`.
 
 
-### Sharing and adding data
+## Sharing and adding data
 
 Having encoded the inputs, we next need a secure way of sharing these with the other parties so we can use them in the computation, yet still keep them private. 
 
 The ingredient we need for this is [*secret sharing*](), which splits each value into three shares in such a way that if anyone sees less than the three shares, then nothing at all is revealed about the value; yet, by seeing all three shares, the input can easily be reconstructed. 
 
-To keep it simple we'll use *replicated secret sharing* here, where each party receives more than more share. Concretely, private value `x` is split into three shares `x0`, `x1`, and `x2`, with party `P0` receiving (`x0`, `x1`), `P1` receiving (`x1`, `x2`), and `P2` receiving (`x2`, `x0`). For this tutorial we'll keep this implicit though, and simply store a sharing of `x` as a vector of the three shares `[x0, x1, x2]`.
+To keep it simple we'll use *replicated secret sharing* here, where each party receives more than one share. Concretely, private value `x` is split into three shares `x0`, `x1`, and `x2`, with party `P0` receiving (`x0`, `x1`), `P1` receiving (`x1`, `x2`), and `P2` receiving (`x2`, `x0`). For this tutorial we'll keep this implicit though, and simply store a sharing of `x` as a vector of the three shares `[x0, x1, x2]`.
 
 ```python
 def share(x):
@@ -85,7 +85,7 @@ def sub(x, y):
  And note that no communication is needed since these are local computations.
 
 
-### Multiplication
+## Multiplication
 
 Since each party has two shares, multiplication can be done in similar way to addition and subtraction above, i.e. by each party computing a new share based on the two it already has. Specifically, for `z0`, `z1`, and `z2` as defined in the code below we have `x * y == z0 + z1 + z2`. 
 
@@ -105,13 +105,33 @@ def mul(x, y):
     return v
 ```
 
-One problem remains however, and that is the double precision of `w` as mentioned earlier: keeping with the `10**6` scaling factor from above, `w` uses encoding `r * 10**6 * 10**6` instead of `r * 10**6`.
+One problem remains however, and as mentioned earlier this is the double precision of `w`: it is an encoding with scaling factor `10**6 * 10**6` instead of `10**6`. Dividing `w` by `10**6`, through multiplication by its inverse `10**(-6)`, fixes this, as long as there is no remainder. Specifically, we may write `w == v * 10**6 + u` where `u < 10**6`, so that after the division we have `v + u * 10**(-6)` in general, and the result we are after when `u == 0`. So, if we knew `u` in advance then by doing the division on `w' == (w - u)` instead we'd get `v' == v` and `u' == 0` as desired.
 
-TODO truncate
+The question of course is how to securely get `u` so we may compute `w'`. The details are in [CS'10](https://www1.cs.fau.de/filepool/publications/octavian_securescm/secfp-fc10.pdf) but the basic idea is to first add a large mask to `w`, reveal this masked value to one of the parties who may then compute a masked `u`. Finally, this masked value is then reshared and unmasked, and used to compute `w'`.
 
-Note that while the first step is again a local computation, the second and third step require communication.
+```python
+def truncate(a):
+    # map to the positive range
+    b = add(a, share(10**(6+6-1)))
+    # apply mask known only by P0, and reconstruct masked b to P1 or P2
+    mask = random.randrange(Q) % 10**(6+6+KAPPA)
+    mask_low = mask % 10**6
+    b_masked = reconstruct(add(b, share(mask)))
+    # extract lower digits
+    b_masked_low = b_masked % 10**6
+    b_low = sub(share(b_masked_low), share(mask_low))
+    # remove lower digits
+    c = sub(a, b_low)
+    # division
+    d = imul(c, INVERSE)
+    return d
+```
 
-### Secure data type
+Note that `imul` in the above is a local operation that multiplies each share with a public integer, is this case the inverse of `10**6`.
+
+## Secure data type
+
+As a final step we wrap the above procedures in a custom abstract data type, allowing us to use NumPy later when we express [the neural network](http://iamtrask.github.io/2015/07/12/basic-python-network/).
 
 ```python
 class SecureRational(object):
@@ -147,6 +167,8 @@ class SecureRational(object):
         return z
 ```
 
+With this type we can operate securely on values as we would any other type:
+
 ```python
 x = SecureRational(.5)
 y = SecureRational(-.25)
@@ -154,34 +176,17 @@ z = x * y
 assert(z.reveal() == (.5) * (-.25))
 ```
 
-
-## Deep Learning
-
-### Approximating sigmoid
-
-```python
-def sigmoid(x):
-    return 1/(1+np.exp(-x))
-
-def sigmoid_approx(x):
-    return (.5) + (x * 1/4) - (x**3 * 1/48) + (x**5 * 1/480)
-```
- 
-```python
-x = -0.5
-assert(0.00001 > abs(sigmoid(x) - sigmoid_approx(x)))
-
-x = -1.0
-assert(0.001 > abs(sigmoid(x) - sigmoid_approx(x)))
-
-x = -2.5
-assert(0.1 > abs(sigmoid(x) - sigmoid_approx(x)))
-```
-
-As the values become larger, the approximation becomes more inaccurate. Adding more terms from the Taylor expansion mitigates this, but doesn't scale since it quickly becomes inaccurate again. As such, when the magnitude of the synapsis weights become too large (the network becomes too confident) the approximation breaks down. This puts a limitation on the number of iterations we can perform with this approach.
+Moreover, for debugging purposes we could switch to an insecure type without changing the rest of the (neural network) code, or we could isolated the use of counters to for instance see how many multiplications are performed, in turn allowing us to simulate how much communication is needed.
 
 
-### A simple network
+# Deep Learning
+
+The term "deep learning" is an exaggeration of what we'll be doing here, since we'll simply play with the two and three layer neural networks from *Building Safe A.I.* to learn basic boolean functions.
+
+One critical part of this is computing the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html), which we'll first do via the standard Taylor expansion and later via custom polynomial interpolation. 
+
+
+## A simple network
 
 ```python
 # reseed to get reproducible results
@@ -255,6 +260,31 @@ Prediction on the training data is:
  [SecureRational(0.996689)]
  [SecureRational(0.994049)]]
 ```
+
+
+## Approximating sigmoid
+
+```python
+def sigmoid(x):
+    return 1/(1+np.exp(-x))
+
+def sigmoid_approx(x):
+    return (.5) + (x * 1/4) - (x**3 * 1/48) + (x**5 * 1/480)
+```
+ 
+```python
+x = -0.5
+assert(0.00001 > abs(sigmoid(x) - sigmoid_approx(x)))
+
+x = -1.0
+assert(0.001 > abs(sigmoid(x) - sigmoid_approx(x)))
+
+x = -2.5
+assert(0.1 > abs(sigmoid(x) - sigmoid_approx(x)))
+```
+
+As the values become larger, the approximation becomes more inaccurate. Adding more terms from the Taylor expansion mitigates this, but doesn't scale since it quickly becomes inaccurate again. As such, when the magnitude of the synapsis weights become too large (the network becomes too confident) the approximation breaks down. This puts a limitation on the number of iterations we can perform with this approach.
+
 
 ## ...
 

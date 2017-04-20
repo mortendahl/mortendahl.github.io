@@ -2,7 +2,7 @@
 layout:           post
 title:            "Private Deep Learning with MPC"
 subtitle:         "A Simple Tutorial from Scratch"
-date:             2017-04-02 12:00:00
+date:             2017-04-17 12:00:00
 header-img:       "img/post-bg-01.jpg"
 author:           "Morten Dahl"
 twitter_username: "mortendahlcs"
@@ -11,7 +11,7 @@ github_username:  "mortendahl"
 
 Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using *secure multi-party computation* instead of homomorphic encryption.
 
-In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for training simple neural networks for basic boolean functions. 
+In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for training simple neural networks for basic boolean functions.
 
 We will assume that we have three non-colluding parties `P0`, `P1`, and `P2` that are willing to perform computations together, namely training neural networks and using them for predictions afterwards; however, for unspecified reasons they do not wish to revealed the learned models. We will also assume that some users are willing to provide training data if it is kept private, and likewise that some are interested in using the learned models if their inputs are kept private.
 
@@ -50,7 +50,7 @@ Note that addition in this representation is straight-forward, `(r * 10**6) + (s
 
 Having encoded an input, each user next needs a way of sharing it with the parties so that they may be used in the computation, yet remain private.
 
-The ingredient we need for this is [*secret sharing*](), which splits a value into three shares in such a way that if anyone sees less than the three shares, then nothing at all is revealed about the value; yet, by seeing all three shares, the value can easily be reconstructed. 
+The ingredient we need for this is [*secret sharing*](), which splits a value into three shares in such a way that if anyone sees less than the three shares, then nothing at all is revealed about the value; yet, by seeing all three shares, the value can easily be reconstructed.
 
 To keep it simple we'll use *replicated secret sharing* here, where each party receives more than one share. Concretely, private value `x` is split into three shares `x0`, `x1`, `x2` such that `x == x0 + x1 + x2`. Party `P0` then receives (`x0`, `x1`), `P1` receives (`x1`, `x2`), and `P2` receives (`x2`, `x0`). For this tutorial we'll keep this implicit though, and simply store a sharing of `x` as a vector of the three shares `[x0, x1, x2]`.
 
@@ -97,7 +97,7 @@ Note that no communication is needed since these are local computations.
 
 ## Multiplication
 
-Since each party has two shares, multiplication can be done in a similar way to addition and subtraction above, i.e. by each party computing a new share based on the two it already has. Specifically, for `z0`, `z1`, and `z2` as defined in the code below we have `x * y == z0 + z1 + z2` (technically speaking ...). 
+Since each party has two shares, multiplication can be done in a similar way to addition and subtraction above, i.e. by each party computing a new share based on the two it already has. Specifically, for `z0`, `z1`, and `z2` as defined in the code below we have `x * y == z0 + z1 + z2` (technically speaking ...).
 
 However, our invariant of each party having two shares is not satisfied, and it wouldn't be secure for e.g. `P1` simply to send `z1` to `P0`. One easy fix is to simply share each `zi` as if it was a private input, and then have each party add its three shares together; this gives a correct and secure sharing `w` of the product.
 
@@ -145,32 +145,32 @@ As a final step we wrap the above procedures in a custom abstract data type, all
 
 ```python
 class SecureRational(object):
-    
+
     def __init__(self, secret=None):
         self.shares = share(encode(secret)) if secret is not None else []
         return z
-    
+
     def reveal(self):
         return decode(reconstruct(reshare(self.shares)))
-    
+
     def __repr__(self):
         return "SecureRational(%f)" % self.reveal()
-    
+
     def __add__(x, y):
         z = SecureRational()
         z.shares = add(x.shares, y.shares)
         return z
-    
+
     def __sub__(x, y):
         z = SecureRational()
         z.shares = sub(x.shares, y.shares)
         return z
-    
+
     def __mul__(x, y):
         z = SecureRational()
         z.shares = mul(x.shares, y.shares)
         return z
-    
+
     def __pow__(x, e):
         z = SecureRational(1)
         for _ in range(e):
@@ -222,10 +222,10 @@ class TwoLayerNetwork:
 
     def __init__(self, sigmoid):
         self.sigmoid = sigmoid
-    
+
     def train(self, X, y, iterations=1000):
 
-        # initial weights 
+        # initial weights
         self.synapse0 = secure(2 * np.random.random((3,1)) - 1)
 
         # training
@@ -241,7 +241,7 @@ class TwoLayerNetwork:
 
             # update
             self.synapse0 += np.dot(layer0.T, layer1_delta)
-            
+
     def predict(self, X):
         layer0 = X
         layer1 = self.sigmoid.evaluate(np.dot(layer0, self.synapse0))
@@ -252,7 +252,7 @@ We'll also follow the suggested Sigmoid approximation, namely the [standard Macl
 
 ```python
 class SigmoidMaclaurin5:
-    
+
     def __init__(self):
         ONE = SecureRational(1)
         W0  = SecureRational(1/2)
@@ -261,7 +261,7 @@ class SigmoidMaclaurin5:
         W5  = SecureRational(1/480)
         self.sigmoid = np.vectorize(lambda x: W0 + (x * W1) + (x**3 * W3) + (x**5 * W5))
         self.sigmoid_deriv = np.vectorize(lambda x: (ONE - x) * x)
-        
+
     def evaluate(self, x):
         return self.sigmoid(x)
 
@@ -300,7 +300,7 @@ Error: 0.0006990725
 Error: 0.0006100825
 Error: 0.00054113
 Error: 0.0004861775
-Layer 0 weights: 
+Layer 0 weights:
 [[SecureRational(4.974135)]
  [SecureRational(-0.000854)]
  [SecureRational(-2.486387)]]
@@ -350,7 +350,7 @@ Error: 0.5
 Error: 0.5
 Error: 0.5
 Error: 0.5
-Layer 0 weights: 
+Layer 0 weights:
 [[SecureRational(0.000000)]
  [SecureRational(0.000000)]
  [SecureRational(0.000000)]]
@@ -371,7 +371,7 @@ class ThreeLayerNetwork:
 
     def __init__(self, sigmoid):
         self.sigmoid = sigmoid
-    
+
     def train(self, X, y, iterations=1000):
 
         # initial weights
@@ -380,7 +380,7 @@ class ThreeLayerNetwork:
 
         # training
         for i in range(iterations):
-    
+
             # forward propagation
             layer0 = X
             layer1 = self.sigmoid.evaluate(np.dot(layer0, self.synapse0))
@@ -395,7 +395,7 @@ class ThreeLayerNetwork:
             # update
             self.synapse1 += np.dot(layer1.T, layer2_delta)
             self.synapse0 += np.dot(layer0.T, layer1_delta)
-            
+
     def predict(self, X):
         layer0 = X
         layer1 = self.sigmoid.evaluate(np.dot(layer0, self.synapse0))
@@ -416,7 +416,7 @@ Error: 4.65389939428e+22
 Error: 4.25720845129e+22
 Error: 4.50520005372e+22
 Error: 4.31568874384e+22
-Layer 0 weights: 
+Layer 0 weights:
 [[SecureRational(970463188850515564822528.000000)
   SecureRational(1032362386093871682551808.000000)
   SecureRational(1009706886834648285970432.000000)
@@ -429,7 +429,7 @@ Layer 0 weights:
   SecureRational(871252067688430631387136.000000)
   SecureRational(788722871059090631557120.000000)
   SecureRational(868480811373827731750912.000000)]]
-Layer 1 weights: 
+Layer 1 weights:
 [[SecureRational(818092877308528183738368.000000)]
  [SecureRational(940782003999550335877120.000000)]
  [SecureRational(909882533376693496709120.000000)]
@@ -453,7 +453,7 @@ How this is avoided in *Building Safe A.I.* is not clear to me, but my best gues
 
 # Approximating Sigmoid
 
-So, the fact that we have to approximate the Sigmoid function seems to get in the way of learning more advanced functions. But since the Maclaurin/Taylor polynomial is accurate in the limit, one natural next thing to try is to use more of its terms. 
+So, the fact that we have to approximate the Sigmoid function seems to get in the way of learning more advanced functions. But since the Maclaurin/Taylor polynomial is accurate in the limit, one natural next thing to try is to use more of its terms.
 
 As shown below, adding terms up to the 9th degree instead of only up to the 5th actually gets us a big further, but far from enough. Moreover, when the collapse happens, it happens even faster.
 
@@ -484,14 +484,14 @@ Error: 0.3025045425
 Error: 0.2366579675
 Error: 0.19651228
 Error: 0.1748352775
-Layer 0 weights: 
+Layer 0 weights:
 [[SecureRational(1.455894) SecureRational(1.376838)
   SecureRational(-1.445690) SecureRational(-2.383619)]
  [SecureRational(-0.794408) SecureRational(-2.069235)
   SecureRational(-1.870023) SecureRational(-1.734243)]
  [SecureRational(0.712099) SecureRational(-0.688947)
   SecureRational(0.740605) SecureRational(2.890812)]]
-Layer 1 weights: 
+Layer 1 weights:
 [[SecureRational(-2.893681)]
  [SecureRational(6.238205)]
  [SecureRational(-7.945379)]
@@ -506,7 +506,7 @@ Prediction on [1 1 0]: 1 (0.74354671)
 Prediction on [1 1 1]: 0 (0.18736629)
 ```
 
-However, the errors and predictions are poor, and there is little room left for increasing the number of iterations (it collapses around 550 iterations). 
+However, the errors and predictions are poor, and there is little room left for increasing the number of iterations (it collapses around 550 iterations).
 
 
 ## Interpolation
@@ -545,7 +545,7 @@ So, returning to our three layer network, we define a new Sigmoid approximate:
 
 ```python
 class SigmoidInterpolated10:
-    
+
     def __init__(self):
         ONE = SecureRational(1)
         W0  = SecureRational(0.5)
@@ -557,7 +557,7 @@ class SigmoidInterpolated10:
         self.sigmoid = np.vectorize(lambda x: \
             W0 + (x * W1) + (x**3 * W3) + (x**5 * W5) + (x**7 * W7) + (x**9 * W9))
         self.sigmoid_deriv = np.vectorize(lambda x:(ONE - x) * x)
-        
+
     def evaluate(self, x):
         return self.sigmoid(x)
 
@@ -596,14 +596,14 @@ Error: 0.0082400825
 Error: 0.00769687
 Error: 0.007286195
 Error: 0.00697363
-Layer 0 weights: 
+Layer 0 weights:
 [[SecureRational(3.208028) SecureRational(3.359444)
   SecureRational(-3.632461) SecureRational(-4.094379)]
  [SecureRational(-1.552827) SecureRational(-4.403901)
   SecureRational(-3.997194) SecureRational(-3.271171)]
  [SecureRational(0.695226) SecureRational(-1.560569)
   SecureRational(1.758733) SecureRational(5.425429)]]
-Layer 1 weights: 
+Layer 1 weights:
 [[SecureRational(-4.674311)]
  [SecureRational(5.910466)]
  [SecureRational(-9.854162)]

@@ -11,16 +11,16 @@ github_username:  "mortendahl"
 
 Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using *secure multi-party computation* instead of homomorphic encryption.
 
-In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for training simple neural networks for basic boolean functions.
+In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for training simple neural networks for basic boolean functions. There is also a Python notebook with the [associated source code](https://github.com/mortendahl/privateml/tree/master/simple-boolean-functions).
 
-We will assume that we have three non-colluding parties `P0`, `P1`, and `P2` that are willing to perform computations together, namely training neural networks and using them for predictions afterwards; however, for unspecified reasons they do not wish to revealed the learned models. We will also assume that some users are willing to provide training data if it is kept private, and likewise that some are interested in using the learned models if their inputs are kept private.
+We will assume that we have three non-colluding parties `P0`, `P1`, and `P2` that are willing to perform computations together, namely training neural networks and using them for predictions afterwards; however, for unspecified reasons they do not wish to reveal the learned models. We will also assume that some users are willing to provide training data if it is kept private, and likewise that some are interested in using the learned models if their inputs are kept private.
 
-To be able to do this, we will need to compute securely on rational numbers with a certain precision; in particular, to add and multiply these. We will also need to compute the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html) `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
+To be able to do this we will need to compute securely on rational numbers with a certain precision; in particular, to add and multiply these. We will also need to compute the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html) `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
 
 
 # Secure Multi-Party Computation
 
-[Homomorphic encryption](https://en.wikipedia.org/wiki/Homomorphic_encryption) (HE) and [secure multi-party computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) (MPC) are closely related fields in modern cryptography, with one often using techniques from the other in order to solve roughly the same problem: computing a function of private input data without revealing anything, except (optionally) the final output. For instance, in the setting of private machine learning, both technologies could be used to train a model on sensitive data held by one or more users, with the final prediction model either being the only thing revealed, or also kept private.
+[Homomorphic encryption](https://en.wikipedia.org/wiki/Homomorphic_encryption) (HE) and [secure multi-party computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) (MPC) are closely related fields in modern cryptography, with one often using techniques from the other in order to solve roughly the same problem: computing a function of private input data without revealing anything, except (optionally) the final output. For instance, in our setting of private machine learning, both technologies could be used to train our model and perform predictions (although there are a few technicalities to deal with in the case of HE if the data comes from several users with different encryption keys).
 
 As such, at a high level, HE is often replaceable by MPC, and vice versa. Where they differ however, at least today, can roughly be characterized by HE requiring little interaction but expensive computation, whereas MPC uses cheap computation but a significant amount of interaction. Or in other words, MPC replaces expensive computation with interaction between two or more parties.
 
@@ -269,7 +269,7 @@ class SigmoidMaclaurin5:
         return self.sigmoid_deriv(x)
 ```
 
-With this in place we can train and evaluate the network (see [the notebook](https://github.com/privateml/tutorials/tree/master/simple-boolean-functions) for the details), in this case using 10,000 iterations.
+With this in place we can train and evaluate the network (see [the notebook](https://github.com/mortendahl/privateml/tree/master/simple-boolean-functions) for the details), in this case using 10,000 iterations.
 
 ```python
 # reseed to get reproducible results
@@ -515,7 +515,7 @@ An alternative approach is to drop the standard approximation polynomial and ins
 
 
 ```python
-# function we which to approximate
+# function we wish to approximate
 f_real = lambda x: 1/(1+np.exp(-x))
 
 # interval over which we wish to optimize
@@ -627,4 +627,4 @@ The focus of this tutorial has been on a simple secure multi-party computation p
 
 Perhaps more critically, we haven't measured the amount of communication required to run the protocols, which most significantly boils down to a few messages for each multiplication. To run any extensive computation using the simple protocols above it is clearly preferable to have the three parties connected by a high-speed local network, yet more advanced protocols not only reduce the amount of data sent back and forth, but also improve other properties such as the number of rounds (down to a small constant in the case of [garbled circuits](https://en.wikipedia.org/wiki/Garbled_circuit)).
 
-Finally, we have treated the protocols and the machine learning processes orthogonally, letting the latter use the former only in a black box fashion. Adapting one to the other requires expertise in both domains but may yield significant improvements in the overall performance.
+Finally, we have mostly treated the protocols and the machine learning processes orthogonally, letting the latter use the former only in a black box fashion except for computing the Sigmoid. Further adapting one to the other requires expertise in both domains but may yield significant improvements in the overall performance.

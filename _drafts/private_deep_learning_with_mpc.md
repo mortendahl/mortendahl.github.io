@@ -9,31 +9,22 @@ twitter_username: "mortendahlcs"
 github_username:  "mortendahl"
 ---
 
-Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using secure multi-party computation instead of homomorphic encryption.
+Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using *secure multi-party computation* instead of homomorphic encryption.
 
-In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for learning boolean functions using basic neural networks. As a result, we need to be able to securely compute on rational numbers with a certain precision, in particular to add and multiply these.
+In this blog post we'll build a simple secure computation protocol from scratch, and experiment with it for training simple neural networks for basic boolean functions. 
 
-One challenge is how to compute the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html) `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
+We will assume that we have three non-colluding parties `P0`, `P1`, and `P2` that are willing to perform computations together, namely training neural networks and using them for predictions afterwards; however, for unspecified reasons they do not wish to revealed the learned models. We will also assume that some users are willing to provide training data if it is kept private, and likewise that some are interested in using the learned models if their inputs are kept private.
+
+To be able to do this, we will need to compute securely on rational numbers with a certain precision; in particular, to add and multiply these. We will also need to compute the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html) `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
 
 
 # Secure Multi-Party Computation
 
-Homomorphic encryption (HE) and secure multi-party computation (MPC) are closely related fields in modern cryptography, with one often using techniques from the other in order to solve roughly the same problem: computing a function of some input data privately, i.e. without revealing any of the inputs. As such, one is often replaceable by the other.
+[Homomorphic encryption](https://en.wikipedia.org/wiki/Homomorphic_encryption) (HE) and [secure multi-party computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) (MPC) are closely related fields in modern cryptography, with one often using techniques from the other in order to solve roughly the same problem: computing a function of private input data without revealing anything, except (optionally) the final output. For instance, in the setting of private machine learning, both technologies could be used to train a model on sensitive data held by one or more users, with the final prediction model either being the only thing revealed, or also kept private.
 
-Where they differ however, can roughly be characterized by HE using heavy computation and little interaction, whereas MPC instead uses light computation and significant interaction. As such, by letting a few parties be part of the computation process instead of only one, MPC currently offers significantly better practical performance, to the point where one can argue that it's a significantly more mature technology. For instance, [several](https://sepior.com/) [companies](https://www.dyadicsec.com/) [already](https://sharemind.cyber.ee/) [exist](https://z.cash/technology/paramgen.html) offering services based on MPC.
+As such, at a high level, HE is often replaceable by MPC, and vice versa. Where they differ however, at least today, can roughly be characterized by HE requiring little interaction but expensive computation, whereas MPC uses cheap computation but a significant amount of interaction. Or in other words, MPC replaces expensive computation with interaction between two or more parties.
 
-TODO
-
-Assume we have three parties `P0`, `P1`, and `P2` with inputs `x0`, `x1`, and `x2` respectively, and that they would like to compute some function `f` on these inputs: `y = f(x1, x2, x3)`. Here, the inputs may for instance be training sets and `f` a machine learning process that maps these to a trained model.
-
-Moreover, assume that party `Pi` would like to keep `xi` private from everyone else, and is only interested in sharing the final result `y` (and implicitly what can be learned about `xi` from `y`).
-
-This is the problem solved by MPC, and notice straight away the focus on inputs coming from several parties. In particular, MPC is naturally about mixing data from several parties, such as training data from several users.
-
-To start the tutorial, let's build a basic protocol that allows the three parties to start computing on their inputs.
-
-
-But let's move on to something concrete.
+This currently offers better practical performance, to the point where one can argue that MPC is a significantly more mature technology -- as a testimony to that claim, [several](https://sepior.com/) [companies](https://www.dyadicsec.com/) [already](https://sharemind.cyber.ee/) [exist](https://z.cash/technology/paramgen.html) offering services based on MPC.
 
 
 ## Fixed-point arithmetic
@@ -57,11 +48,11 @@ Note that addition in this representation is straight-forward, `(r * 10**6) + (s
 
 ## Sharing and reconstructing data
 
-Having encoded the inputs, each party next needs a way of sharing these with the other parties so that they may be used in the computation, yet still remain private. 
+Having encoded an input, each user next needs a way of sharing it with the parties so that they may be used in the computation, yet remain private.
 
-The ingredient we need for this is [*secret sharing*](), which splits each value into three shares in such a way that if anyone sees less than the three shares, then nothing at all is revealed about the value; yet, by seeing all three shares, the input can easily be reconstructed. 
+The ingredient we need for this is [*secret sharing*](), which splits a value into three shares in such a way that if anyone sees less than the three shares, then nothing at all is revealed about the value; yet, by seeing all three shares, the value can easily be reconstructed. 
 
-To keep it simple we'll use *replicated secret sharing* here, where each party receives more than one share. Concretely, private value `x` is split into three shares `x0`, `x1`, and `x2`, with party `P0` receiving (`x0`, `x1`), `P1` receiving (`x1`, `x2`), and `P2` receiving (`x2`, `x0`). For this tutorial we'll keep this implicit though, and simply store a sharing of `x` as a vector of the three shares `[x0, x1, x2]`.
+To keep it simple we'll use *replicated secret sharing* here, where each party receives more than one share. Concretely, private value `x` is split into three shares `x0`, `x1`, `x2` such that `x == x0 + x1 + x2`. Party `P0` then receives (`x0`, `x1`), `P1` receives (`x1`, `x2`), and `P2` receives (`x2`, `x0`). For this tutorial we'll keep this implicit though, and simply store a sharing of `x` as a vector of the three shares `[x0, x1, x2]`.
 
 ```python
 def share(x):
@@ -71,25 +62,27 @@ def share(x):
     return [x0, x1, x2]
 ```
 
-And when the parties agree to reveal a value they simply broadcast their shares so that everyone can reconstruct. 
-
-TODO
+And when two or more parties agree to reveal a value to someone, they simply send their shares so that reconstruction may be performed.
 
 ```python
-def reconstruct(sharing):
-    return sum(sharing) % Q
+def reconstruct(shares):
+    return sum(shares) % Q
 ```
 
+However, if the shares are the result of one or more of the secure computations given in the subsections below, then for privacy reasons we must perform a resharing before reconstructing.
+
 ```python  
-def reshare(x):
-  Y = [ share(x[0]), share(x[1]), share(x[2]) ]
+def reshare(xs):
+  Y = [ share(xs[0]), share(xs[1]), share(xs[2]) ]
   return [ sum(row) % Q for row in zip(*Y) ]
 ```
- 
+
+Intuitively, this makes sure they look like fresh shares, containing no information about the data that were used to compute them.
+
 
 ## Addition and subtraction
 
-With this we already have a way to do secure addition and subtraction: each party simply adds or subtracts its two shares. This works works since e.g. `(x0 + x1 + x2) + (y0 + y1 + y2) == (x0 + y0) + (x1 + y1) + (x2 + y2)`, which gives the three new shares of `x + y`.
+With this we already have a way to do secure addition and subtraction: each party simply adds or subtracts its two shares. This works works since e.g. `(x0 + x1 + x2) + (y0 + y1 + y2) == (x0 + y0) + (x1 + y1) + (x2 + y2)`, which gives the three new shares of `x + y` (technically speaking this should be `reconstruct(x) + reconstruct(y)`, but it's easier to read when implicit).
 
 ```python
 def add(x, y):
@@ -104,9 +97,9 @@ Note that no communication is needed since these are local computations.
 
 ## Multiplication
 
-Since each party has two shares, multiplication can be done in a similar way to addition and subtraction above, i.e. by each party computing a new share based on the two it already has. Specifically, for `z0`, `z1`, and `z2` as defined in the code below we have `x * y == z0 + z1 + z2`. 
+Since each party has two shares, multiplication can be done in a similar way to addition and subtraction above, i.e. by each party computing a new share based on the two it already has. Specifically, for `z0`, `z1`, and `z2` as defined in the code below we have `x * y == z0 + z1 + z2` (technically speaking ...). 
 
-However, our invariant of each party having two shares is not satisfied, and it wouldn't be secure for e.g. `P1` simply to send `z1` to `P0`. One easy fix is to simply share each `zi` as if it was a private input, and then have each party add the shares it receive together; this gives a correct and secure sharing `w` of `x * y`.
+However, our invariant of each party having two shares is not satisfied, and it wouldn't be secure for e.g. `P1` simply to send `z1` to `P0`. One easy fix is to simply share each `zi` as if it was a private input, and then have each party add its three shares together; this gives a correct and secure sharing `w` of the product.
 
 ```python
 def mul(x, y):
@@ -114,7 +107,7 @@ def mul(x, y):
     z0 = (x[0]*y[0] + x[0]*y[1] + x[1]*y[0]) % Q
     z1 = (x[1]*y[1] + x[1]*y[2] + x[2]*y[1]) % Q
     z2 = (x[2]*y[2] + x[2]*y[0] + x[0]*y[2]) % Q
-    # reshare and distribute
+    # reshare and distribute; this requires communication
     Z = [ share(z0), share(z1), share(z2) ]
     w = [ sum(row) % Q for row in zip(*Z) ]
     # bring precision back down from double to single
@@ -122,9 +115,9 @@ def mul(x, y):
     return v
 ```
 
-One problem remains however, and as mentioned earlier this is the double precision of `w`: it is an encoding with scaling factor `10**6 * 10**6` instead of `10**6`. Dividing `w` by `10**6`, through multiplication by its inverse `10**(-6)`, fixes this, as long as there is no remainder. Specifically, we may write `w == v * 10**6 + u` where `u < 10**6`, so that after the division we have `v + u * 10**(-6)` in general, and the result we are after when `u == 0`. So, if we knew `u` in advance then by doing the division on `w' == (w - u)` instead we'd get `v' == v` and `u' == 0` as desired.
+One problem remains however, and as mentioned earlier this is the double precision of `reconstruct(w)`: it is an encoding with scaling factor `10**6 * 10**6` instead of `10**6`. Dividing `w` by `10**6`, through multiplication by its inverse `10**(-6)`, fixes this, as long as there is no remainder. Specifically, we may write `reconstruct(w) == v * 10**6 + u` where `u < 10**6`, so that after the division we have `v + u * 10**(-6)` in general, and the result we are after when `u == 0`. So, if we knew `u` in advance then by doing the division on `w' == (w - share(u))` instead we'd get `v' == v` and `u' == 0` as desired.
 
-The question of course is how to securely get `u` so we may compute `w'`. The details are in [CS'10](https://www1.cs.fau.de/filepool/publications/octavian_securescm/secfp-fc10.pdf) but the basic idea is to first add a large mask to `w`, reveal this masked value to one of the parties who may then compute a masked `u`. Finally, this masked value is then reshared and unmasked, and used to compute `w'`.
+The question of course is how to securely get `u` so we may compute `w'`. The details are in [CS'10](https://www1.cs.fau.de/filepool/publications/octavian_securescm/secfp-fc10.pdf) but the basic idea is to first add a large mask to `w`, reveal this masked value to one of the parties who may then compute a masked `u`. Finally, this masked value is shared and unmasked, and then used to compute `w'`.
 
 ```python
 def truncate(a):
@@ -202,7 +195,7 @@ Moreover, for debugging purposes we could switch to an insecure type without cha
 The term "deep learning" is a massive exaggeration of what we'll be doing here, as we'll simply play with the two and three layer neural networks from *Building Safe A.I.* (which in turn is from [here](http://iamtrask.github.io/2015/07/12/basic-python-network/) and [here](http://iamtrask.github.io/2015/07/27/python-network-part2/)) to learn basic boolean functions.
 
 
-## The simplest function
+## A simple function
 
 The first experiment is about training a network to recognize the first bit in a vector of three. The four rows in `X` below are used as the input training data, with the corresponding row in `y` as the desired output.
 
@@ -630,12 +623,8 @@ Prediction on [1 1 1]: 0 (0.00800036)
 
 # Conclusion
 
-We have implemented a simple multi-party computation protocol between three parties for secure addition and multiplication, and used this for two simple experiments.
+The focus of this tutorial has been on a simple secure multi-party computation protocol, and while we haven't explicitly addressed the initial claim that it is computationally more efficient than homomorphic encryption, we have still seen that it is indeed possible to achieve private machine learning using very basic operations.
 
-While we haven't really addressed the initial claim that this is computationally more efficient than homomorphic encryption, we have still seen that it is indeed possible to achieve private machine learning using very basic operations.
+Perhaps more critically, we haven't measured the amount of communication required to run the protocols, which most significantly boils down to a few messages for each multiplication. To run any extensive computation using the simple protocols above it is clearly preferable to have the three parties connected by a high-speed local network, yet more advanced protocols not only reduce the amount of data sent back and forth, but also improve other properties such as the number of rounds (down to a small constant in the case of [garbled circuits](https://en.wikipedia.org/wiki/Garbled_circuit)).
 
-More critically however, we haven't measured the amount of communication required to run the protocols: to run any extensive computation using the above simple protocols it is clearly preferably to have the three parties connected by a high-speed local network. Yet, more advanced protocols not only reduce the amount of data sent back and forth, but also improve other properties such as the number of rounds (down to a small constant in the case of [garbled circuits](https://en.wikipedia.org/wiki/Garbled_circuit)).
-
-Finally, treating the protocol as a black box for secure computation, we also haven't addresses any optimizations that might be had by adapting the two world to each other. 
-
-*Thank you to ...*
+Finally, we have treated the protocols and the machine learning processes orthogonally, letting the latter use the former only in a black box fashion. Adapting one to the other requires expertise in both domains but may yield significant improvements in the overall performance.

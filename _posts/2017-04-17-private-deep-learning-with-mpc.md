@@ -535,11 +535,11 @@ f_interpolated = np.poly1d(coefs)
 
 By plotting this polynomial (red line) together with the standard approximations we see a hope for improvement: we cannot avoid collapsing at some point, but it is now on significantly larger values.
 
-<center><img src="{{ site.url }}/assets/private_deep_learning_with_mpc/taylor-approximations.png" /></center>
+<center><img src="{{ site.url }}/assets/private-deep-learning-with-mpc/taylor-approximations.png" /></center>
 
 Of course, we could also experiment with other degrees, precisions, and intervals as shown below, yet for our immediate application the above set of parameters seem sufficient.
 
-<center><img src="{{ site.url }}/assets/private_deep_learning_with_mpc/interpolations.png" /></center>
+<center><img src="{{ site.url }}/assets/private-deep-learning-with-mpc/interpolations.png" /></center>
 
 So, returning to our three layer network, we define a new Sigmoid approximate:
 

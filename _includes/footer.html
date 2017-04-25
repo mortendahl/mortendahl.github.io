@@ -12,9 +12,9 @@
                             </span>
                         </a>
                     </li>
-                    {% if site.twitter_username %}
+                    {% if page.twitter_username %}
                     <li>
-                        <a href="https://twitter.com/{{ site.twitter_username }}">
+                        <a href="https://twitter.com/{{ page.twitter_username }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
@@ -22,9 +22,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if site.facebook_username %}
+                    {% if page.facebook_username %}
                     <li>
-                        <a href="https://www.facebook.com/{{ site.facebook_username }}">
+                        <a href="https://www.facebook.com/{{ page.facebook_username }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
@@ -32,9 +32,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if site.github_username %}
+                    {% if page.github_username %}
                     <li>
-                        <a href="https://github.com/{{ site.github_username }}">
+                        <a href="https://github.com/{{ page.github_username }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-github fa-stack-1x fa-inverse"></i>
@@ -42,9 +42,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if site.email_username %}
+                    {% if page.email_username %}
                     <li>
-                        <a href="mailto:{{ site.email_username }}">
+                        <a href="mailto:{{ page.email_username }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>

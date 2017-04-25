@@ -115,7 +115,11 @@ def mul(x, y):
     return v
 ```
 
-One problem remains however, and as mentioned earlier this is the double precision of `reconstruct(w)`: it is an encoding with scaling factor `10**6 * 10**6` instead of `10**6`. Dividing `w` by `10**6`, through multiplication by its inverse `10**(-6)`, fixes this, as long as there is no remainder. Specifically, we may write `reconstruct(w) == v * 10**6 + u` where `u < 10**6`, so that after the division we have `v + u * 10**(-6)` in general, and the result we are after when `u == 0`. So, if we knew `u` in advance then by doing the division on `w' == (w - share(u))` instead we'd get `v' == v` and `u' == 0` as desired.
+One problem remains however, and as mentioned earlier this is the double precision of `reconstruct(w)`: it is an encoding with scaling factor `10**6 * 10**6` instead of `10**6`. In the unsecured setting over rationals we would fix this by a standard division by `10**6`, but since we're operating on secret shared elements in a finite field this becomes less straight-forward.
+
+Division by a public constant, in this case `10**6`, is easy enough: we simply multiply the shares by its field inverse `10**(-6)`. If we write `reconstruct(w) == v * 10**6 + u` for some `v` and `u < 10**6`, then this multiplication gives us shares of `v + u * 10**(-6)`, where `v` is the value we're after. But unlike the unsecured setting, where the leftover value `u * 10**(-6)` is small and removed by rounding, in the secure setting with finite field elements this meaning is lost and we need to rid of it some other way.
+
+One way is to ensure that `u == 0`. Specifically, if we knew `u` in advance then by doing the division on `w' == (w - share(u))` instead of on `w`, then we would get `v' == v` and `u' == 0` as desired, i.e. without any leftover value.
 
 The question of course is how to securely get `u` so we may compute `w'`. The details are in [CS'10](https://www1.cs.fau.de/filepool/publications/octavian_securescm/secfp-fc10.pdf) but the basic idea is to first add a large mask to `w`, reveal this masked value to one of the parties who may then compute a masked `u`. Finally, this masked value is shared and unmasked, and then used to compute `w'`.
 
@@ -137,7 +141,7 @@ def truncate(a):
     return d
 ```
 
-Note that `imul` in the above is a local operation that multiplies each share with a public integer, is this case the inverse of `10**6`.
+Note that `imul` in the above is the local operation that multiplies each share with a public constant, is this case the field inverse of `10**6`.
 
 ## Secure data type
 
@@ -187,7 +191,7 @@ z = x * y
 assert(z.reveal() == (.5) * (-.25))
 ```
 
-Moreover, for debugging purposes we could switch to an insecure type without changing the rest of the (neural network) code, or we could isolated the use of counters to for instance see how many multiplications are performed, in turn allowing us to simulate how much communication is needed.
+Moreover, for debugging purposes we could switch to an unsecured type without changing the rest of the (neural network) code, or we could isolated the use of counters to for instance see how many multiplications are performed, in turn allowing us to simulate how much communication is needed.
 
 
 # Deep Learning
@@ -444,7 +448,7 @@ Prediction on [1 1 0]: 1 (35957624290517111013376.00000000)
 Prediction on [1 1 1]: 1 (47193714919561920249856.00000000)
 ```
 
-The reason for this is simple, but perhaps not obvious at first (it wasn't for me). Namely, while the (five term) Maclaurin/Taylor approximation of the Sigmoid function is good around the origin, it completely collapses as we move further away, yielding results that are not only inaccurate but also of large magnitude. As a result we quickly blow any finite number representation we may use, even in the insecure setting, and start wrapping around.
+The reason for this is simple, but perhaps not obvious at first (it wasn't for me). Namely, while the (five term) Maclaurin/Taylor approximation of the Sigmoid function is good around the origin, it completely collapses as we move further away, yielding results that are not only inaccurate but also of large magnitude. As a result we quickly blow any finite number representation we may use, even in the unsecured setting, and start wrapping around.
 
 Technically speaking it's the dot products on which the Sigmoid function is evaluated that become too large, which as far as I understand can be interpreted as the network growing more confident. In this light, the problem is that our approximation doesn't allow it to get confident enough, leaving us with poor accuracy.
 

@@ -69,7 +69,7 @@ def reconstruct(shares):
     return sum(shares) % Q
 ```
 
-However, if the shares are the result of one or more of the secure computations given in the subsections below, then for privacy reasons we must perform a resharing before reconstructing.
+However, if the shares are the result of one or more of the secure computations given in the subsections below, then for privacy reasons we perform a resharing before reconstructing.
 
 ```python  
 def reshare(xs):
@@ -77,7 +77,7 @@ def reshare(xs):
   return [ sum(row) % Q for row in zip(*Y) ]
 ```
 
-Intuitively, this makes sure they look like fresh shares, containing no information about the data that were used to compute them.
+This is strictly speaking not necessary, but doing so makes it easier below to see why the protocols are secure; intuitively, it makes sure the shares look fresh, containing no information about the data that were used to compute them.
 
 
 ## Addition and subtraction

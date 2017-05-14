@@ -4,23 +4,26 @@ title:      "Secret Sharing"
 subtitle:   "and a way to securely combine large vectors"
 date:       2016-08-12 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-01.jpg"
+header-img: "img/post-bg-02.jpg"
 ---
 
+Secret sharing is an old well-known cryptographic primitive, with strong links to [secure computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) and with real-world applications in e.g. [Bitcoin signatures](https://bitcoinmagazine.com/articles/threshold-signatures-new-standard-wallet-security-1425937098) and [password management](https://www.vaultproject.io/docs/internals/security.html). As explained in detail [elsewhere](https://en.wikipedia.org/wiki/Secret_sharing), the essence of this primitive is that a *dealer* wants to split a *secret* into several *shares* to give to *shareholders*, such that if sufficiently many of them combine their shares then the secret can be reconstructed, yet if only a few of them come together then nothing whatsoever is revealed about the secret.
 
 There already exist many implementations of what’s called [Shamir’s secret sharing](https://en.wikipedia.org/wiki/Shamir%27s_Secret_Sharing), but it turned out that for sharing a high volume of secrets, this is not always the best choice. As a result, we decided to implement a packed variant, with a focus on keeping it lightweight and efficient. To also achieve a high degree of portability we wrote it in Rust, and since we want to experiment with it in several applications we kept it as a self-contained library.
 
 In a later post we’ll go into more details about how we can use this for secure computation, including summing high-dimensional vectors as part of our efforts to provide basic building blocks for analytics and machine learning.
 
+
 <em>
-A significant part of this blog post is derived from work done at [Snips](https://snips.ai/) and [originally appearing on their blog](https://medium.com/snips-ai/high-volume-secret-sharing-2e7dc5b41e9a). This includes an efficient [open source Rust implementation](https://github.com/snipsco/rust-threshold-secret-sharing) of the schemes.
+Parts of this blog post are derived from work done at [Snips](https://snips.ai/) and [originally appearing in other blog post](https://medium.com/snips-ai/high-volume-secret-sharing-2e7dc5b41e9a). That work also includes an efficient [open source Rust implementation](https://github.com/snipsco/rust-threshold-secret-sharing) of the schemes presented here.
 </em>
 
 
 ## Basic Secret Sharing
-Secret sharing is an old well-known cryptographic primitive, with strong links to [multi-party computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) and with real-world applications in e.g. [Bitcoin signatures](https://bitcoinmagazine.com/articles/threshold-signatures-new-standard-wallet-security-1425937098) and [password management](https://www.vaultproject.io/docs/internals/security.html). As explained in detail [elsewhere](https://en.wikipedia.org/wiki/Secret_sharing), the essence of this primitive is that a *dealer* wants to split a *secret* into several *shares* to give to *shareholders*, such that if sufficiently many of them combine their shares then the secret can be reconstructed, yet nothing is revealed about it if only a few come together (specifically, their marginal distribution is independent of the secret).
 
 Let’s first assume that we have fixed a [finite field](https://en.wikipedia.org/wiki/Finite_field) to which all secrets and shares belong and in which all computation will take place; this could for instance be [the integers modulo a prime number](https://en.wikipedia.org/wiki/Modular_arithmetic). Then, to split a secret `x` into three shares `x1`, `x2`, `x3`, we may simply pick `x1` and `x2` at random and let `x3 = x - x1 - x2`. This way, unless all three shares are known, nothing whatsoever is revealed about `x`. Yet, if all three shares are known then `x` can be reconstructed by simply computing `x1 + x2 + x3`. More generally, the scheme works for any `N` shares by picking `N - 1` random values and offers privacy as long as at most `T = N - 1` shareholders combine their shares. We call this *additive sharing*.
+
+ For privacy TODO TODO: specifically, their marginal distribution is independent of the secret.
 
 ```python
 def additive_share(secret):
@@ -30,30 +33,6 @@ def additive_share(secret):
 
 def additive_reconstruct(shares):
     return sum(shares) % Q
-```
-
-```rust
-fn share(secret: i64, share_count: i64, modulus: i64) -> Vec<i64> {
-    let mut rng = OsRng::new().expect("Unable to get randomness source");
-
-    let mut shares: Vec<i64> = (0..share_count-1)
-        .map(|_| rng.gen_range(0_i64, modulus))
-        .collect();
-
-    let mut last_share = shares.iter().fold(secret, |sum, &x| { (sum - x) % modulus });
-    if last_share < 0 {
-        last_share += modulus
-    }
-        
-    shares.push(last_share);
-    shares
-}
-```
-
-```rust
-fn reconstruct(shares: &[i64], modulus: i64) -> i64 {
-    shares.iter().fold(0_i64, |sum, &x| { (sum + x) % modulus })
-}
 ```
 
 Notice that this simple scheme also has a homomorphic property that allows for certain degrees of [secure computation](https://en.wikipedia.org/wiki/Homomorphic_secret_sharing): it is additive, so if `x1`, `x2`, `x3` is a sharing of `x`, and `y1`, `y2`, `y3` is a sharing of `y`, then `x1+y1`, `x2+y2`, `x3+y3` is a sharing of `x + y`, which can be computed by the three shareholders by simply adding the shares they already have (i.e. respectively `x1` and `y1`, `x2` and `y2`, and `x3` and `y3`). More generally, we can compute functions of the secrets without seeing anything but the shares, and hence without learning anything about the secrets themselves.
@@ -75,14 +54,17 @@ where, logically, we must have `R <= N` since otherwise reconstruction is never 
 ## Shamir’s Scheme
 By the constraint that `R = N`, the simple scheme above lacks some robustness, meaning that if one of the shareholders for some reason becomes unavailable then reconstruction is no longer possible. By moving to a different scheme we can remove this constraint and let `R` (and hence also `T`) be free to choose for any particular application.
 
-In Shamir’s scheme, instead of picking random elements that sums up to the secret `x` as we did above, to share `x` we first sample a random polynomial `f` with the condition that `f(0) = x`. And by varying the degree of `f` we can choose how many shares are needed before reconstruction is possible, thereby removing the `R = N` constraint.
+In Shamir’s scheme, instead of picking random elements that sums up to the secret `x` as we did above, to share `x` we first sample a random polynomial `f` with the condition that `f(0) = x`. And by varying the degree of `f` we can choose how many shares are needed before reconstruction is possible, thereby removing the `R = N` constraint. Then, for the shares, we simply use the values of this polynomial at `N` non-zero points, say `f(1)`, `f(2)`, ..., `f(N)`. 
+
+Specifically, to sample a polynomial `f` with degree `T` such that `f(0) = x` we write `f = a0 + a1 * X + ... + aT * X^T`
 
 ```python
 def sample_shamir_polynomial(zero_value):
-    return [zero_value] + [random.randrange(Q) for _ in range(T)]
+    coefs = [zero_value] + [random.randrange(Q) for _ in range(T)]
+    return coefs
 ```
 
-Then, for the shares, we simply use the values of this polynomial at `N` non-zero points, say `f(1)`, `f(2)`, ..., `f(N)`. 
+
 
 ```python
 def shamir_share(secret):

@@ -2,7 +2,7 @@
 layout:     post
 title:      "Secret Sharing, Part 1"
 subtitle:   "Distributing Trust and Work"
-date:       2017-05-04 12:00:00
+date:       2017-06-04 12:00:00
 header-img: "img/post-bg-02.jpg"
 author:           "Morten Dahl"
 twitter_username: "mortendahlcs"

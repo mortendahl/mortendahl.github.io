@@ -25,7 +25,7 @@ Parts of this blog post are derived from work done at [Snips](https://snips.ai/)
  
 
 
-## Additive Sharing
+# Additive Sharing
 
 Let’s first assume that we have fixed a [finite field](https://en.wikipedia.org/wiki/Finite_field) to which all secrets and shares belong, and in which all computation take place; this could for instance be [the integers modulo a prime number](https://en.wikipedia.org/wiki/Modular_arithmetic), i.e. `{ 0, 1, ..., Q-1 }` for a prime `Q`.
 
@@ -74,7 +74,7 @@ guess 5 can be explained by 33
 And since all we need for this argument to go through is the ability to sample random field elements, with no additional constraints on the size of the field due to e.g. hardness assumptions, this scheme is highly efficient both in terms of time and space.
 
 
-### Homomorphic addition
+## Homomorphic addition
 
 While it is also about as simple as it gets, notice that the scheme already has a homomorphic property that allows for certain degrees of secure computation: we can add secrets together, so if e.g. `x1`, `x2`, `x3` is a sharing of `x` and `y1`, `y2`, `y3` is a sharing of `y`, then `x1+y1`, `x2+y2`, `x3+y3` is a sharing of `x + y`, which can be computed individually by the three shareholders simply by adding the shares they already have (respectively `x1` and `y1`, `x2` and `y2`, and `x3` and `y3`). Then, once added, these new shares can be used reconstruct the result of the addition but not the addends.
 
@@ -86,7 +86,7 @@ def additive_add(x, y):
 More generally, we can ask the shareholders to compute linear functions of secret inputs without them seeing anything but the shares, and without learning anything besides the final output of the function.
 
 
-## Comparing schemes
+# Comparing schemes
 
 While the above scheme is particularly simple, below are two examples of slightly more advanced schemes. One way to compare these is through the following four parameters:
 
@@ -103,7 +103,7 @@ where, logically, we must have `R <= N` since otherwise reconstruction is never 
 For the additive scheme we have `R = N`, `K = 1`, and `T = R - K`, but below we will get rid of the first two of these constraints so that in the end we are free to choose the parameters any way we like as long as `T + K = R <= N`.
 
 
-## Shamir’s Scheme
+# Shamir’s Scheme
 
 The additive scheme lacks some robustness by the constraint that `R = N`, meaning that if one of the shareholders for some reason becomes unavailable or losses his share then reconstruction is no longer possible. By moving to a different scheme we can remove this constraint and let `R` (and hence also `T`) be free to choose for any particular application.
 
@@ -130,7 +130,7 @@ And at the same time, given at most `T` shares, the secret is again guaranteed t
 Before discussing how these operations can be done efficiently, let's first see the properties this scheme has in terms of secure computation.
 
 
-### Homomorphic addition and multiplication
+## Homomorphic addition and multiplication
 
 Since it holds for polynomials in general that `f(i) + g(i) = (f + g)(i)`, we also here have an additive homomorphic property that allows us to compute linear functions of secrets by simply adding the individual shares.
 
@@ -151,7 +151,7 @@ But while this is in principle enough to perform *any* computation without seein
 As a result, when used in secure computation, additional steps must be taken to reduce the degree after even a small number of multiplications, which typically involve some level of interaction between the shareholders. In this light, when compared to homomorphic encryption, secret sharing in some respect replaces heavy computation with interaction.
 
 
-### The missing pieces
+## The missing pieces
 
 Above we ignored the questions of how to efficiently sample, evaluate, and interpolate polynomials. The first one is easy. We want a random `T` degree polynomial with the constraint that `f(0) = x`, and we may obtain that by simply letting the zero-degree coefficient be `x` and picking the remaining `T` coefficients at random: `f(X) = (x) + (r1 * X^1) + (r2 * X^2) + ... + (rT * X^T)` where `x` is the secret, `X` the indeterminate, and `r1`, ..., `rT` the random coefficients. 
 
@@ -203,7 +203,7 @@ def lagrange_constants_for_point(points, point):
 Looking back at the sharing and reconstruction operations, we then see that the former takes `Oh(N * T)` steps (for each secret) and the latter `Oh(T)` steps (for each secret) if precomputation is allowed.
 
 
-## Packed Variant
+# Packed Variant
 
 While Shamir's scheme gets rid of the `R = N` constraint and gives us flexibility in choosing `T` or `R`, it still has the limitation that `K = 1`. This means that each shareholder receives one share per secret, so a large number of secrets means a large number of shares for each shareholder. By using a generalised variant of Shamir's scheme known as packed or ramp sharing, we can remove this limitation and reduce the load on each individual shareholder. 
 
@@ -248,12 +248,12 @@ One remedy is to simply multiply all parameters by `K`; in the example we get `1
 (Note that a similar distribution may be achieved by partitioning the secrets and shareholders into `K` groups; this however has a negative effect on overall tolerance as we need `R` shares from each group.)
 
 
-### Homomorphic addition and multiplication
+## Homomorphic addition and multiplication
 
 The scheme has the same homomorphic properties as Shamir's, yet now operate in a [SIMD](https://en.wikipedia.org/wiki/SIMD) fashion where each addition or multiplication is simultaneously performed on every secret shared together. This in itself can have benefits if it fits naturally with the application.
 
 
-## Conclusion
+# Conclusion
 
 Although an old and simple primitive, secret sharing has several properties that makes it interesting as a way of delegating trust and computation to e.g. a community of users, even if the devices of these users are somewhat inefficient and unreliable.
 

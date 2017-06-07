@@ -9,7 +9,7 @@ twitter_username: "mortendahlcs"
 github_username:  "mortendahl"
 ---
 
-In the [first part](/2017/06/04/secret-sharing-part1/) on secret sharing we looked at Shamir's scheme and its packed variant where several secrets are shared together.
+In the [first part](/2017/06/04/secret-sharing-part1/) on secret sharing we looked at Shamir's scheme and its packed variant where several secrets are shared together. In both schemes do we use the values of a polynomial 
 
 There is a Python notebook containing [the code samples](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Fast%20Fourier%20Transform.ipynb), yet for better performance our [open source Rust library](https://crates.io/crates/threshold-secret-sharing) is recommended.
 
@@ -92,13 +92,117 @@ def fft3_backward(A):
     return [ (a * N_inv) % Q for a in fft3_forward(A, inverse(OMEGA3)) ]
 ```
 
-### Parameter generation
+# Application to Secret Sharing
+
+## Shamir's scheme
+
+```python
+def shamir_share(secret):
+    small_coeffs = [secret] + [random.randrange(Q) for _ in range(T)]
+    large_coeffs = small_coeffs + [0] * (ORDER3 - len(small_coeffs))
+    large_values = fft3_forward(large_coeffs)
+    shares = large_values
+    return shares
+```
+
+
+## Packed scheme
+
+```python
+def packed_share(secrets):
+    small_values = [0] + secrets + [random.randrange(Q) for _ in range(T)]
+    small_coeffs = fft2_backward(small_values)
+    large_coeffs = small_coeffs + [0] * (ORDER3 - ORDER2)
+    large_values = fft3_forward(large_coeffs)
+    shares = large_values[1:]
+    return shares
+```
+
+```python
+def packed_reconstruct(shares):
+    large_values = [0] + shares
+    large_coeffs = fft3_backward(large_values)
+    small_coeffs = large_coeffs[:ORDER2]
+    small_values = fft2_forward(small_coeffs)
+    secrets = small_values[1:K+1]
+    return secrets
+```
+
+# Parameter Generation
+
+```python
+def generate_parameters(min_bitsize, k, t, n):
+    order2 = k + t + 1
+    order3 = n + 1
+    
+    order_divisor = order2 * order3
+    p, g = find_prime_field(min_bitsize, order_divisor)
+    
+    order = p - 1
+    omega2 = pow(g, order // order2, p)
+    omega3 = pow(g, order // order3, p)
+    
+    return p, omega2, omega3
+```
+
+```python
+def find_prime_field(min_bitsize, order_divisor):
+    p, order_prime_factors = find_prime(min_bitsize, order_divisor)
+    g = find_generator(p, order_prime_factors)
+    return p, g
+```
+
+```python
+def find_generator(prime, order_prime_factors):
+    order = prime - 1
+    for candidate in range(2, Q):
+        for factor in order_prime_factors:
+            exponent = order // factor
+            if pow(candidate, exponent, Q) == 1:
+                break
+        else:
+            return candidate
+```
+
+## Finding primes
+
+```python
+def find_prime(min_bitsize, order_divisor):
+    while True:
+        k1 = sample_prime(min_bitsize)
+        for k2 in range(128):
+            p = k1 * k2 * order_divisor + 1
+            if is_prime(p):
+                order_prime_factors  = [k1]
+                order_prime_factors += prime_factor(k2)
+                order_prime_factors += prime_factor(order_divisor)
+                return p, order_prime_factors
+```
+
+```python
+def sample_prime(bitsize):
+    lower = 1 << (bitsize-1)
+    upper = 1 << (bitsize)
+    while True:
+        candidate = random.randrange(lower, upper)
+        if is_prime(candidate):
+            return candidate
+```
+
+```python
+def prime_factor(x):
+    factors = []
+    for prime in SMALL_PRIMES:
+        if prime > x: break
+        if x % prime == 0:
+            factors.append(prime)
+            x = remove_factor(x, prime)
+    assert(x == 1)
+    return factors
+```
+
 
 TODO
 
-## Conclusion
-Although an old and simple primitive, secret sharing has several properties that makes it interesting as a way of delegating trust and computation to e.g. a community of users, even if the devices of these users are somewhat inefficient and unreliable.
+# Conclusion
 
-Implementing in Rust also turned out to have many benefits, not least due to the strong guarantees its type system provides, its highly efficient binaries, and its ease of cross-compilation.
-
-The source code for the library is now available on GitHub, including examples and performance benchmarks.

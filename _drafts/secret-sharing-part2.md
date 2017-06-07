@@ -2,14 +2,23 @@
 layout:     post
 title:      "Secret Sharing, Part 2"
 subtitle:   "Efficient Sharing and Reconstruction"
-date:       2017-05-11 12:00:00
-header-img: "img/post-bg-02.jpg"
+date:       2017-06-05 12:00:00
+header-img: "img/post-bg-03.jpg"
 author:           "Morten Dahl"
 twitter_username: "mortendahlcs"
 github_username:  "mortendahl"
 ---
 
-## Fast Fourier Transform
+In the [first part](/2017/06/04/secret-sharing-part1/) on secret sharing we looked at Shamir's scheme and its packed variant where several secrets are shared together.
+
+There is a Python notebook containing [the code samples](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Fast%20Fourier%20Transform.ipynb), yet for better performance our [open source Rust library](https://crates.io/crates/threshold-secret-sharing) is recommended.
+
+<em>
+Parts of this blog post are derived from work done at [Snips](https://snips.ai/) and [originally appearing in another blog post](https://medium.com/snips-ai/high-volume-secret-sharing-2e7dc5b41e9a). That work also included parts of the Rust implementation.
+</em>
+
+
+# Fast Fourier Transform
 
 Indeed, our current implementation of the packed scheme relies on the Fast Fourier Transform over finite fields (also known as a Number Theoretic Transform), whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.
 

@@ -16,7 +16,7 @@ github_username: mortendahl
 markdown: kramdown
 highlighter: rouge
 permalink: pretty
-paginate: 10
+paginate: 15
 exclude: ["less","node_modules","Gruntfile.js","package.json"]
 
 gems: [jekyll-paginate, jekyll-feed]

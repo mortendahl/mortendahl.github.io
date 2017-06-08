@@ -18,6 +18,14 @@ Parts of this blog post are derived from work done at [Snips](https://snips.ai/)
 </em>
 
 
+# Secret Sharing
+
+The core of sharing in both schemes is
+1. sample polynomial `f`
+2. evaluate `f` at a set of points
+
+while the core of reconstruction is interpolation. As we shall see below, in both cases it is hence essentially about converting from one representation of polynomials to another.
+
 # Fast Fourier Transform
 
 Indeed, our current implementation of the packed scheme relies on the Fast Fourier Transform over finite fields (also known as a Number Theoretic Transform), whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.

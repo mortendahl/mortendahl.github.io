@@ -173,7 +173,7 @@ def evaluate_at_point(coefs, point):
 
 The interpolation step needed in reconstruction is slightly trickier. Here the polynomial is instead given in a point-value representation consisting of `T+1` pairs `(pi, vi)` that is less obviously suitable for computing `f(0)`. 
 
-However, using [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) we can express the value of a polynomial at zero by a weighted sum of a set of constants and its value at `T+1` other points.
+However, using [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) we can express the value of a polynomial at any point by a weighted sum of a set of constants and its value at `T+1` other points.
 
 ```python
 def interpolate_at_point(points_values, point):

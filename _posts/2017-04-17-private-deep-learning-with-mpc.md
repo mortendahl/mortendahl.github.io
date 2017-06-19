@@ -73,8 +73,8 @@ However, if the shares are the result of one or more of the secure computations 
 
 ```python  
 def reshare(xs):
-  Y = [ share(xs[0]), share(xs[1]), share(xs[2]) ]
-  return [ sum(row) % Q for row in zip(*Y) ]
+    Y = [ share(xs[0]), share(xs[1]), share(xs[2]) ]
+    return [ sum(row) % Q for row in zip(*Y) ]
 ```
 
 This is strictly speaking not necessary, but doing so makes it easier below to see why the protocols are secure; intuitively, it makes sure the shares look fresh, containing no information about the data that were used to compute them.

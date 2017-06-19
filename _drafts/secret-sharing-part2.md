@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "Secret Sharing, Part 2"
-subtitle:   "Efficient Sharing and the Fast Fourier Transform"
+subtitle:   "Efficient Sharing with the Fast Fourier Transform"
 date:       2017-06-05 12:00:00
 header-img: "img/post-bg-03.jpg"
 author:           "Morten Dahl"
@@ -24,11 +24,10 @@ Parts of this blog post are derived from work done at [Snips](https://snips.ai/)
 
 **TODO TODO TODO motivation for using a prime field (as opposed to an extension field): it allows us to naturally use modular arithmetic to simulate bounded integer arithmetic, as useful for instance in secure computation. in the previous post we used prime fields, but all the algorithms there would carry directly over to an extension field (they will here as well, but again we focus on prime fields). binary extension fields would make the computations more efficient but are less suitable since it is less obvious which encoding/embedding to use in order to simulate integer arithmetic**
 
+The algorithms in this post are significantly more complex than [what is typically used for Shamir sharing](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Schemes.ipynb), and as such it's worth considering when there's an actual benefit to be had from using them. [Our Rust implementation](https://crates.io/crates/threshold-secret-sharing) perhaps provides a more realistic foundation for comparing the different algorithms and parameter choice; in particular, the library unsurprisingly shows that when either the number of secrets or number of shares is high then there a orders of magnitude efficiency improvements to be gained.
+
 
 # Polynomials
-
-First a polynomial is sampled and then its values at certain points are taken as shares; but notice that different methods are used for taking these values, we'll come back to this below. 
-
 
 If we [look back](/2017/06/04/secret-sharing-part1/) at Shamir's scheme we see that it's all about polynomials: a random polynomial embedding the secret is sampled, and the shares are taken as its value at certain points.
 
@@ -49,51 +48,58 @@ def packed_share(secrets):
     return shares
 ```
 
-Notice however that it differs in how the values of the polynomial are found: Shamir's scheme uses `evaluate_at_point` while the packed uses `interpolate_at_point`. The reason is that the sampled polynomial in the former case is in *coefficient representation* while in the latter it is in *point-value representation*.
+Notice however that it differs in how the shares (as values of the polynomial) are found: Shamir's scheme uses `evaluate_at_point` while the packed uses `interpolate_at_point`. The reason is that the sampled polynomial in the former case is in *coefficient representation* while in the latter it is in *point-value representation*.
 
-Specifically, we often represent a polynomial `f` of degree `N` by a list of `N+1` coefficients `a0, ..., aN` such that `f(X) = (a0) + (a1 * X) + (a2 * X**2) + ... + (aN * X**N)`. This representation is convenient for many things, including efficiently finding the value of the polynomial at a given point using e.g. [Horner's method](https://en.wikipedia.org/wiki/Horner%27s_method).
+Specifically, we often represent a polynomial `f` of degree `N` by a list of `N+1` coefficients `a0, ..., aN` such that `f(x) = (a0) + (a1 * x) + (a2 * x^2) + ... + (aN * x^N)`. This representation is convenient for many things, including efficiently evaluating the polynomial at a given point using e.g. [Horner's method](https://en.wikipedia.org/wiki/Horner%27s_method).
 
-However, every such polynomial may also be represented by a set of `N+1` point-value pairs `(p0, v0), ..., (pN, vN)` where `vi = f(pi)` and all the `pi` are distinct. This requires a more involved procedure for finding the value at 
+However, every such polynomial may also be represented by a set of `N+1` point-value pairs `(p0, v0), ..., (pN, vN)` where `vi = f(pi)` and all the `pi` are distinct. And evaluating the polynomial at a given point is still possible, yet now requires a more involved *interpolation* procedure that is typically less efficient, at least unless some preprocessing is performed. 
 
-secrets are somehow embedded in a polynomial that is then evaluated at a set of points to obtain the shares. More specifically, both schemes have perform the following two steps:
-1. sample polynomial `f` satisfying a set of constraints
-2. evaluate `f` at a set of points
-
+At the same time, the point-value has several advantages over the coefficient representation, one of them being that the same `N+1` degree polynomial may be represented by *more than* `N+1` pairs... **TODO**
+Note that same `N+1` degree polynomial may also be represented using *more than* `N+1` pairs in the point-value representation. In this case there is some redundancy in the representation, that we may for instance take advantage of in secret sharing (to reconstruct even if some shares are lost) and in coding theory (to decode correctly even if some errors occur during transmission). This would not be possible in the coefficient representation, since adding more (non-zero) coefficients increases the degree. However, in point-value representation it is, since the pairs are technically speaking defining the *least degree* polynomial `g` such that `g(pi) == vi`. The reason we can use to two representations somewhat interchangible is that if the pairs where generated by a `N+1` degree polynomial `f` then we are guaranteed that `g == f`.
 
 
-
-But  The reason for this is that the representation of the sampled polynomial is different: in the first case it is in coefficient form while in the latter it is in point-value form.
-
-
-
-
-
-
-
-
-
-
-
-# Secret Sharing
-
-The core of sharing in both schemes is
-
-
-while the core of reconstruction is interpolation. As we shall see below, in both cases it is hence essentially about converting from one representation of polynomials to another.
-
-
-# Performance Improvements
-
-The algorithms below are somewhat more complex than those of the previous post and as we shall see, adds some constraints on how we can choose our privacy threshold `T` and number of shares `N`.
-
-Jumping ahead, here are a comparison between the performance of the implementations in the first post to those of this post....
-
-FFT is worth it
 
 
 # Fast Fourier Transform
 
-Indeed, our current implementation of the packed scheme relies on the Fast Fourier Transform over finite fields (also known as a Number Theoretic Transform), whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.
+Indeed, our current implementation of the packed scheme relies on the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) over finite fields (also known as a [Number Theoretic Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform_(general)#Number-theoretic_transform)) whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.
+
+
+## Walkthrough example
+
+Assume `A(x) = 1 + 2x + 3x^2 + 4x^3`; for readability we'll write this as `A(x) = 1 + 2x + 3x2 + 4x3` instead. As such we e.g. have `x1 * x1 = x(1+1) = x2` by the normal addition-of-exponent rule. Or alternatively see e.g. `x3` as component `x[3]` of vector `x = [x^0, x^1, x^2, x^3]`.
+
+```python
+A_coeffs = [1, 2, 3, 4, 5, 6, 7, 8]
+```
+
+If we define two other polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A` then we can easily verify that `A(x) = B(x * x) + x * C(x * x)` for all `x`.
+
+```python
+B_coeffs = [1,    3,    5,    7   ]
+C_coeffs = [   2,    4,    6,    8]
+```
+
+
+`A(w0) = B(w0 * w0) + w0 * C(w0 * w0) = B(w0) + w0 * C(w0)`
+
+`A(w1) = B(w1 * w1) + w1 * C(w1 * w1) = B(w2) + w1 * C(w2)`
+
+`A(w2) = B(w2 * w2) + w2 * C(w2 * w2) = B(w4) + w2 * C(w4)`
+
+`A(w3) = B(w3 * w3) + w3 * C(w3 * w3) = B(w6) + w3 * C(w6)`
+
+`A(w^2) = B(w^4) + w^2 * C(w^4)`, but since `w^4 = w^(4 mod 4) = w^0` then we actually get `A(w^2) = B(w^0) + w^2 * C(w^0)`
+
+`A(w^3) = B(w^6) + w^3 * C(w^6)` but since `w^6 = w^(6 mod 4) = w^2` then we actually get `A(w^3) = B(w^2) + w^3 * C(w^2)`
+
+
+`A(x) = 1 + 2x + 3x^2 + 4x^3 + 5x^4 + 6x^5 + 7x^6 + 8x^7 + 9x^8`
+
+If `B(y) = 1 + 4y + 7y^2`, `C(y) = 2 + 5y + 8y^2`, and `D(y) = 3 + 6y + 9y^2` then `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`. Then, for similar reasons to above, we may compute `A(w^0), ..., A(w^8)` from `B(w^0), B(w^3), B(w^6)`
+
+
+## Algorithm for power-of-2
 
 ```python
 # len(aX) must be a power of 2
@@ -111,15 +117,27 @@ def fft2_forward(aX, omega=OMEGA2):
     A = [0] * len(aX)
     Nhalf = len(aX) // 2
     for i in range(Nhalf):
-        x = (omega**i * C[i]) % Q
-        A[i]         = (B[i] + x) % Q
-        A[i + Nhalf] = (B[i] - x) % Q
+        
+        j = i
+        x = pow(omega, j, Q)
+        A[j] = (B[i] + x * C[i]) % Q
+        
+        j = i + Nhalf
+        x = pow(omega, j, Q)
+        A[j] = (B[i] + x * C[i]) % Q
+      
     return A
+```
 
+```python
 def fft2_backward(A):
     N_inv = inverse(len(A))
     return [ (a * N_inv) % Q for a in fft2_forward(A, inverse(OMEGA2)) ]
 ```
+
+Note that some optimizations omitted to clarity are possible and typically used; they are shown in the Python notebook.
+
+## Algorithm for power-of-3
 
 ```python
 # len(aX) must be a power of 3
@@ -159,7 +177,9 @@ def fft3_forward(aX, omega=OMEGA3):
         A[j] = (B[i] + x * C[i] + xx * D[i]) % Q
 
     return A
+```
 
+```python
 def fft3_backward(A):
     N_inv = inverse(len(A))
     return [ (a * N_inv) % Q for a in fft3_forward(A, inverse(OMEGA3)) ]
@@ -200,6 +220,8 @@ def packed_reconstruct(shares):
     secrets = small_values[1:K+1]
     return secrets
 ```
+
+## Performance evaluation
 
 # Parameter Generation
 

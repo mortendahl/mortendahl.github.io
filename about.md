@@ -3,6 +3,9 @@ layout: page
 title: "About"
 description: "Morten Dahl"
 header-img: "img/about-bg.jpg"
+twitter:     "mortendahlcs"
+github:      "mortendahl"
+linkedin:    "mortendahlcs"
 ---
 
 Background in computer science with work experience in software engineering, cryptography, and data science. PhD in cryptography.

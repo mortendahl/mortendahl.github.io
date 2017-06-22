@@ -65,20 +65,130 @@ Note that same `N+1` degree polynomial may also be represented using *more than*
 Indeed, our current implementation of the packed scheme relies on the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) over finite fields (also known as a [Number Theoretic Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform_(general)#Number-theoretic_transform)) whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.
 
 
-## Walkthrough example
+## Walk-through example
 
-Assume `A(x) = 1 + 2x + 3x^2 + 4x^3`; for readability we'll write this as `A(x) = 1 + 2x + 3x2 + 4x3` instead. As such we e.g. have `x1 * x1 = x(1+1) = x2` by the normal addition-of-exponent rule. Or alternatively see e.g. `x3` as component `x[3]` of vector `x = [x^0, x^1, x^2, x^3]`.
+**todo swap w and v throughout**
 
-```python
-A_coeffs = [1, 2, 3, 4, 5, 6, 7, 8]
-```
+Recall that all our computations happen in a prime field `Z_Q` for some prime `Q`; in this example we'll use `Q = 433`, which order `Q-1` is divisible by both `4` and `9`: `Q-1 == 432 == 4 * 9 * 12`.
 
-If we define two other polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A` then we can easily verify that `A(x) = B(x * x) + x * C(x * x)` for all `x`.
+Assume then that we have a polynomial `A(x) = 1 + 2x + 3x^2 + 4x^3` of degree `N-1 == 3`. For readability we will write this as `A(x) = 1 + 2x + 3x2 + 4x3` instead, and represent it as a list of `N` coefficients.
 
 ```python
-B_coeffs = [1,    3,    5,    7   ]
-C_coeffs = [   2,    4,    6,    8]
+A_coeffs = [ 1, 2, 3, 4 ]
 ```
+
+Our goal is essentially to turn this list of coefficients into a list of equal length of values `[ A(w0), A(w1), A(w2), A(w3) ]` for some points `w = [w0, w1, w2, w3]`. The standard way of evaluating polynomials is of course one way of during this, which using Horner's rule can be done in a total of `Oh(N * N)` operations.
+
+```python
+def horner_evaluate(coeffs, point):
+    result = 0
+    for coef in reversed(coefs):
+        result = (coef + point * result) % Q
+    return result
+  
+A = lambda x: horner_evaluate(A_coeffs, x)
+
+assert([ A(wi) for wi in w ] 
+    == [ 12, 12, 12, 12 ])
+```
+
+As we will see though, the FFT will allow us to do so more efficiently when the length is sufficiently large and the points are chosen carefully; asymptotically it allows us to compute the values in `Oh(N * log N)` operations.
+
+The first insight we need is that there is an alternative evaluation strategy that breaks `A(x)` into two smaller polynomials; in particular, if we define polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A(x)`, then we have `A(x) = B(x * x) + x * C(x * x)`.
+
+This means that if we know values of `B(y)` and `C(y)` at *the squares* `v` of the `w` points then we can use these to compute the values of `A(x)` at the `w` points using table look-ups: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+
+```python
+# split A into B and C
+B_coeffs = [ 1,    3,   ] # = A_coeffs[0::2]
+C_coeffs = [    2,    4 ] # = A_coeffs[1::2]
+B = lambda y: horner_evaluate(B_coeffs, y)
+C = lambda y: horner_evaluate(C_coeffs, y)
+
+# compute values for B and C
+v = [ wi * wi % Q for wi in w ]
+B_values = [ B(vi) for vi in v ]
+C_values = [ C(vi) for vi in v ]
+
+# combine results into values for A
+A_values = [ ( B_values[i] + w[i] * C_values[i] ) % Q for i,_ in enumerate(w) ]
+
+assert(A_values == [ A(wi) for wi in w ] )
+```
+
+
+
+
+So far we haven't saved much, but the second insight fixes that. Namely, by picking the points `w` to be the elements of a subgroup of order 4, the `v` points used for `B` and `C` will form a subgroup of order 2; in particular, we have `v[0] == v[2]` and `v[1] == v[3]` so we only need the first halves of `B_values` and `C_values`, and have hence cut the problem in half!
+
+To do this we need a generator `OMEGA` of the subgroup of order `N`. We shall return to how this is found later, and for now simply state that `179` is one such when `Q = 433`.
+
+```python
+OMEGA = 179
+
+assert( len(set( pow(OMEGA, e, Q) for e in range(Q) )) == N )
+
+w = [ pow(OMEGA, e, Q) for e in range(N) ]
+
+v = [ w[0] * w[0], w[1] * w[1] ]
+assert(v == [ cds, cds ])
+
+B_values = [ B(v[0]), B(v[1]) ]
+C_values = [ C(v[0]), C(v[1]) ]
+```
+now with `A_values[i] = B_values[i % 2] + w[i] * C_values[i % 2]`.
+
+The third and final insight we need is then that we can continue this process of diving the polynomial to evaluate in half: to compute e.g. `B_values` we can break `B` into two polynomials `D` and `E` of degree 0 (i.e. only a constant), and using `A_values` we could find the values of a larger degree 8 polynomial. The only requirement for this process is to make sure we always have a subgroup of the right order. 
+
+## Dump
+
+
+Why this is interesting will become clear below, but we see that if we already have lists `B_values` and `C_values` then we may now use these to compute our desired `A_values` by look-ups and a multiplication and addition: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+
+```python
+w = [ 1, 2, 3, 4 ]
+v = [ wi * wi % Q for wi in w ]
+
+A_values  = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
+
+B_values  = [ B(v[0]), B(v[1]), B(v[2]), B(v[3]) ]
+C_values  = [ C(v[0]), C(v[1]), C(v[2]), C(v[3]) ]
+BC_values = [ B_values[i] + w[i] * C_values[i] for i,_ in enumerate(w) ]
+
+for i in enumerate(A_values):
+  assert(  )
+```
+then we may use these to compute our desired
+```python
+A_values = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
+```
+
+
+```python
+
+w = [ 1, 2, 3, 4 ]
+
+assert([ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ] 
+    == [       1,      10,        ,         ])
+    
+assert([ BC(w[0]), BC(w[1]), BC(w[2]), BC(w[3]) ]
+    == [        1,       10,         ,          ])
+```
+
+
+One way of looking at this is that if we already have lists 
+```python
+B_values = [ B(w[0] * w[0]), B(w[1] * w[1]), B(w[2] * w[2]), B(w[3] * w[3]) ]
+C_values = [ C(w[0] * w[0]), C(w[1] * w[1]), C(w[2] * w[2]), C(w[3] * w[3]) ]
+```
+then we may use these to compute our desired
+```python
+A_values = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
+```
+by look-ups and a multiplication and addition: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+
+
+
 
 
 `A(w0) = B(w0 * w0) + w0 * C(w0 * w0) = B(w0) + w0 * C(w0)`
@@ -97,6 +207,8 @@ C_coeffs = [   2,    4,    6,    8]
 `A(x) = 1 + 2x + 3x^2 + 4x^3 + 5x^4 + 6x^5 + 7x^6 + 8x^7 + 9x^8`
 
 If `B(y) = 1 + 4y + 7y^2`, `C(y) = 2 + 5y + 8y^2`, and `D(y) = 3 + 6y + 9y^2` then `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`. Then, for similar reasons to above, we may compute `A(w^0), ..., A(w^8)` from `B(w^0), B(w^3), B(w^6)`
+
+
 
 
 ## Algorithm for power-of-2

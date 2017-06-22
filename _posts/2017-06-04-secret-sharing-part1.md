@@ -253,7 +253,7 @@ One remedy is to simply multiply all parameters by `K`; in the example we get `1
 The scheme has the same homomorphic properties as Shamir's, yet now operate in a [SIMD](https://en.wikipedia.org/wiki/SIMD) fashion where each addition or multiplication is simultaneously performed on every secret shared together. This in itself can have benefits if it fits naturally with the application.
 
 
-# Conclusion
+# Next Steps
 
 Although an old and simple primitive, secret sharing has several properties that makes it interesting as a way of delegating trust and computation to e.g. a community of users, even if the devices of these users are somewhat inefficient and unreliable.
 

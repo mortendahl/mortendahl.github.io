@@ -29,7 +29,7 @@ The algorithms in this post are significantly more complex than [what is typical
 
 # Polynomials
 
-If we [look back](/2017/06/04/secret-sharing-part1/) at Shamir's scheme we see that it's all about polynomials: a random polynomial embedding the secret is sampled, and the shares are taken as its value at certain points.
+If we [look back](/2017/06/04/secret-sharing-part1/) at Shamir's scheme we see that it's all about polynomials: a random polynomial embedding the secret is sampled, and the shares are taken as its values at certain points.
 
 ```python
 def shamir_share(secret):
@@ -211,7 +211,7 @@ If `B(y) = 1 + 4y + 7y^2`, `C(y) = 2 + 5y + 8y^2`, and `D(y) = 3 + 6y + 9y^2` th
 
 
 
-## Algorithm for power-of-2
+## Algorithm for base 2
 
 ```python
 # len(aX) must be a power of 2
@@ -249,7 +249,7 @@ def fft2_backward(A):
 
 Note that some optimizations omitted to clarity are possible and typically used; they are shown in the Python notebook.
 
-## Algorithm for power-of-3
+## Algorithm for base 3
 
 ```python
 # len(aX) must be a power of 3
@@ -297,9 +297,15 @@ def fft3_backward(A):
     return [ (a * N_inv) % Q for a in fft3_forward(A, inverse(OMEGA3)) ]
 ```
 
+
 # Application to Secret Sharing
 
+We can now return to applying the FFT to the secret sharing schemes. As mentioned earlier, using this instead of the more traditional approaches makes most sense when the vectors we are dealing with are above a certain size, such as if we are sharing several secrets together or generating many shares. See [the Rust benchmarks](https://github.com/mortendahl/rust-threshold-secret-sharing) for more concrete numbers.
+
+
 ## Shamir's scheme
+
+In this scheme we can easily sample our polynomial directly in coefficient form, and hence the FFT is only relevant in the second step where we generate the shares. Concretely, we can directly sample the polynomial with a *small* number of coefficients, add extra zeros to get a *large* number of coefficients matching the number of shares we want, and then apply the forward FFT to turn this into a vector of values that we take as the shares.
 
 ```python
 def shamir_share(secret):
@@ -310,8 +316,18 @@ def shamir_share(secret):
     return shares
 ```
 
+Note that we've used base 3 here to be consistent with the next scheme; base 2 would of course also have worked.
+
 
 ## Packed scheme
+
+Recall that for this scheme it is less obvious how we can sample our polynomial directly in coefficient form, and hence we instead do so in point-value form. Specifically, we first use the backward FFT in base 2 to turn such a polynomial into coefficient form, and then as above use the forward FFT in base 3 to generate the shares. 
+
+Note that we are hence dealing with two sets of points: those used during sampling, and those used during share generation -- and these cannot overlap! If they did the privacy guarantee would no longer be satisfied and some of the share values might literally equal some of the secrets.
+
+Preventing this from happening is the reason we use two different (co-prime) bases: any two subgroups with a non-trivial overlap will have a common order divider (**todo make clearer**); so since the bases are co-prime they will only have the 1 in common. As such we are safe if we simply make sure to exclude the value at point 1 from being used.
+
+For sharing we first sample the values of the polynomial, fixing the value at point 1 to be a constant (in this case zero). Using the backward FFT we then turn this into a small vector of coefficients, which we then as in Shamir's scheme, extend with zero coefficients to get a larger vector of coefficients matching the forward FFT. Finally, since the first value obtained from this corresponds to point 1, and hence is the same as the constant used before, we remove it before returning the values as shares.
 
 ```python
 def packed_share(secrets):
@@ -323,6 +339,8 @@ def packed_share(secrets):
     return shares
 ```
 
+We will talk more about how to do efficient reconstruction in the next blog post, but note that if all the shares are known then the above sharing procedure can efficiently be run backwards by simply running the two FFTs in their opposite direction.
+
 ```python
 def packed_reconstruct(shares):
     large_values = [0] + shares
@@ -333,9 +351,19 @@ def packed_reconstruct(shares):
     return secrets
 ```
 
+However this only works if all shares are known and correct; any loss or tampering will get in the way of using the FFT for reconstruction, unless we add an additional ingredient; this is the topic of the follow-up blog post.
+
+
 ## Performance evaluation
 
+
 # Parameter Generation
+
+Since there are no security implications in re-using a same fixed set of parameters across applications, parameter generation is perhaps less important compared to for instance key generation in encryption schemes. Nonetheless, one of the benefits of secret sharing schemes is their ability to avoid big expansion factors by using parameters tailored to the use case; concretely, to pick a field of just the right size. As such we shall now fill in this final piece of the puzzle and see how a set of parameters fitting with the FFTs used in the packed scheme can be generated.
+
+Our main abstraction is the `generate_parameters` function which takes a desired minimum field size in bits, as well as the number of secrets `k` we which to packed together, the privacy threshold `t` we want, and the number `n` of shares to generate. Accounting for the value at point 1 that we are throwing away (see earlier) we must then have that `k + t + 1` is suitable for the base 2 FFT and that `n + 1` is suitable for the base 3 FFT -- which amounts to them being respectively a power of 2 or 3.
+
+To then make sure that our field has a subgroup of those two sizes, we simply need to find a field whose order is divided by both sizes. Specifically, since we're considering only prime fields, we need to find a prime `q` such that its order `q-1` is divided by both sizes. Moreover, to also find the two subgroups we also need a generator `g` of the field.`
 
 ```python
 def generate_parameters(min_bitsize, k, t, n):
@@ -352,12 +380,16 @@ def generate_parameters(min_bitsize, k, t, n):
     return p, omega2, omega3
 ```
 
+Finding our `q` and `g` is done by `find_prime_field`, which works by first finding a prime of the right size and with the right order. To then also find the generator we need a piece of auxiliary information, namely the prime factors in the order.
+
 ```python
 def find_prime_field(min_bitsize, order_divisor):
     p, order_prime_factors = find_prime(min_bitsize, order_divisor)
     g = find_generator(p, order_prime_factors)
     return p, g
 ```
+
+The reason for this is that we can use the prime factors in the order to efficiently test whether an arbitrary candidate element in the field is in fact a generator. This follows from a well-known number theory as detailed in standard textbooks on the matter. **todo references, theorem statement?**
 
 ```python
 def find_generator(prime, order_prime_factors):
@@ -371,20 +403,29 @@ def find_generator(prime, order_prime_factors):
             return candidate
 ```
 
+This leaves us with only a few question regarding prime numbers as explained next.
+
+
 ## Finding primes
+
+To find a prime `q` with the desired structure (i.e. of a certain minimum size and whose order `q-1` has a given divisor) we may either do rejection sampling of primes until we hit one that satisfies our need, or we may construct it from smaller parts so that it by design fits with what we want. The latter seems more efficient so that is what we will do here.
+
+Specifically, given `min_bitsize` and `order_divisor` we do rejection sampling over two values `k1` and `k2` until `q = k1 * k2 * order_divisor + 1` is a [probable prime](https://en.wikipedia.org/wiki/Probable_prime). The `k1` is used to ensure that the minimum size is met, and `k2` is used to give us a bit of wiggle room -- it can in principle be omitted, but empirical tests show that it doesn't have to be very large it give an efficiency boost, essentially at the expense of potentially overshooting the desired field size by a few bits. Finally, since we also need to know the prime factorization of `q - 1`, and since this in general is believed to be an [inherently slow process](https://en.wikipedia.org/wiki/Integer_factorization), we by construction ensure that `k1` is a prime so that we only have to factor `k2` and `order_divisor` which we assume to be somewhat small.
 
 ```python
 def find_prime(min_bitsize, order_divisor):
     while True:
         k1 = sample_prime(min_bitsize)
         for k2 in range(128):
-            p = k1 * k2 * order_divisor + 1
-            if is_prime(p):
+            q = k1 * k2 * order_divisor + 1
+            if is_prime(q):
                 order_prime_factors  = [k1]
                 order_prime_factors += prime_factor(k2)
                 order_prime_factors += prime_factor(order_divisor)
-                return p, order_prime_factors
+                return q, order_prime_factors
 ```
+
+Sampling primes are done using standard randomized primality tests.
 
 ```python
 def sample_prime(bitsize):
@@ -395,6 +436,8 @@ def sample_prime(bitsize):
         if is_prime(candidate):
             return candidate
 ```
+
+And factoring a number is done by simply trying a fixed set of all small primes in sequence; this will of course not work if the input is too large, but that is not likely to happen in real-world applications.
 
 ```python
 def prime_factor(x):
@@ -408,8 +451,12 @@ def prime_factor(x):
     return factors
 ```
 
+Putting these pieces together we end up with an efficient procedure for generating parameters for use with FFTs: finding large fields of size e.g. 128bits is a matter of milliseconds.
 
-TODO
 
-# Conclusion
+# Next Steps
+
+While we have seen that the Fast Fourier Transform can be used to greatly speed up the sharing process, it has a serious limitation when it comes to speeding up the reconstruction process: in its current form it requires all shares to be present and untampered with. As such, for most application we will be forced to resort to the more traditional and slower approaches of Newton or Laplace interpolation.
+
+In the next blog post we will look at a technique for also using the Fast Fourier Transform for reconstruction, using techniques from error correction codes to account for missing or faulty shares, yet get similar speedup benefits to what we achieved here.
 

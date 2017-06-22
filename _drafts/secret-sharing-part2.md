@@ -250,7 +250,12 @@ def fft2_backward(A):
 
 Note that some optimizations omitted to clarity are possible and typically used; they are shown in the Python notebook.
 
+
 ## Algorithm for base 3
+
+There is unsurprisingly nothing exclusive about the number of coefficients and values being a power of 2, and other bases can work as well. **todo**
+
+Instead of splitting `A` into two polynomials `B` and `C` as we did for base 2, we now split it into polynomials `B`, `C`, and `D` such that `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`, and in our recursive call we use the cube of `omega` instead of the square.
 
 ```python
 # len(aX) must be a power of 3
@@ -297,6 +302,13 @@ def fft3_backward(A):
     N_inv = inverse(len(A))
     return [ (a * N_inv) % Q for a in fft3_forward(A, inverse(OMEGA3)) ]
 ```
+
+## Optimizations
+
+For easy of presentation we have omitted some typical optimizations here, perhaps most typically the fact that for base 2 we have the property that `omega^i == -omega^(i + N/2)`, meaning we can cut the number of exponentiations in half compared to the above.
+
+More interestingly, the FFTs can be also run in-place and hence reusing the list in which the input is provided. This saves memory allocation and has a significant impact on performance. Likewise, we may gain improvements by switching to another number representation, for instance [Montgomery form](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication). Both of these approaches are described in further detail [elsewhere](https://medium.com/snips-ai/optimizing-threshold-secret-sharing-c877901231e5).
+
 
 
 # Application to Secret Sharing

@@ -4,9 +4,10 @@ title:      "Secret Sharing, Part 1"
 subtitle:   "Distributing Trust and Work"
 date:       2017-06-04 12:00:00
 header-img: "img/post-bg-02.jpg"
-author:           "Morten Dahl"
-twitter_username: "mortendahlcs"
-github_username:  "mortendahl"
+author:     "Morten Dahl"
+twitter:    "mortendahlcs"
+github:     "mortendahl"
+linkedin:   "mortendahlcs"
 ---
 
 [Secret sharing](https://en.wikipedia.org/wiki/Secret_sharing) is an old well-known cryptographic primitive, with existing real-world applications in e.g. [Bitcoin signatures](https://bitcoinmagazine.com/articles/threshold-signatures-new-standard-wallet-security-1425937098) and [password management](https://www.vaultproject.io/docs/internals/security.html). But perhaps more interestingly, secret sharing also has strong links to [secure computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) and may for instance be used for [private machine learning](/2017/04/17/private-deep-learning-with-mpc/).

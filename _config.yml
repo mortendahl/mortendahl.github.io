@@ -5,8 +5,8 @@ header-img: img/home-bg.jpg
 description: "Mixing both for private data analysis"
 baseurl: ""
 url: "https://mortendahl.github.io"
-twitter_username: mortendahlcs
-github_username: mortendahl
+twitter: mortendahlcs
+github: mortendahl
 
 # Google Analytics
 # To enable google analytics, uncomment below line with a valid Google Tracking ID

@@ -1,12 +1,13 @@
 ---
-layout:           post
-title:            "Private Deep Learning with MPC"
-subtitle:         "A Simple Tutorial from Scratch"
-date:             2017-04-17 12:00:00
-header-img:       "img/post-bg-01.jpg"
-author:           "Morten Dahl"
-twitter_username: "mortendahlcs"
-github_username:  "mortendahl"
+layout:     post
+title:      "Private Deep Learning with MPC"
+subtitle:   "A Simple Tutorial from Scratch"
+date:       2017-04-17 12:00:00
+header-img: "img/post-bg-01.jpg"
+author:     "Morten Dahl"
+twitter:    "mortendahlcs"
+github:     "mortendahl"
+linkedin:   "mortendahlcs"
 ---
 
 Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using *secure multi-party computation* instead of homomorphic encryption.

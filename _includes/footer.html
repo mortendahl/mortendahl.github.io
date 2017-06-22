@@ -12,9 +12,9 @@
                             </span>
                         </a>
                     </li>
-                    {% if page.twitter_username %}
+                    {% if page.twitter %}
                     <li>
-                        <a href="https://twitter.com/{{ page.twitter_username }}">
+                        <a href="https://twitter.com/{{ page.twitter }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
@@ -32,12 +32,22 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if page.github_username %}
+                    {% if page.github %}
                     <li>
-                        <a href="https://github.com/{{ page.github_username }}">
+                        <a href="https://github.com/{{ page.github }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                            </span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if page.linkedin %}
+                    <li>
+                        <a href="https://www.linkedin.com/in/{{ page.linkedin }}">
+                            <span class="fa-stack fa-lg">
+                                <i class="fa fa-circle fa-stack-2x"></i>
+                                <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
                             </span>
                         </a>
                     </li>

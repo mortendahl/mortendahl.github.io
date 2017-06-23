@@ -10,8 +10,6 @@ linkedin:    "mortendahlcs"
 
 Background in computer science with work experience in software engineering, cryptography, and data science. PhD in cryptography.
 
-Working to build private machine learning systems that will allow us to make better use of our data.
-
 <i>
 Visit me on
 <a href="https://www.twitter.com/mortendahlcs">Twitter</a>,

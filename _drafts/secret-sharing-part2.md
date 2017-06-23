@@ -10,27 +10,17 @@ github:     "mortendahl"
 linkedin:   "mortendahlcs"
 ---
 
-<em><strong>TL;DR:</strong> efficient secret sharing requires fast polynomial evaluation and interpolation; here we show what it takes to use the Fast Fourier Transform for this.</em>
+<em><strong>TL;DR:</strong> efficient secret sharing requires fast polynomial evaluation and interpolation; here we go through what it takes to use the well-known Fast Fourier Transform for this.</em>
 
-In the [first part](/2017/06/04/secret-sharing-part1/) on secret sharing we looked at Shamir's scheme and its packed variant where several secrets are shared together. Polynomials lie at the core of both schemes
+In the [first part](/2017/06/04/secret-sharing-part1/) we looked at Shamir's scheme, as well as its packed variant where several secrets are shared together. We saw that polynomials lie at the core of both schemes, and that implementation is basically a question of (partially) converting back and forth between two different representations of these. We also gave typical algorithms for doing this.
 
-do we use the values of a polynomial 
+For this part we will look at somewhat more complex algorithms in an attempt to speed up the computations needed for generating shares. In particular we shall implement and apply the Fast Fourier Transform. Performance measurements performed with [our Rust implementation](https://crates.io/crates/threshold-secret-sharing) shows orders of magnitude efficiency improvements when either the number of secrets or number of shares is high.
 
-There is a Python notebook containing [the code samples](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Fast%20Fourier%20Transform.ipynb), yet for better performance our [open source Rust library](https://crates.io/crates/threshold-secret-sharing) is recommended.
-
-<em>
-Parts of this blog post are derived from work done at [Snips](https://snips.ai/) and [originally appearing in another blog post](https://medium.com/snips-ai/high-volume-secret-sharing-2e7dc5b41e9a). That work also included parts of the Rust implementation.
-</em>
-
-
-**TODO TODO TODO motivation for using a prime field (as opposed to an extension field): it allows us to naturally use modular arithmetic to simulate bounded integer arithmetic, as useful for instance in secure computation. in the previous post we used prime fields, but all the algorithms there would carry directly over to an extension field (they will here as well, but again we focus on prime fields). binary extension fields would make the computations more efficient but are less suitable since it is less obvious which encoding/embedding to use in order to simulate integer arithmetic**
-
-The algorithms in this post are significantly more complex than [what is typically used for Shamir sharing](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Schemes.ipynb), and as such it's worth considering when there's an actual benefit to be had from using them. [Our Rust implementation](https://crates.io/crates/threshold-secret-sharing) perhaps provides a more realistic foundation for comparing the different algorithms and parameter choice; in particular, the library unsurprisingly shows that when either the number of secrets or number of shares is high then there a orders of magnitude efficiency improvements to be gained.
-
+To see the bigger picture there is also an [associated Python notebook](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Fast%20Fourier%20Transform.ipynb) with all the code samples.
 
 # Polynomials
 
-If we [look back](/2017/06/04/secret-sharing-part1/) at Shamir's scheme we see that it's all about polynomials: a random polynomial embedding the secret is sampled, and the shares are taken as its values at certain points.
+If we [look back](/2017/06/04/secret-sharing-part1/) at Shamir's scheme we see that it's all about polynomials: a random polynomial embedding the secret is sampled and the shares are taken as its values at a certain set of points.
 
 ```python
 def shamir_share(secret):
@@ -49,36 +39,37 @@ def packed_share(secrets):
     return shares
 ```
 
-Notice however that it differs in how the shares (as values of the polynomial) are found: Shamir's scheme uses `evaluate_at_point` while the packed uses `interpolate_at_point`. The reason is that the sampled polynomial in the former case is in *coefficient representation* while in the latter it is in *point-value representation*.
+Notice however that they differ slightly in how the shares are computed: Shamir's scheme uses `evaluate_at_point` while the packed uses `interpolate_at_point`. The reason is that the sampled polynomial in the former case is in *coefficient representation* while in the latter it is in *point-value representation*.
 
 Specifically, we often represent a polynomial `f` of degree `N` by a list of `N+1` coefficients `a0, ..., aN` such that `f(x) = (a0) + (a1 * x) + (a2 * x^2) + ... + (aN * x^N)`. This representation is convenient for many things, including efficiently evaluating the polynomial at a given point using e.g. [Horner's method](https://en.wikipedia.org/wiki/Horner%27s_method).
 
-However, every such polynomial may also be represented by a set of `N+1` point-value pairs `(p0, v0), ..., (pN, vN)` where `vi = f(pi)` and all the `pi` are distinct. And evaluating the polynomial at a given point is still possible, yet now requires a more involved *interpolation* procedure that is typically less efficient, at least unless some preprocessing is performed. 
+However, every such polynomial may also be represented by a set of `N+1` point-value pairs `(p0, v0), ..., (pN, vN)` where `vi = f(pi)` and all the `pi` are distinct. Evaluating the polynomial at a given point is still possible, yet now requires a more involved *interpolation* procedure that is typically less efficient, at least unless some preprocessing is performed. 
 
-At the same time, the point-value has several advantages over the coefficient representation, one of them being that the same `N+1` degree polynomial may be represented by *more than* `N+1` pairs... **TODO**
-Note that same `N+1` degree polynomial may also be represented using *more than* `N+1` pairs in the point-value representation. In this case there is some redundancy in the representation, that we may for instance take advantage of in secret sharing (to reconstruct even if some shares are lost) and in coding theory (to decode correctly even if some errors occur during transmission). This would not be possible in the coefficient representation, since adding more (non-zero) coefficients increases the degree. However, in point-value representation it is, since the pairs are technically speaking defining the *least degree* polynomial `g` such that `g(pi) == vi`. The reason we can use to two representations somewhat interchangible is that if the pairs where generated by a `N+1` degree polynomial `f` then we are guaranteed that `g == f`.
+But the point-value representation also has the advantage that a degree `N` polynomial may be represented by *more than* `N+1` pairs. In this case there is some redundancy in the representation that we may for instance take advantage of in secret sharing (to reconstruct even if some shares are lost) and in coding theory (to decode correctly even if some errors occur during transmission).
 
+The reason this works is that the result of interpolation on a point-value representation with `N+1` pairs is technically speaking defined with respect to the *least degree* polynomial `g` such that `g(pi) == vi` for all pairs in the set, which is [unique](https://en.wikipedia.org/wiki/Polynomial_interpolation#Uniqueness_of_the_interpolating_polynomial) and has at most degree `N`. This means that if two point-value representations are generated using the same polynomial `g` then interpolation on these will yield identical results, even when the two sets are of different sizes or use different points, since the least degree polynomial is the same. 
 
+It is also why we can use the two representations somewhat interchangeably: if a point-value representation with `N+1` pairs where generated by a degree `N` polynomial `f` then the unique least degree polynomial agreeing with these must be `f`, making interpolation injective. **todo**
 
 
 # Fast Fourier Transform
 
-Indeed, our current implementation of the packed scheme relies on the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) over finite fields (also known as a [Number Theoretic Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform_(general)#Number-theoretic_transform)) whereas the typical implementation of Shamir’s scheme only needs a simple evaluation of polynomials.
+With the two presentation of polynomials in mind we move on to how the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) (FFT) over finite fields -- also known as a [Number Theoretic Transform](https://en.wikipedia.org/wiki/Discrete_Fourier_transform_(general)#Number-theoretic_transform) (NTT) -- can be used to perform efficient conversion between them. And for me the best way of doing this is through an example that can later be generalised into a algorithm.
 
 
 ## Walk-through example
 
-**todo swap w and v throughout**
+Recall that all our computations happen in a prime field determined by a fixed prime `Q`; in this example we will use `Q = 433`, who's order `Q-1` is divisible by both `4` and `9`: `Q-1 == 432 == 4 * 9 * k` for `k = 12`.
 
-Recall that all our computations happen in a prime field `Z_Q` for some prime `Q`; in this example we'll use `Q = 433`, which order `Q-1` is divisible by both `4` and `9`: `Q-1 == 432 == 4 * 9 * 12`.
-
-Assume then that we have a polynomial `A(x) = 1 + 2x + 3x^2 + 4x^3` of degree `N-1 == 3`. For readability we will write this as `A(x) = 1 + 2x + 3x2 + 4x3` instead, and represent it as a list of `N` coefficients.
+Assume then that we have a polynomial `A(x) = 1 + 2x + 3x^2 + 4x^3` over this field with `N == 4` coefficients, and hence of degree `N-1 == 3`.
 
 ```python
 A_coeffs = [ 1, 2, 3, 4 ]
 ```
 
-Our goal is essentially to turn this list of coefficients into a list of equal length of values `[ A(w0), A(w1), A(w2), A(w3) ]` for some points `w = [w0, w1, w2, w3]`. The standard way of evaluating polynomials is of course one way of during this, which using Horner's rule can be done in a total of `Oh(N * N)` operations.
+Our goal is to turn this list of coefficients into a list of values `[ A(w0), A(w1), A(w2), A(w3) ]` of equal length, for points `w = [w0, w1, w2, w3]`.
+
+The standard way of evaluating polynomials is of course one way of during this, which using Horner's rule can be done in a total of `Oh(N * N)` operations.
 
 ```python
 def horner_evaluate(coeffs, point):
@@ -93,219 +84,162 @@ assert([ A(wi) for wi in w ]
     == [ 12, 12, 12, 12 ])
 ```
 
-As we will see though, the FFT will allow us to do so more efficiently when the length is sufficiently large and the points are chosen carefully; asymptotically it allows us to compute the values in `Oh(N * log N)` operations.
+But as we will see, the FFT allows us to do so more efficiently when the length is sufficiently large and the points are chosen with a certain structure; asymptotically we can then compute the values in `Oh(N * log N)` operations.
 
-The first insight we need is that there is an alternative evaluation strategy that breaks `A(x)` into two smaller polynomials; in particular, if we define polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A(x)`, then we have `A(x) = B(x * x) + x * C(x * x)`.
+The first insight we need is that there is an alternative evaluation strategy that breaks `A` into two smaller polynomials. In particular, if we define polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A` then we have `A(x) == B(x * x) + x * C(x * x)`, which is straight-forward to verify by simply writing out the right-hand side.
 
-This means that if we know values of `B(y)` and `C(y)` at *the squares* `v` of the `w` points then we can use these to compute the values of `A(x)` at the `w` points using table look-ups: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+This means that if we know values of `B(y)` and `C(y)` at the *squares* `v` of the `w` points, then we can use these to compute the values of `A(x)` at the `w` points using table look-ups: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
 
 ```python
 # split A into B and C
-B_coeffs = [ 1,    3,   ] # = A_coeffs[0::2]
-C_coeffs = [    2,    4 ] # = A_coeffs[1::2]
-B = lambda y: horner_evaluate(B_coeffs, y)
-C = lambda y: horner_evaluate(C_coeffs, y)
+B_coeffs = A_coeffs[0::2] # == [ 1,    3,   ]
+C_coeffs = A_coeffs[1::2] # == [    2,    4 ]
 
-# compute values for B and C
+# square the w points
 v = [ wi * wi % Q for wi in w ]
-B_values = [ B(vi) for vi in v ]
-C_values = [ C(vi) for vi in v ]
 
-# combine results into values for A
+# somehow compute the values of B and C at the v points
+# ...
+assert( B_values == [ B(vi) for vi in v ] )
+assert( C_values == [ C(vi) for vi in v ] )
+
+# combine results into values of A at the w points
 A_values = [ ( B_values[i] + w[i] * C_values[i] ) % Q for i,_ in enumerate(w) ]
 
-assert(A_values == [ A(wi) for wi in w ] )
+assert( A_values == [ A(wi) for wi in w ] )
 ```
 
+So far we haven't saved much, but the second insight fixes that: by picking the points `w` to be the elements of a subgroup of order 4, the `v` points used for `B` and `C` will form a subgroup of order 2 due to the squaring; hence, we will have `v[0] == v[2]` and `v[1] == v[3]` and so only need the first halves of `B_values` and `C_values` -- as such we have cut the subproblems in half!
 
-
-
-So far we haven't saved much, but the second insight fixes that. Namely, by picking the points `w` to be the elements of a subgroup of order 4, the `v` points used for `B` and `C` will form a subgroup of order 2; in particular, we have `v[0] == v[2]` and `v[1] == v[3]` so we only need the first halves of `B_values` and `C_values`, and have hence cut the problem in half!
-
-To do this we need a generator `OMEGA` of the subgroup of order `N`. We shall return to how this is found later, and for now simply state that `179` is one such when `Q = 433`.
+Such subgroups are typically characterized by a generator, i.e. an element of the field that when raised to powers will take on exactly the values of the subgroup elements; historically such generators are denoted by the omega symbol so we will follow that convention here as well.
 
 ```python
-OMEGA = 179
+# generator of subgroup of order 4
+omega4 = 179
 
-assert( len(set( pow(OMEGA, e, Q) for e in range(Q) )) == N )
-
-w = [ pow(OMEGA, e, Q) for e in range(N) ]
-
-v = [ w[0] * w[0], w[1] * w[1] ]
-assert(v == [ cds, cds ])
-
-B_values = [ B(v[0]), B(v[1]) ]
-C_values = [ C(v[0]), C(v[1]) ]
-```
-now with `A_values[i] = B_values[i % 2] + w[i] * C_values[i % 2]`.
-
-The third and final insight we need is then that we can continue this process of diving the polynomial to evaluate in half: to compute e.g. `B_values` we can break `B` into two polynomials `D` and `E` of degree 0 (i.e. only a constant), and using `A_values` we could find the values of a larger degree 8 polynomial. The only requirement for this process is to make sure we always have a subgroup of the right order. 
-
-## Dump
-
-
-Why this is interesting will become clear below, but we see that if we already have lists `B_values` and `C_values` then we may now use these to compute our desired `A_values` by look-ups and a multiplication and addition: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
-
-```python
-w = [ 1, 2, 3, 4 ]
-v = [ wi * wi % Q for wi in w ]
-
-A_values  = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
-
-B_values  = [ B(v[0]), B(v[1]), B(v[2]), B(v[3]) ]
-C_values  = [ C(v[0]), C(v[1]), C(v[2]), C(v[3]) ]
-BC_values = [ B_values[i] + w[i] * C_values[i] for i,_ in enumerate(w) ]
-
-for i in enumerate(A_values):
-  assert(  )
-```
-then we may use these to compute our desired
-```python
-A_values = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
+w = [ pow(omega4, e, Q) for e in range(4) ]
+assert( w == [1, 179, 432, 254] )
 ```
 
+We shall return to how to find such generator below, but note that once we know one of order 4 then it's easy to find one of order 2: we simply square.
 
 ```python
+# generator of subgroup of order 2
+omega2 = omega4 * omega4 % Q
 
-w = [ 1, 2, 3, 4 ]
-
-assert([ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ] 
-    == [       1,      10,        ,         ])
-    
-assert([ BC(w[0]), BC(w[1]), BC(w[2]), BC(w[3]) ]
-    == [        1,       10,         ,          ])
+v = [ pow(omega2, e, Q) for e in range(2) ]
+assert( v == [1, 432] )
 ```
 
+As a quick test we may also check that the orders are indeed as claimed. Specifically, if we keep raising `omega4` to higher powers than we except to keep visiting the same four numbers, and likewise we expect to keep visiting the same two numbers for `omega2`.
 
-One way of looking at this is that if we already have lists 
 ```python
-B_values = [ B(w[0] * w[0]), B(w[1] * w[1]), B(w[2] * w[2]), B(w[3] * w[3]) ]
-C_values = [ C(w[0] * w[0]), C(w[1] * w[1]), C(w[2] * w[2]), C(w[3] * w[3]) ]
+assert( [ pow(omega4, e, Q) for e in range(8) ] == [1, 179, 432, 254, 1, 179, 432, 254] )
+assert( [ pow(omega2, e, Q) for e in range(8) ] == [1, 432,   1, 432, 1, 432,   1, 432] )
 ```
-then we may use these to compute our desired
-```python
-A_values = [ A(w[0]), A(w[1]), A(w[2]), A(w[3]) ]
-```
-by look-ups and a multiplication and addition: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+
+Using generators we also see that there is no need to explicitly calculate the lists `w` and `v` anymore as they are now implicitly defined by the generator. So, with these change we come back to our mission of computing the values of `A` at the points determined by the powers of `omega4`, which then may be done via `A_values[i] = B_values[i % 2] + pow(omega4, i, Q) * C_values[i % 2]`.
+
+The third and final insight we need is that we can of course continue this process of diving the polynomial in half: to compute `B_values` we break `B` into two polynomials `D` and `E` and then follow the same procedure; in this case `D` and `E` will be simple constants but it would work in the general case as well. The only requirement is that the length `N` is a power of 2 and that we can find a generator `omegaN` of a subgroup of this size.
 
 
+## Algorithm for power of 2
 
-
-
-`A(w0) = B(w0 * w0) + w0 * C(w0 * w0) = B(w0) + w0 * C(w0)`
-
-`A(w1) = B(w1 * w1) + w1 * C(w1 * w1) = B(w2) + w1 * C(w2)`
-
-`A(w2) = B(w2 * w2) + w2 * C(w2 * w2) = B(w4) + w2 * C(w4)`
-
-`A(w3) = B(w3 * w3) + w3 * C(w3 * w3) = B(w6) + w3 * C(w6)`
-
-`A(w^2) = B(w^4) + w^2 * C(w^4)`, but since `w^4 = w^(4 mod 4) = w^0` then we actually get `A(w^2) = B(w^0) + w^2 * C(w^0)`
-
-`A(w^3) = B(w^6) + w^3 * C(w^6)` but since `w^6 = w^(6 mod 4) = w^2` then we actually get `A(w^3) = B(w^2) + w^3 * C(w^2)`
-
-
-`A(x) = 1 + 2x + 3x^2 + 4x^3 + 5x^4 + 6x^5 + 7x^6 + 8x^7 + 9x^8`
-
-If `B(y) = 1 + 4y + 7y^2`, `C(y) = 2 + 5y + 8y^2`, and `D(y) = 3 + 6y + 9y^2` then `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`. Then, for similar reasons to above, we may compute `A(w^0), ..., A(w^8)` from `B(w^0), B(w^3), B(w^6)`
-
-
-
-
-## Algorithm for base 2
+Putting the above into an algorithm we get the following, where `omega` is assumed to be a generator of order `len(aX)`. Note that some typical optimizations are omitted for clarity (but see e.g. [the Python notebook](TODO)).
 
 ```python
-# len(aX) must be a power of 2
-def fft2_forward(aX, omega=OMEGA2):
-    if len(aX) == 1:
-        return aX
+def fft2_forward(A_coeffs, omega):
+    if len(A_coeffs) == 1:
+        return A_coeffs
 
-    # split A(x) into B(x) and C(x) -- A(x) = B(x^2) + x C(x^2) -- and recurse
-    bX = aX[0::2]
-    cX = aX[1::2]
-    B = fft2_forward(bX, (omega**2) % Q)
-    C = fft2_forward(cX, (omega**2) % Q)
+    # split A into B and C such that A(x) = B(x^2) + x * C(x^2)
+    B_coeffs = A_coeffs[0::2]
+    C_coeffs = A_coeffs[1::2]
+    # .. and recurse
+    B_values = fft2_forward(B_coeffs, pow(omega, 2, Q))
+    C_values = fft2_forward(C_coeffs, pow(omega, 2, Q))
         
     # combine subresults
-    A = [0] * len(aX)
-    Nhalf = len(aX) // 2
+    A_values = [0] * len(A_coeffs)
+    Nhalf = len(A_coeffs) // 2
     for i in range(Nhalf):
         
         j = i
         x = pow(omega, j, Q)
-        A[j] = (B[i] + x * C[i]) % Q
+        A_values[j] = (B_values[i] + x * C_values[i]) % Q
         
         j = i + Nhalf
         x = pow(omega, j, Q)
-        A[j] = (B[i] + x * C[i]) % Q
+        A_values[j] = (B_values[i] + x * C_values[i]) % Q
       
-    return A
+    return A_values
 ```
 
+With this procedure we may convert a polynomial in coefficient form to its point-value form, i.e. evaluate the polynomial, in `Oh(N * log N)` operations. And it only meant putting a requirement on its degree being a power of 2 and that we only evaluate at a set of points with a certain structure.
+
+It turns out however that we can also use it to go in the opposite direction from point-value form to coefficient form, i.e. interpolate the least degree polynomial.
+
 ```python
-def fft2_backward(A):
-    N_inv = inverse(len(A))
-    return [ (a * N_inv) % Q for a in fft2_forward(A, inverse(OMEGA2)) ]
+def fft2_backward(A_values, omega):
+    N_inv = inverse(len(A_values))
+    A_coeffs = [ (a * N_inv) % Q for a in fft2_forward(A, inverse(omega)) ]
+    return A_coeffs
 ```
 
-Note that some optimizations omitted to clarity are possible and typically used; they are shown in the Python notebook.
+We see that this is simply done by essentially treating the values as coefficients followed by a scaling. See any standard textbook for details.
 
 
-## Algorithm for base 3
+## Algorithm for power of 3
 
-There is unsurprisingly nothing exclusive about the number of coefficients and values being a power of 2, and other bases can work as well. **todo**
+Unsurprisingly there is nothing in the principles behind the FFT algorithm only means it will only work for powers of 2, and other bases can indeed be used as well. Luckily perhaps, since this plays a big part in our application to secret sharing as we will see later.
 
-Instead of splitting `A` into two polynomials `B` and `C` as we did for base 2, we now split it into polynomials `B`, `C`, and `D` such that `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`, and in our recursive call we use the cube of `omega` instead of the square.
+To make the FFT algorithm for powers of 3 we instead split `A` into it into three polynomials `B`, `C`, and `D` such that `A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)`. And in our recursive call we use the cube of `omega` instead of the square. The number of coefficients `N` must of course now also be a power of 3. **todo check everywhere: by letting the upper coefficients be zero we still have freedom to pick a degree**
 
 ```python
-# len(aX) must be a power of 3
-def fft3_forward(aX, omega=OMEGA3):
-    if len(aX) == 1:
-        return aX
+def fft3_forward(A_coeffs, omega):
+    if len(A_coeffs) == 1:
+        return A_coeffs
 
-    # split A(x) into B(x), C(x), and D(x): A(x) = B(x^3) + x C(x^3) + x^2 D(x^3)
-    bX = aX[0::3]
-    cX = aX[1::3]
-    dX = aX[2::3]
+    # split A into B, C, and D such that A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)
+    B_coeffs = A_coeffs[0::3]
+    B_coeffs = A_coeffs[1::3]
+    B_coeffs = A_coeffs[2::3]
     
     # apply recursively
     omega_cubed = (omega**3) % Q
-    B = fft3_forward(bX, omega_cubed)
-    C = fft3_forward(cX, omega_cubed)
-    D = fft3_forward(dX, omega_cubed)
+    B_values = fft3_forward(B_coeffs, omega_cubed)
+    C_values = fft3_forward(B_coeffs, omega_cubed)
+    D_values = fft3_forward(B_coeffs, omega_cubed)
         
     # combine subresults
-    A = [0] * len(aX)
-    Nthird = len(aX) // 3
+    A_values = [0] * len(A_coeffs)
+    Nthird = len(A_coeffs) // 3
     for i in range(Nthird):
         
         j = i
         x = (omega**j) % Q
         xx = (x * x) % Q
-        A[j] = (B[i] + x * C[i] + xx * D[i]) % Q
+        A_values[j] = (B_values[i] + x * C_values[i] + xx * D_values[i]) % Q
         
         j = i + Nthird
         x = (omega**j) % Q
         xx = (x * x) % Q
-        A[j] = (B[i] + x * C[i] + xx * D[i]) % Q
+        A_values[j] = (B_values[i] + x * C_values[i] + xx * D_values[i]) % Q
         
         j = i + Nthird + Nthird
         x = (omega**j) % Q
         xx = (x * x) % Q
-        A[j] = (B[i] + x * C[i] + xx * D[i]) % Q
+        A_values[j] = (B_values[i] + x * C_values[i] + xx * D_values[i]) % Q
 
-    return A
+    return A_values
 ```
 
-```python
-def fft3_backward(A):
-    N_inv = inverse(len(A))
-    return [ (a * N_inv) % Q for a in fft3_forward(A, inverse(OMEGA3)) ]
-```
+And again we may go in the opposite, interpolation, direction by treating the values as coefficients and performing a scaling.
+
 
 ## Optimizations
 
-For easy of presentation we have omitted some typical optimizations here, perhaps most typically the fact that for base 2 we have the property that `omega^i == -omega^(i + N/2)`, meaning we can cut the number of exponentiations in half compared to the above.
+For easy of presentation we have omitted some typical optimizations here, perhaps most typically the fact that for base 2 we have the property that `pow(omega, i, Q) == -pow(omega, i + N/2, Q)`, meaning we can cut the number of exponentiations in half compared to the above.
 
 More interestingly, the FFTs can be also run in-place and hence reusing the list in which the input is provided. This saves memory allocation and has a significant impact on performance. Likewise, we may gain improvements by switching to another number representation, for instance [Montgomery form](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication). Both of these approaches are described in further detail [elsewhere](https://medium.com/snips-ai/optimizing-threshold-secret-sharing-c877901231e5).
 
@@ -338,7 +272,7 @@ Recall that for this scheme it is less obvious how we can sample our polynomial 
 
 Note that we are hence dealing with two sets of points: those used during sampling, and those used during share generation -- and these cannot overlap! If they did the privacy guarantee would no longer be satisfied and some of the share values might literally equal some of the secrets.
 
-Preventing this from happening is the reason we use two different (co-prime) bases: any two subgroups with a non-trivial overlap will have a common order divider (**todo make clearer**); so since the bases are co-prime they will only have the 1 in common. As such we are safe if we simply make sure to exclude the value at point 1 from being used.
+Preventing this from happening is the reason we use two different (co-prime) bases: any two subgroups with a non-trivial overlap will have a common order divider (**todo make clearer**); so since the bases are co-prime they will only have the 1 in common. As such we are safe if we simply make sure to exclude the value at point 1 from being used. **todo recall what we saw in the walk-thought example, that the subgroup of order 4 contained the subgroup of order 2 -- this holds in general since for two power of 2 subgroups, one will contain the other!**
 
 For sharing we first sample the values of the polynomial, fixing the value at point 1 to be a constant (in this case zero). Using the backward FFT we then turn this into a small vector of coefficients, which we then as in Shamir's scheme, extend with zero coefficients to get a larger vector of coefficients matching the forward FFT. Finally, since the first value obtained from this corresponds to point 1, and hence is the same as the constant used before, we remove it before returning the values as shares.
 
@@ -364,7 +298,7 @@ def packed_reconstruct(shares):
     return secrets
 ```
 
-However this only works if all shares are known and correct; any loss or tampering will get in the way of using the FFT for reconstruction, unless we add an additional ingredient; this is the topic of the follow-up blog post.
+However this only works if all shares are known and correct: any loss or tampering will get in the way of using the FFT for reconstruction, unless we add an additional ingredient. Fixing this is the topic of the next blog post.
 
 
 ## Performance evaluation
@@ -423,7 +357,7 @@ This leaves us with only a few question regarding prime numbers as explained nex
 
 To find a prime `q` with the desired structure (i.e. of a certain minimum size and whose order `q-1` has a given divisor) we may either do rejection sampling of primes until we hit one that satisfies our need, or we may construct it from smaller parts so that it by design fits with what we want. The latter seems more efficient so that is what we will do here.
 
-Specifically, given `min_bitsize` and `order_divisor` we do rejection sampling over two values `k1` and `k2` until `q = k1 * k2 * order_divisor + 1` is a [probable prime](https://en.wikipedia.org/wiki/Probable_prime). The `k1` is used to ensure that the minimum size is met, and `k2` is used to give us a bit of wiggle room -- it can in principle be omitted, but empirical tests show that it doesn't have to be very large it give an efficiency boost, essentially at the expense of potentially overshooting the desired field size by a few bits. Finally, since we also need to know the prime factorization of `q - 1`, and since this in general is believed to be an [inherently slow process](https://en.wikipedia.org/wiki/Integer_factorization), we by construction ensure that `k1` is a prime so that we only have to factor `k2` and `order_divisor` which we assume to be somewhat small.
+Specifically, given `min_bitsize` and `order_divisor` we do rejection sampling over two values `k1` and `k2` until `q = k1 * k2 * order_divisor + 1` is a [probable prime](https://en.wikipedia.org/wiki/Probable_prime). The `k1` is used to ensure that the minimum size is met, and `k2` is used to give us a bit of wiggle room -- it can in principle be omitted, but empirical tests show that it doesn't have to be very large it give an efficiency boost, essentially at the expense of potentially overshooting the desired field size by a few bits. Finally, since we also need to know the prime factorization of `q - 1`, and since this in general is believed to be an [inherently slow process](https://en.wikipedia.org/wiki/Integer_factorization), we by construction ensure that `k1` is a prime so that we only have to factor `k2` and `order_divisor`, which we assume to be somewhat small.
 
 ```python
 def find_prime(min_bitsize, order_divisor):

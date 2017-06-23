@@ -10,6 +10,8 @@ github:     "mortendahl"
 linkedin:   "mortendahlcs"
 ---
 
+<em><strong>TL;DR:</strong> first part in a series where we look at secret sharing schemes, including the lesser known packed variant of Shamir's scheme, and give full and efficient implementations; here we start with the textbook approaches, with follow-up posts focusing on improvements from more advanced techniques.</em>
+
 [Secret sharing](https://en.wikipedia.org/wiki/Secret_sharing) is an old well-known cryptographic primitive, with existing real-world applications in e.g. [Bitcoin signatures](https://bitcoinmagazine.com/articles/threshold-signatures-new-standard-wallet-security-1425937098) and [password management](https://www.vaultproject.io/docs/internals/security.html). But perhaps more interestingly, secret sharing also has strong links to [secure computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) and may for instance be used for [private machine learning](/2017/04/17/private-deep-learning-with-mpc/).
 
 The essence of the primitive is that a *dealer* wants to split a *secret* into several *shares* given to *shareholders*, in such a way that each individual shareholder learns nothing about the secret, yet if sufficiently many re-combine their shares then the secret can be reconstructed. Intuitively, the question of *trust* changes from being about the integrity of a single individual to the non-collaboration of several parties: it becomes distributed.

@@ -14,7 +14,7 @@ linkedin:   "mortendahlcs"
 
 In the [first part](/2017/06/04/secret-sharing-part1/) we looked at Shamir's scheme, as well as its packed variant where several secrets are shared together. We saw that polynomials lie at the core of both schemes, and that implementation is basically a question of (partially) converting back and forth between two different representations of these. We also gave typical algorithms for doing this.
 
-For this part we will look at somewhat more complex algorithms in an attempt to speed up the computations needed for generating shares. Specifically, we will implement and apply the Fast Fourier Transform, detailing all the essential steps. Performance measurements performed with [our Rust implementation](https://crates.io/crates/threshold-secret-sharing) shows that this yields orders of magnitude of efficiency improvements when either the number of shares or the number of secrets is high.
+For this part we will look at somewhat more complex algorithms in an attempt to speed up the computations needed for generating shares. Specifically, we will implement and apply the Fast Fourier Transform, detailing all the essential steps. Performance measurements performed with [our Rust implementation](https://github.com/mortendahl/rust-threshold-secret-sharing) shows that this yields orders of magnitude of efficiency improvements when either the number of shares or the number of secrets is high.
 
 There is also an [associated Python notebook](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Fast%20Fourier%20Transform.ipynb) to better see how the code samples fit together in the bigger picture.
 
@@ -43,9 +43,9 @@ Notice however that they differ slightly in the second steps where the shares ar
 
 Specifically, we often represent a polynomial `f` of degree `D == L-1` by a list of `L` coefficients `a0, ..., aD` such that `f(x) = (a0) + (a1 * x) + (a2 * x^2) + ... + (aD * x^D)`. This representation is convenient for many things, including efficiently evaluating the polynomial at a given point using e.g. [Horner's method](https://en.wikipedia.org/wiki/Horner%27s_method).
 
-However, every such polynomial may also be represented by a set of `L` point-value pairs `(p1, v1), ..., (pL, vL)` where `vi == f(pi)` and all the `pi` are distinct. Evaluating the polynomial at a given point is still possible, yet now requires a more involved *interpolation* procedure that is typically less efficient, at least unless some preprocessing is performed. 
+However, every such polynomial may also be represented by a set of `L` point-value pairs `(p1, v1), ..., (pL, vL)` where `vi == f(pi)` and all the `pi` are distinct. Evaluating the polynomial at a given point is still possible, yet now requires a more involved *interpolation* procedure that may be less efficient.
 
-But the point-value representation also has the advantage that a degree `L-1` polynomial may be represented by *more than* `L` pairs. In this case there is some redundancy in the representation that we may for instance take advantage of in secret sharing (to reconstruct even if some shares are lost) and in coding theory (to decode correctly even if some errors occur during transmission).
+But the point-value representation also has several advantages, most importantly that every element intuitively contributes with the same amount of information, unlike the coefficient representation where, in the case of secret sharing, a few elements are the actual secrets; this property gives us the privacy guarantee we are after. Moreover, a degree `L-1` polynomial may also be represented by *more than* `L` pairs; in this case there is some redundancy in the representation that we may for instance take advantage of in secret sharing (to reconstruct even if some shares are lost) and in coding theory (to decode correctly even if some errors occur during transmission).
 
 The reason this works is that the result of interpolation on a point-value representation with `L` pairs is technically speaking defined with respect to the *least degree* polynomial `g` such that `g(pi) == vi` for all pairs in the set, which is [unique](https://en.wikipedia.org/wiki/Polynomial_interpolation#Uniqueness_of_the_interpolating_polynomial) and has at most degree `L-1`. This means that if two point-value representations are generated using the same polynomial `g` then interpolation on these will yield identical results, even when the two sets are of different sizes or use different points, since the least degree polynomial is the same. 
 
@@ -78,7 +78,7 @@ assert([ A(wi) for wi in w ]
     == [ 10, 73, 431, 356 ])
 ```
 
-But as we will see, the FFT allows us to do so more efficiently when the length is sufficiently large and the points are chosen with a certain structure; asymptotically we can then compute the values in `Oh(L * log L)` operations.
+But as we will see, the FFT allows us to do so more efficiently when the length is sufficiently large and the points are chosen with a certain structure; asymptotically we can compute the values in `Oh(L * log L)` operations.
 
 The first insight we need is that there is an alternative evaluation strategy that breaks `A` into two smaller polynomials. In particular, if we define polynomials `B(y) = 1 + 3y` and `C(y) = 2 + 4y` by taking every other coefficient from `A` then we have `A(x) == B(x * x) + x * C(x * x)`, which is straight-forward to verify by simply writing out the right-hand side.
 
@@ -149,9 +149,11 @@ def fft2_forward(A_coeffs, omega):
     # split A into B and C such that A(x) = B(x^2) + x * C(x^2)
     B_coeffs = A_coeffs[0::2]
     C_coeffs = A_coeffs[1::2]
-    # .. and recurse
-    B_values = fft2_forward(B_coeffs, pow(omega, 2, Q))
-    C_values = fft2_forward(C_coeffs, pow(omega, 2, Q))
+    
+    # apply recursively
+    omega_squared = pow(omega, 2, Q)
+    B_values = fft2_forward(B_coeffs, omega_squared)
+    C_values = fft2_forward(C_coeffs, omega_squared)
         
     # combine subresults
     A_values = [0] * len(A_coeffs)
@@ -303,7 +305,66 @@ However this only works if all shares are known and correct: any loss or tamperi
 
 ## Performance evaluation
 
-(coming)
+To test the performance impact of using the FFT for share generation in Shamir's scheme, we let the number of shares `N` take on values `2`, `8`, `26`, `80` and `242`, and for each of them compare against the typical approach of using Horner's rule. For the former we have an asymptotic complexity of `Oh(N * log N)` while for the latter we have `Oh(N * T)`, and as such it is also interesting to vary `T`; we do so with `T = N/2` and `T = N/4`, representing respectively a medium and low privacy threshold.
+
+All measures are in nanoseconds (1/1,000,000 milliseconds) and performed with [our Rust implementation](https://github.com/mortendahl/rust-threshold-secret-sharing).
+
+```python
+plt.figure(figsize=(20,10))
+
+shares    = [   2,   8,   26,    80 ] #,    242 ]
+
+n2_fft    = [ 214, 402, 1012,  2944 ] #,  10525 ]
+n2_horner = [  51, 289, 2365, 22278 ] #, 203630 ]
+
+n4_fft    = [ 227, 409, 1038,  3105 ] #,  10470 ]
+n4_horner = [  54, 180, 1380, 11631 ] #, 104388 ]
+
+plt.plot(shares, n2_fft,    'ro--', color='b', label='T = N/2: FFT')
+plt.plot(shares, n2_horner, 'rs--', color='r', label='T = N/2: Horner')
+plt.plot(shares, n4_fft,    'ro--', color='c', label='T = N/4: FFT')
+plt.plot(shares, n4_horner, 'rs--', color='y', label='T = N/4: Horner')
+
+plt.legend(loc=2)
+plt.show()
+```
+
+Note that the numbers for `N = 242` are omitted in the graph to avoid hiding the results for the smaller values.
+
+<center><img src="{{ site.url }}/assets/secret-sharing/share-performance-shamir.png" /></center>
+
+
+For the packed scheme we keep `T = N/4` and `K = N/2` fixed (meaning `R = 3N/4`) and let `N` vary as above. We then compare three different approaches for generating shares, all starting out with sampling a polynomial in point-value representation:
+
+1. `FFT + FFT`: Backward FFT to convert into coefficient representation, followed by forward FFT for evaluation
+2. `FFT + Horner`: Backward FFT to convert into coefficient representation, followed by Horner's rule for evaluation
+3. `Lagrange`: Use precomputed Lagrange constants for share points to directly obtain shares
+
+where the third option requires additional storage for the precomputed constants (computing them on the fly increases the running time significantly but can of course be amortized away if processing a large number of batches).
+
+```python
+plt.figure(figsize=(20,10))
+
+shares =       [    8,   26,    80,    242 ]
+
+fft_fft      = [  840, 1998,  5288,  15102 ]
+fft_horner   = [  898, 3612, 37641, 207087 ]
+lagrange_pre = [  246, 1367, 16510, 102317 ]
+
+plt.plot(shares, fft_fft,      'ro--', color='b', label='FFT + FFT')
+plt.plot(shares, fft_horner,   'ro--', color='r', label='FFT + Horner')
+plt.plot(shares, lagrange_pre, 'rs--', color='y', label='Lagrange (precomp.)')
+
+plt.legend(loc=2)
+plt.show()
+```
+
+We note that the Lagrange approach remains superior up to the setting with 26 shares, after which it's interesting to use the two step FFT.
+
+<center><img src="{{ site.url }}/assets/secret-sharing/share-performance-packed.png" /></center>
+
+
+From this small amount of empirical data the FFT seems like the obvious choice as soon as the number of shares is sufficiently high. Question of course, is in which applications this is the case. We will explore this further in a future blog post.
 
 
 # Parameter Generation

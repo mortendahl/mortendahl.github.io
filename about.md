@@ -6,6 +6,7 @@ header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
 github:      "mortendahl"
 linkedin:    "mortendahlcs"
+email:       "mortendahlcs@gmail.com"
 ---
 
 Background in computer science with work experience in software engineering, cryptography, and data science. PhD in cryptography.

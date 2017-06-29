@@ -5,9 +5,6 @@ subtitle:   "Efficient Sharing with the Fast Fourier Transform"
 date:       2017-06-24 12:00:00
 header-img: "img/post-bg-03.jpg"
 author:     "Morten Dahl"
-twitter:    "mortendahlcs"
-github:     "mortendahl"
-linkedin:   "mortendahlcs"
 ---
 
 <em><strong>TL;DR:</strong> efficient secret sharing requires fast polynomial evaluation and interpolation; here we go through what it takes to use the well-known Fast Fourier Transform for this.</em>

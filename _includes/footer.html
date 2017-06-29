@@ -12,9 +12,9 @@
                             </span>
                         </a>
                     </li>
-                    {% if page.twitter %}
+                    {% if site.twitter %}
                     <li>
-                        <a href="https://twitter.com/{{ page.twitter }}">
+                        <a href="https://twitter.com/{{ site.twitter }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
@@ -22,9 +22,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if page.facebook_username %}
+                    {% if site.facebook %}
                     <li>
-                        <a href="https://www.facebook.com/{{ page.facebook_username }}">
+                        <a href="https://www.facebook.com/{{ site.facebook }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-facebook fa-stack-1x fa-inverse"></i>
@@ -32,9 +32,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if page.github %}
+                    {% if site.github %}
                     <li>
-                        <a href="https://github.com/{{ page.github }}">
+                        <a href="https://github.com/{{ site.github }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-github fa-stack-1x fa-inverse"></i>
@@ -42,9 +42,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if page.linkedin %}
+                    {% if site.linkedin %}
                     <li>
-                        <a href="https://www.linkedin.com/in/{{ page.linkedin }}">
+                        <a href="https://www.linkedin.com/in/{{ site.linkedin }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
@@ -52,9 +52,9 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if page.email %}
+                    {% if site.email %}
                     <li>
-                        <a href="mailto:{{ page.email }}">
+                        <a href="mailto:{{ site.email }}">
                             <span class="fa-stack fa-lg">
                                 <i class="fa fa-circle fa-stack-2x"></i>
                                 <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>

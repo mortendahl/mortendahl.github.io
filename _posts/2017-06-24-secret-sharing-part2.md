@@ -361,7 +361,7 @@ We note that the Lagrange approach remains superior up to the setting with 26 sh
 <center><img src="{{ site.url }}/assets/secret-sharing/share-performance-packed.png" /></center>
 
 
-From this small amount of empirical data the FFT seems like the obvious choice as soon as the number of shares is sufficiently high. Question of course, is in which applications this is the case. We will explore this further in a future blog post.
+From this small amount of empirical data the FFT seems like the obvious choice as soon as the number of shares is sufficiently high. Question of course, is in which applications this is the case. We will explore this further in a future blog post (or see e.g. [our paper](https://eprint.iacr.org/2017/643)).
 
 
 # Parameter Generation

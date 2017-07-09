@@ -2,7 +2,7 @@
 layout:     post
 title:      "Secret Sharing, Part 4"
 subtitle:   "Application to Secure Computation"
-date:       2017-06-20 12:00:00
+date:       2017-07-02 12:00:00
 header-img: "img/post-bg-03.jpg"
 author:     "Morten Dahl"
 twitter:    "mortendahlcs"

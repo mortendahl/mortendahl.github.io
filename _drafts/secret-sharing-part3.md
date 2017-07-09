@@ -1,8 +1,8 @@
 ---
 layout:     post
 title:      "Secret Sharing, Part 3"
-subtitle:   "Reliable Reconstruction with Reed-Solomon"
-date:       2017-06-06 12:00:00
+subtitle:   "Robust Reconstruction with Reed-Solomon Codes"
+date:       2017-07-01 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"
 ---

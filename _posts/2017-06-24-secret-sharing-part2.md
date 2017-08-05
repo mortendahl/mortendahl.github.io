@@ -122,7 +122,7 @@ v = [ pow(omega2, e, Q) for e in range(2) ]
 assert( v == [1, 432] )
 ```
 
-As a quick test we may also check that the orders are indeed as claimed. Specifically, if we keep raising `omega4` to higher powers than we except to keep visiting the same four numbers, and likewise we expect to keep visiting the same two numbers for `omega2`.
+As a quick test we may also check that the orders are indeed as claimed. Specifically, if we keep raising `omega4` to higher powers then we except to keep visiting the same four numbers, and likewise we expect to keep visiting the same two numbers for `omega2`.
 
 ```python
 assert( [ pow(omega4, e, Q) for e in range(8) ] == [1, 179, 432, 254, 1, 179, 432, 254] )

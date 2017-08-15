@@ -7,21 +7,24 @@ author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"
 ---
 
-<em><strong>TL;DR:</strong> TODO</em>
+<em><strong>TL;DR:</strong> due to redundancy in the way we generate shares, we can compensate not only for some of them being lost but also manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>
+
+Returning to our motivations in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the shares we generate are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 
+
+Specifically, what if some shares are *lost*, or what if some shares are *manipulated* to differ from what we initially generated? Both may happen due to simple systems failure, but may also be the result of malicious behaviour on the part of shareholders. Should we in these two cases still expect to be able to recover the secret?
+
+In this blog post we will see how to handle both situations. We will use simpler algorithms, but note towards the end how techniques like those used in [part two](/2017/06/24/secret-sharing-part2/) can be used to make the process more efficient.
 
 As usual, all code is available in the [associated Python notebook](https://github.com/mortendahl/privateml/blob/master/secret-sharing/Reed-Solomon.ipynb).
 
+
 # Robust Reconstruction
-
-Returning to our [motivations](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the shares we generate are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 
-
-Specifically, what if some shares are lost, or what if some shares are manipulated to differ from what we initially generated? Both may happen due to simple systems failure, but may also be the result of malicious behaviour on the part of shareholders. Should we in these two cases still expect to be able to recover the secret?
 
 In the [first part](/2017/06/04/secret-sharing-part1/#the-missing-pieces) we saw how [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) can be used to answer the first question, in that it allows us to reconstruct the secret as long as only a bounded number of shares are lost. As mentioned in the [second part](/2017/06/24/secret-sharing-part2/#polynomials), this is due to the redundancy that comes with point-value presentations of polynomials, namely that the original polynomial is uniquely defined by *any* large enough subset of the shares. Concretely, if `D` is the degree of the original polynomial then we can reconstruct given `R = D + 1` shares in case of Shamir's scheme and `R = D + K` shares in the packed variant; if `N` is the total number of shares we can hence afford to loose `N - R` shares.
 
-But this is assuming that the received shares are unaltered, and the second question concerning recovery in the face of manipulated shares is intuitively harder as we now cannot easily identify when and where something went wrong. <i>(Note that it is also harder in a more formal sense, namely that a solution for manipulated shares can also be used as a solution for lost shares, since dummy values, e.g. a constant, may be substituted for the lost shares and then instead treated as having been manipulated. As we will see below, this may however not be optimal, and doing so with the approach taken here will in fact impose a "double price" on lost shares.)</i>
+But this is assuming that the received shares are unaltered, and the second question concerning recovery in the face of manipulated shares is intuitively harder as we now cannot easily identify when and where something went wrong. <i>(Note that it is also harder in a more formal sense, namely that a solution for manipulated shares can be used as a solution for lost shares, since dummy values, e.g. a constant, may be substituted for the lost shares and then instead treated as having been manipulated. As we will see below, this may however not be optimal, and doing so with the approach taken here will in fact impose a "double price" on lost shares.)</i>
 
-To solve this issue we will use techniques from error-correction codes, specifically the well-known [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). As we shall see, we can do this since our share generation procedure in fact corresponds to ([non-systemic](https://en.wikipedia.org/wiki/Systematic_code)) message encoding in these codes, and hence decoding algorithms can be used to reconstruct even in the face of manipulated shares.
+To solve this issue we will use techniques from error-correction codes, specifically the well-known [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). The reason we can do this is that our share generation procedure in fact corresponds to ([non-systemic](https://en.wikipedia.org/wiki/Systematic_code)) message encoding in these codes, and hence decoding algorithms can be used to reconstruct even in the face of manipulated shares.
 
 The robust reconstruct method for Shamir's scheme we end up with is as follows (with a straight forward generalisation to the packed scheme). The input is a complete list of length `N` of received shares, where missing shares are represented by `None` and manipulated shares by their new value. And if reconstruction goes well then the output is not only the secret, but also the indices of the shares that were manipulated.
 
@@ -31,31 +34,30 @@ def shamir_robust_reconstruct(shares):
     # filter missing shares
     points_values = [ (p,v) for p,v in zip(POINTS, shares) if v is not None ]
     
-    # decode polynomial from remaining shares
+    # decode remaining faulty
     points, values = zip(*points_values)
-    polynomial = gao_decoding(points, values, MAX_DEGREE, MAX_MANIPULATED)
+    polynomial, error_locator = gao_decoding(points, values, R, MAX_MANIPULATED)
     
-    # check whether recovery was successful under constraints
+    # check if recovery was possible
     if polynomial is None:
         # there were more errors than assumed by `MAX_ERRORS`
         raise Exception("Too many errors, cannot reconstruct")
     else:
         # recover secret
         secret = poly_eval(polynomial, 0)
-        
-        # find indices of faulty shares
-        corrected_shares = [ poly_eval(polynomial, p) for p in POINTS ]
-        error_indices = [ 
-            i for i,(s,cs) in enumerate(zip(shares, corrected_shares)) 
-            if s is not None and s != cs
+    
+        # find roots of error locator polynomial
+        error_indices = [ i 
+            for i,v in enumerate( poly_eval(error_locator, p) for p in POINTS ) 
+            if v == 0 
         ]
 
         return secret, error_indices
 ```
 
-Having the error indices may be useful for instance as a deterrent: since we can identify malicious shareholders we can also e.g. publicly shame them, and hence incentivise correct behaviour in the first place. Formally this is known as [covert security](https://en.wikipedia.org/wiki/Secure_multi-party_computation#Security_definitions), where the shareholders "are willing to cheat only if they are not caught".
+Having the error indices may be useful for instance as a deterrent: since we can identify malicious shareholders we can also e.g. publicly shame them, and hence incentivise correct behaviour in the first place. Formally this is known as [covert security](https://en.wikipedia.org/wiki/Secure_multi-party_computation#Security_definitions), where shareholders are willing to cheat only if they are not caught.
 
-Note that reconstruction may however fail, yet it can be shown that this only happens when there indeed isn't enough data left to correctly identify the result; in other words, our method will never give a false negative. Parameters `MAX_MISSING` and `MAX_MANIPULATED` are used to characterise when failure can happen, giving respectively an upper bound on the number of lost and manipulated shares supported. What must hold in general is that the number of "redundancy shares" `N - R` must satisfy `N - R >= MAX_MISSING + 2 * MAX_MANIPULATED`, from which we see that we are in some sense paying twice the price for manipulated shares as we are for missing shares.
+Finally note that reconstruction may however fail, yet it can be shown that this only happens when there indeed isn't enough information left to correctly identify the result; in other words, our method will never give a false negative. Parameters `MAX_MISSING` and `MAX_MANIPULATED` are used to characterise when failure can happen, giving respectively an upper bound on the number of lost and manipulated shares supported. What must hold in general is that the number of "redundancy shares" `N - R` must satisfy `N - R >= MAX_MISSING + 2 * MAX_MANIPULATED`, from which we see that we are in some sense paying twice the price for manipulated shares compared to missing shares.
 
 
 ## Outline of decoding algorithm
@@ -71,7 +73,7 @@ Finally, since both of these two steps are using polynomials as objects of compu
 
 We assume we already have various functions `base_add`, `base_sub`, `base_mul`, etc. for computing in the base field; concretely this simply amounts to [integer arithmetic modulo a fixed prime](https://en.wikipedia.org/wiki/Modular_arithmetic) in our case.
 
-We then represent polynomials over this base field by their list of coefficients: `A(x) = (a0) + (a1 * x) + ... + (aD * x^D)` is represented by `A = [a0, a1, ..., aD]`. Furthermore, we keep as an invariant that `aD != 0` and enforce this below through a `canonical` procedure that removes all tailing zeroes in a list.
+We then represent polynomials over this base field by their list of coefficients: `A(x) = (a0) + (a1 * x) + ... + (aD * x^D)` is represented by `A = [a0, a1, ..., aD]`. Furthermore, we keep as an invariant that `aD != 0` and enforce this below through a `canonical` procedure that removes all trailing zeros.
 
 ```python
 def canonical(A):
@@ -147,43 +149,36 @@ We have used simple algorithms for these operations in this blog post but referr
 The standard algorithms will suffice for this blog post but note that optimizations are possible.
 
 
-# Interpolation of Polynomials
+# Interpolating Polynomials
 
-We next turn to the task of converting a polynomial given in point-value representation to its coefficient representation. Several procedures exist for this, including efficient algorithms for specific cases such as the backward FFT seen earlier, and general ones based e.g. on [Newton's method](https://en.wikipedia.org/wiki/Newton_polynomial) that apparently is popular in numerical analysis due to its efficiency in handling new data points. However, as mentioned above, for this post we'll use Lagrange interpolation and see that although it's perhaps typically see as a procedure for interpolating values, it can also very easily be made to work for interpolating coefficients.
+We next turn to the task of converting a polynomial given in *implicit* point-value representation to its *explicit* coefficient representation. Several procedures exist for this, including efficient algorithms for specific cases such as the backward FFT seen earlier, and general ones based e.g. on [Newton's method](https://en.wikipedia.org/wiki/Newton_polynomial) that apparently is popular in numerical analysis due to its efficiency in handling new data points. However, as mentioned above, for this post we'll use Lagrange interpolation and see that although it's perhaps typically see as a procedure for interpolating values, it can also very easily be made to work for interpolating coefficients.
 
-
-Recall that given points `x0, x1, ..., xD` and values `y0, y1, ..., yD` we can use Lagrange's method to interpolate the value at another point of the implicit polynomial defined by these two sets. The way we do this is by defining `L(x) = y0 * L0(x) + ... y    reconstruct a polynomial `F` of degree at most `D`
-
-and values `y1, ..., yD`
-
-
-
-In the [first post](/2017/06/04/secret-sharing-part1/) in this series we saw how [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) can be used to find the value `f(x)` of a polynomial `f` at point `x` when `f` is given in a point-value representation `[(x1, v1), ..., (xL, vL)]` with `vi == f(x1)`. Specifically, given evaluation points `x1, ..., xL` and target point `x` we computed Lagrange constants `c1, ..., cL` such that `f(x) == c1 * v1 + ... + cL * vL`.
+Recall that we are given points `x0, x1, ..., xD` and values `y0, y1, ..., yD` implicitly defining a polynomial `F`. [Earlier](/2017/06/04/secret-sharing-part1/) we then used [Lagrange's method](https://en.wikipedia.org/wiki/Lagrange_polynomial) to find value `F(x)` at a potentially different point `x`. This works due to the constructive nature of Lagrange's proof, where a polynomial `H` is defined as `H(X) = y0 * L0(X) + ... + yD * LD(X)` for indeterminate `X` and *Lagrange basis polynomials* `Li`, and then shown identical to `F`. To find `F(x)` we then simply evaluated `H(x)`, although we precomputed `Li(x)` as the *Lagrange constants* `ci` so that this step simply reduced to a weighted sum `y1 * c1 + ... yD * cD`.
 
 ```python
 def lagrange_constants_for_point(points, point):
-    constants = [0] * len(points)
-    for i in range(len(points)):
-        xi = points[i]
-        num = 1
-        denum = 1
-        for j in range(len(points)):
-            if j != i:
-                xj = points[j]
-                num = (num * (xj - point)) % Q
-                denum = (denum * (xj - xi)) % Q
-        constants[i] = (num * inverse(denum)) % Q
+    constants = []
+    for i, xi in enumerate(points):
+        numerator = 1
+        denominator = 1
+        for j, xj in enumerate(points):
+            if i == j: continue
+            numerator   = base_mul(numerator, base_sub(point, xj))
+            denominator = base_mul(denominator, base_sub(xi, xj))
+        constant = base_div(numerator, denominator)
+        constants.append(constant)
     return constants
 ```
 
+Now, when we want the coefficients of `F` instead of just its value `F(x)` at `x`, we see that while `H` is identical to `F` it only gives us a semi-explicit representation, made worse by the fact that the `Li` polynomials are also only given in a semi-explicit representation: `Li(X) = (X - x0) * ... * (X - xD) / (xi - x0) * ... * (xi - xD)`. However, since we developed algorithms for using polynomials as objects in computations, we can simply evaluate these expression with indeterminate `X` to find the reduced explicit form! See for instance the examples [here](https://en.wikipedia.org/wiki/Lagrange_polynomial#Examples).
 
 ```python
-def lagrange_polynomials(xs):
+def lagrange_polynomials(points):
     polys = []
-    for i, xi in enumerate(xs):
+    for i, xi in enumerate(points):
         numerator = [1]
         denominator = 1
-        for j, xj in enumerate(xs):
+        for j, xj in enumerate(points):
             if i == j: continue
             numerator   = poly_mul(numerator, [base_sub(0, xj), 1])
             denominator = base_mul(denominator, base_sub(xi, xj))
@@ -192,67 +187,74 @@ def lagrange_polynomials(xs):
     return polys
 ```
 
+Doing this also for `H` gives us the interpolated polynomial in explicit coefficient representation.
+
 ```python
-def lagrange_interpolation(xs, ys):
-    ls = lagrange_polynomials(xs)
+def lagrange_interpolation(points, values):
+    ls = lagrange_polynomials(points)
     poly = []
-    for i in range(len(ys)):
-        term = poly_scalarmul(ls[i], ys[i])
+    for i, yi in enumerate(values):
+        term = poly_scalarmul(ls[i], yi)
         poly = poly_add(poly, term)
     return poly
 ```
 
+While this may not be the most efficient way (see notes later), it is hard to beat its simplicity.
 
-# Correcting Polynomials
 
-## Reed-Solomon codes
+# Correcting Errors
 
-Primer on RS codes
+In the non-systemic variants of [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction), messages are encoded very similarly to how we generate shares: a message `m` represented by vector a `[m0, ..., mD]` is interpreted as a polynomial `F(X) = (m0) + (m1 * X) + ... + (mD * X^D)` and evaluated at a fixed set of points to get the code word. No randomness is used in the process, since the purpose there is only to provide redundancy and not privacy (in fact, in the systemic variants, the message is directly readable from the code word), yet this doesn't change the fact that we can use decoding procedures to correct errors in the shares.
 
-While there are several such decoding procedures, in this blog post we will use [an algorithm](http://www.math.clemson.edu/~sgao/papers/RS.pdf) based on the [extended GCD algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Polynomial_extended_Euclidean_algorithm) as detailed below. [Other tutorials](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders) present alternative approaches that may prove more efficient from either an in-depth analysis or implementation benchmarks; nonetheless, the algorithm chosen here is conceptually simple and has a certain beauty to it. Moreover, keep in mind that some of the typical optimizations used in other approaches are for the more common setting over binary extension fields, while we here are interested in the setting over prime fields as we would like to simulate (bounded) integer arithmetic in our application of secret sharing to secure computation -- which is straight forward in prime fields but less clear in binary extension fields.
+Several such [decoding procedures](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction#Error_correction_algorithms) exist, some of which are explained [here](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders) and [there](https://jeremykun.com/2015/09/07/welch-berlekamp/), yet the one we'll use here is conceptually simple and has a certain beauty to it. Also keep in mind that some of the typical optimizations used in implementations of the alternative approaches get their speed-up by relying on properties of the more common setting over binary extension fields, while we here are interested in the setting over prime fields as we would like to simulate (bounded) integer arithmetic in our application of secret sharing to secure computation -- which is straight forward in prime fields but less clear in binary extension fields.
 
-Algorithm first described in [SKHN'75](https://doi.org/10.1016/S0019-9958(75)90090-X) yet here we will follow the approach described in [Gao'02](http://www.math.clemson.edu/~sgao/papers/RS.pdf)
+The approach we will use was first described in [SKHN'75](https://doi.org/10.1016/S0019-9958(75)90090-X), yet we'll follow the algorithm given in [Gao'02](http://www.math.clemson.edu/~sgao/papers/RS.pdf) (see also Section 17.5 in [Shoup'08](http://shoup.net/ntb/ntb-v2.pdf)). It works by first interpolating a potentially faulty polynomial `H` from all the available shares and then running the extended Euclidean algorithm to either extract the original polynomial `G` or (rightly) declare it impossible. That the algorithm can be used for this is surprising and is strongly related to [rational reconstruction](https://en.wikipedia.org/wiki/Rational_reconstruction_(mathematics)).
 
-  [Gao's algorithm](http://www.math.clemson.edu/~sgao/papers/RS.pdf) as detailed below
 
-Gao's decoding procedure as introduced in [Gao'02](http://www.math.clemson.edu/~sgao/papers/RS.pdf) (see also Section 17.5 in [Shoup'08](http://shoup.net/ntb/ntb-v2.pdf)) works by first interpolating a potentially faulty polynomial `H` from all the available shares, and then running a partial [extended Euclidean algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Polynomial_extended_Euclidean_algorithm) to either extract the original polynomial `G` or (rightly) declare it impossible. 
+## Extended Euclidean algorithm on polynomials
 
-## Extended GCD on polynomials
-
-We can, as for the integers, use the [extended Euclidean algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Polynomial_extended_Euclidean_algorithm) to find the greatest common divisor `D` of two given polynomials `F` and `H`, along with polynomials `S` and `T` expressing it as a linear combination of these: `D == F * S + H * T`.
+Assume that we have two polynomials `H` and `F` and we would like to find linear combinations of these in the form of triples `(R, T, S)` of polynomials such that `R == H * T + F * S`. This may of course be done in many different ways, but one particular interesting approach is to consider the list of triples `(R0, T0, S0), ..., (RM, TM, SM)` generated by the [extended Euclidean algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Polynomial_extended_Euclidean_algorithm) (EEA).
 
 ```python
-def poly_egcd(A, B):
-    R0, R1 = A, B
+def poly_eea(F, H):
+    R0, R1 = F, H
     S0, S1 = [1], []
     T0, T1 = [], [1]
     
+    triples = []
+    
     while R1 != []:
         Q, R2 = poly_divmod(R0, R1)
+        
+        triples.append( (R0, S0, T0) )
         
         R0, S0, T0, R1, S1, T1 = \
             R1, S1, T1, \
             R2, poly_sub(S0, poly_mul(S1, Q)), poly_sub(T0, poly_mul(T1, Q))
             
-    c = lc(R0)
-    D = poly_scalardiv(R0, c)
-    S = poly_scalardiv(S0, c)
-    T = poly_scalardiv(T0, c)
-    return D, S, T
+    return triples
 ```
 
-We will see below that this forms the core of decoding. TODO (rational reconstruction?)
+The reason for this is that this list turns out to represent *all* triples up to a certain size that satisfy the equation, in the sense that every "small" triple `(R, T, S)` for which `R == T * H + S * F` is actually just a scaled version of a triple `(Ri, Ti, Si)` occurring in the list generated by the EEA: for some constant `a` we have `R == a * Ri`, `T == a * Ti`, and `S == a * Si`. Moreover, given a concrete interpretation of "small" in the form of a degree bound on `R` and `T`, we may find the unique `(Ri, Ti, Si)` that this holds for.
+
+Why this is useful in decoding becomes apparent next.
 
 
+## Euclidean decoding
 
-http://www.math.clemson.edu/~sgao/papers/RS.pdf (see also Section 17.5 in [Shoup'08](http://shoup.net/ntb/))
+Say that `T` is the unknown error locator polynomial, i.e. `T(xi) == 0` exactly when share `yi` has been manipulated. Say also that `R = T * G` where `G` is the original polynomial that was used to generate the shares. Clearly, if we actually knew `T` and `R` then we could get what we're after by a simple division `R / T` -- but since we don't we have to do something else.
 
+Because we're only after the ratio `R / T`, we see that knowing `Ri` and `Ti` such that `R == a * Ri` and `T == a * Ti` actually gives us the same result: `R / T == (a * Ri) / (a * Ti) == Ri / Ti`, and these we could potentially get from the EEA! The only obstacles are that we need to define polynomials `H` and `F`, and we need to be sure that there is a "small" triple with the `R` and `T` as defined here that satisfies the linear equation, which in turn means making sure there exists a suitable `S`. Once done, the output of `poly_eea(H, F)` will give us the needed `Ri` and `Ti`.
 
-## Gao's decoding
+Perhaps unsurprisingly, `H` is the polynomial interpolated using all available values, which may potentially be faulty in case some of them have been manipulated. `F = F1 * ... * FN` is the product of polynomials `Fi(X) = X - xi` where `X` it the indeterminate and `x1, ..., xN` are the points.
+
+Having defined `H` and `F` like this, we can then show that our `R` and `T` as defined above are "small" when the number of errors that have occurred are below the bounds discussed earlier. Likewise it can be shown that there is an `S` such that `R == T * H + S * F`; this involves showing that `R - T * H == S * F`, which follows from `R == H * T mod F` and in turn `R == H * T mod Fi` for all `Fi`. See standard textbooks for further details.
+
+With this in place we have our decoding algorithm!
 
 ```python
 def gao_decoding(points, values, max_degree, max_error_count):
-    
+
     # interpolate faulty polynomial
     H = lagrange_interpolation(points, values)
     
@@ -262,7 +264,7 @@ def gao_decoding(points, values, max_degree, max_error_count):
         Fi = [base_sub(0, xi), 1]
         F = poly_mul(F, Fi)
     
-    # run partial-EGCD algorithm on (F,H) to find triple
+    # run EEA-like algorithm on (F,H) to find EEA triple
     R0, R1 = F, H
     S0, S1 = [1], []
     T0, T1 = [], [1]
@@ -272,7 +274,9 @@ def gao_decoding(points, values, max_degree, max_error_count):
         if deg(R0) < max_degree + max_error_count:
             G, leftover = poly_divmod(R0, T0)
             if leftover == []:
-                return G
+                decoded_polynomial = G
+                error_locator = T0
+                return decoded_polynomial, error_locator
             else:
                 return None
         
@@ -281,49 +285,22 @@ def gao_decoding(points, values, max_degree, max_error_count):
             R2, poly_sub(S0, poly_mul(S1, Q)), poly_sub(T0, poly_mul(T1, Q))
 ```
 
+Note however that it actually does more than promised above: it breaks down gracefully, by returning `None` instead of a wrong result, in case our assumption on the maximum number of errors turns out to be false. The intuition behind this is that if the assumption is true then `T` by definition is "small" and hence the properties of the EEA triple kick in to imply that the division is the same as `R / T`, which by definition of `R` has a zero remainder. And vice versa, if the remainder was zero then the returned polynomial is in fact less than the assumed number of errors away from `H` and hence `T` by definition is "small". In other words, `None` is returned if and only if our assumption was false, which is pretty neat. See [Gao'02](http://www.math.clemson.edu/~sgao/papers/RS.pdf) for further details.
+
+Finally, note that it also gives us the error locations in the form of the roots of `T`. As mentioned earlier this is very useful from an application point of view, but could also have been obtained by simply comparing the received shares against a re-sharing based on the decoded polynomial.
 
 
-# Efficient Special Case
+# Efficiency Improvements
 
-- using the FFT
-- Fourier points
-- no lost shares, or willing to pay double price for them
-- backward FFT for interpolation
-- optimise EEA: f is easy to compute
-- see also Modern Computer Algebra for efficient algorithms with fewer restrictions (ie not relying on the FFT)
+The algorithms presented above have time complexity `Oh(N^2)` but are not the most efficient. Based on the [second part](/2017/06/24/secret-sharing-part2/) we may straight away see how interpolation can be sped up by using the [Fast Fourier Transform](https://en.wikipedia.org/wiki/Fast_Fourier_transform) instead of Lagrange's method. One downside is that we then need to assume that `x1, ..., xN` are Fourier points, i.e. with a special structure, and we need to fill in dummy values for the missing shares and hence pay the double price. [Newton's method](https://en.wikipedia.org/wiki/Newton_polynomial) alternatively avoids this constraint while potentially giving better concrete performance than Lagrange's.
 
-
+However, there are also other fast interpolation algorithms without these constraints, as detailed in for instance Modern Computer Algebra or [this thesis](http://cr.yp.to/f2mult/mateer-thesis.pdf), which also reduces the asymptotic complexity to `Oh(N * log N)`. This former reference also contains fast `Oh(N * log N)` methods for arithmetic and the EEA.
 
 
 # Dump
 
-<em><strong>TL;DR</strong> TODO</em>
-
 TODO: use image form Voyager or from Mars (who used Reed-Solomon codes, [Wiki](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction))
 
-In the [first part](/2017/06/04/secret-sharing-part1/) we introduced typical secret sharing schemes and gave general algorithms for the two procedures involved: *share generation* and *secret reconstruction*. In the [second part](/2017/06/24/secret-sharing-part2/) we looked at how the Fast Fourier Transform can in some cases be used to speed up the share generation procedure by accepting a few additional constraints, in particular the use 
-
-[blog post](https://jeremykun.com/2015/09/07/welch-berlekamp/) "And the best part, for each two additional points you include above the minimum, you get resilience to one additional error no matter where it happens in the message." Note that this is a very slow way.
-
-[name for algo in Shoup](http://drona.csa.iisc.ac.in/~priti/euclid-algorithm.pdf)
-
-Reed-Solomon
-
-[tutorial for binary fields](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders)
-
-There are various approaches to decoding Reed-Solomon comes, but went with the EEA approach after looking around due to its simplicity and apparent equal-or-better performance.
-
-TODO compare efficiency of original encoding vs BCH view: "Since Reed–Solomon codes are a special case of BCH codes, the practical decoders designed for BCH codes are applicable to Reed–Solomon codes" ([Wiki](https://en.wikipedia.org/wiki/Reed–Solomon_error_correction))
-
-TODO decoding using DFT (Wiki) -- why would you do that? more efficient? see also https://www.cse.buffalo.edu//faculty/atri/courses/coding-theory/lectures/lect27.pdf which mentions an FFT algo (the DFT algo from Wiki?) https://tmo.jpl.nasa.gov/progress_report2/42-35/35K.PDF
-
-References:
-- [Shoup's book](http://www.shoup.net/ntb/)
-- [Gao's paper](http://www.math.clemson.edu/~sgao/papers/RS.pdf)
-- [Mateer's thesis](http://cr.yp.to/f2mult/mateer-thesis.pdf)
-
-
-Optimisations we can get from using Fourier points when no shares are lost (or we are willing to "pay double" for lost shares)
 
 
 # Next Steps

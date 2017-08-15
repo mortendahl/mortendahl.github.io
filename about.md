@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "About"
-description: "Morten Dahl"
+description: "For hackers with a focus on real-world applications"
 header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
 github:      "mortendahl"

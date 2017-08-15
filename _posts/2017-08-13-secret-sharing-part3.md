@@ -2,16 +2,16 @@
 layout:     post
 title:      "Secret Sharing, Part 3"
 subtitle:   "Robust Reconstruction via Reed-Solomon Codes"
-date:       2017-07-01 12:00:00
+date:       2017-08-13 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"
 ---
 
-<em><strong>TL;DR:</strong> due to redundancy in the way we generate shares, we can compensate not only for some of them being lost but also manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>
+<em><strong>TL;DR:</strong> due to redundancy in the way shares are generated, we can compensate not only for some of them being lost but also for some being manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>
 
-Returning to our motivations in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the shares we generate are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 
+Returning to our motivation in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the generated shares are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 
 
-Specifically, what if some shares are *lost*, or what if some shares are *manipulated* to differ from what we initially generated? Both may happen due to simple systems failure, but may also be the result of malicious behaviour on the part of shareholders. Should we in these two cases still expect to be able to recover the secret?
+Specifically, what if some shares are *lost*, or what if some shares are *manipulated* to differ from the initially ones? Both may happen due to simple systems failure, but may also be the result of malicious behaviour on the part of shareholders. Should we in these two cases still expect to be able to recover the secret?
 
 In this blog post we will see how to handle both situations. We will use simpler algorithms, but note towards the end how techniques like those used in [part two](/2017/06/24/secret-sharing-part2/) can be used to make the process more efficient.
 
@@ -22,11 +22,11 @@ As usual, all code is available in the [associated Python notebook](https://gith
 
 In the [first part](/2017/06/04/secret-sharing-part1/#the-missing-pieces) we saw how [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) can be used to answer the first question, in that it allows us to reconstruct the secret as long as only a bounded number of shares are lost. As mentioned in the [second part](/2017/06/24/secret-sharing-part2/#polynomials), this is due to the redundancy that comes with point-value presentations of polynomials, namely that the original polynomial is uniquely defined by *any* large enough subset of the shares. Concretely, if `D` is the degree of the original polynomial then we can reconstruct given `R = D + 1` shares in case of Shamir's scheme and `R = D + K` shares in the packed variant; if `N` is the total number of shares we can hence afford to loose `N - R` shares.
 
-But this is assuming that the received shares are unaltered, and the second question concerning recovery in the face of manipulated shares is intuitively harder as we now cannot easily identify when and where something went wrong. <i>(Note that it is also harder in a more formal sense, namely that a solution for manipulated shares can be used as a solution for lost shares, since dummy values, e.g. a constant, may be substituted for the lost shares and then instead treated as having been manipulated. As we will see below, this may however not be optimal, and doing so with the approach taken here will in fact impose a "double price" on lost shares.)</i>
+But this is assuming that the received shares are unaltered, and the second question concerning recovery in the face of manipulated shares is intuitively harder as we now cannot easily identify when and where something went wrong. <i>(Note that it is also harder in a more formal sense, namely that a solution for manipulated shares can be used as a solution for lost shares, since dummy values, e.g. a constant, may be substituted for the lost shares and then instead treated as having been manipulated. This however, is not optimal.)</i>
 
-To solve this issue we will use techniques from error-correction codes, specifically the well-known [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). The reason we can do this is that our share generation procedure in fact corresponds to ([non-systemic](https://en.wikipedia.org/wiki/Systematic_code)) message encoding in these codes, and hence decoding algorithms can be used to reconstruct even in the face of manipulated shares.
+To solve this issue we will use techniques from error-correction codes, specifically the well-known [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction). The reason we can do this is that share generation is very similar to ([non-systemic](https://en.wikipedia.org/wiki/Systematic_code)) message encoding in these codes, and hence their decoding algorithms can be used to reconstruct even in the face of manipulated shares.
 
-The robust reconstruct method for Shamir's scheme we end up with is as follows (with a straight forward generalisation to the packed scheme). The input is a complete list of length `N` of received shares, where missing shares are represented by `None` and manipulated shares by their new value. And if reconstruction goes well then the output is not only the secret, but also the indices of the shares that were manipulated.
+The robust reconstruct method for Shamir's scheme we end up with is as follows, with a straight forward generalisation to the packed scheme. The input is a complete list of length `N` of received shares, where missing shares are represented by `None` and manipulated shares by their new value. And if reconstruction goes well then the output is not only the secret, but also the indices of the shares that were manipulated.
 
 ```python
 def shamir_robust_reconstruct(shares):
@@ -55,14 +55,14 @@ def shamir_robust_reconstruct(shares):
         return secret, error_indices
 ```
 
-Having the error indices may be useful for instance as a deterrent: since we can identify malicious shareholders we can also e.g. publicly shame them, and hence incentivise correct behaviour in the first place. Formally this is known as [covert security](https://en.wikipedia.org/wiki/Secure_multi-party_computation#Security_definitions), where shareholders are willing to cheat only if they are not caught.
+Having the error indices may be useful for instance as a deterrent: since we can identify malicious shareholders we may also be able to e.g. publicly shame them, and hence incentivise correct behaviour in the first place. Formally this is known as [covert security](https://en.wikipedia.org/wiki/Secure_multi-party_computation#Security_definitions), where shareholders are willing to cheat only if they are not caught.
 
-Finally note that reconstruction may however fail, yet it can be shown that this only happens when there indeed isn't enough information left to correctly identify the result; in other words, our method will never give a false negative. Parameters `MAX_MISSING` and `MAX_MANIPULATED` are used to characterise when failure can happen, giving respectively an upper bound on the number of lost and manipulated shares supported. What must hold in general is that the number of "redundancy shares" `N - R` must satisfy `N - R >= MAX_MISSING + 2 * MAX_MANIPULATED`, from which we see that we are in some sense paying twice the price for manipulated shares compared to missing shares.
+Finally note that reconstruction may however fail, yet it can be shown that this only happens when there indeed isn't enough information left to correctly identify the result; in other words, our method will never give a false negative. Parameters `MAX_MISSING` and `MAX_MANIPULATED` are used to characterise when failure can happen, giving respectively an upper bound on the number of lost and manipulated shares supported. What must hold in general is that the number of "redundancy shares" `N - R` must satisfy `N - R >= MAX_MISSING + 2 * MAX_MANIPULATED`, from which we see that we are paying a double price for manipulated shares compared to missing shares.
 
 
 ## Outline of decoding algorithm
 
-The specific decoding procedure we use here works by first finding the coefficients of an erroneous polynomial matching all received shares, including the manipulated ones. Hence we must first find a way to interpolate not only values but also coefficients from a polynomial given in point-value representation; in other words, we must find a way to convert from point-value representation to coefficient representation. We saw in [part two](/2017/06/24/secret-sharing-part2/) how the backward FFT can do this in specific cases, but to handle missing shares we here instead adapt [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) as used in [part one](/2017/06/04/secret-sharing-part1/).
+The specific decoding procedure we use here works by first finding an erroneous polynomial in coefficient representation that matches all received shares, including the manipulated ones. Hence we must first find a way to interpolate not only values but also coefficients from a polynomial given in point-value representation; in other words, we must find a way to convert from point-value representation to coefficient representation. We saw in [part two](/2017/06/24/secret-sharing-part2/) how the backward FFT can do this in specific cases, but to handle missing shares we here instead adapt [Lagrange interpolation](https://en.wikipedia.org/wiki/Lagrange_polynomial) as used in [part one](/2017/06/04/secret-sharing-part1/).
 
 Given the erroneous polynomial we then extract a corrected polynomial from it to get our desired result. Surprisingly, this may simply be done by running the [extended Euclidean algorithm](https://en.wikipedia.org/wiki/Extended_Euclidean_algorithm#Polynomial_extended_Euclidean_algorithm) on polynomials as shown below.
 
@@ -145,13 +145,12 @@ def poly_divmod(A, B):
     return canonical(Q), canonical(R)
 ```
 
-We have used simple algorithms for these operations in this blog post but referred to Modern Computer Algebra or .. for more efficient versions. TODO 
-The standard algorithms will suffice for this blog post but note that optimizations are possible.
+Note that we have used basic algorithms for these operations here but that more efficient versions exist. Some pointers to these are given at the end.
 
 
 # Interpolating Polynomials
 
-We next turn to the task of converting a polynomial given in *implicit* point-value representation to its *explicit* coefficient representation. Several procedures exist for this, including efficient algorithms for specific cases such as the backward FFT seen earlier, and general ones based e.g. on [Newton's method](https://en.wikipedia.org/wiki/Newton_polynomial) that apparently is popular in numerical analysis due to its efficiency in handling new data points. However, as mentioned above, for this post we'll use Lagrange interpolation and see that although it's perhaps typically see as a procedure for interpolating values, it can also very easily be made to work for interpolating coefficients.
+We next turn to the task of converting a polynomial given in (implicit) point-value representation to its (explicit) coefficient representation. Several procedures exist for this, including efficient algorithms for specific cases such as the backward FFT seen earlier, and general ones based e.g. on [Newton's method](https://en.wikipedia.org/wiki/Newton_polynomial) that seem popular in numerical analysis due to its better efficiency and ability to handle new data points. However, for this post we'll use Lagrange interpolation and see that although it's perhaps typically see as a procedure for interpolating the values of polynomials, it also works just as well for interpolating their coefficients.
 
 Recall that we are given points `x0, x1, ..., xD` and values `y0, y1, ..., yD` implicitly defining a polynomial `F`. [Earlier](/2017/06/04/secret-sharing-part1/) we then used [Lagrange's method](https://en.wikipedia.org/wiki/Lagrange_polynomial) to find value `F(x)` at a potentially different point `x`. This works due to the constructive nature of Lagrange's proof, where a polynomial `H` is defined as `H(X) = y0 * L0(X) + ... + yD * LD(X)` for indeterminate `X` and *Lagrange basis polynomials* `Li`, and then shown identical to `F`. To find `F(x)` we then simply evaluated `H(x)`, although we precomputed `Li(x)` as the *Lagrange constants* `ci` so that this step simply reduced to a weighted sum `y1 * c1 + ... yD * cD`.
 
@@ -204,7 +203,7 @@ While this may not be the most efficient way (see notes later), it is hard to be
 
 # Correcting Errors
 
-In the non-systemic variants of [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction), messages are encoded very similarly to how we generate shares: a message `m` represented by vector a `[m0, ..., mD]` is interpreted as a polynomial `F(X) = (m0) + (m1 * X) + ... + (mD * X^D)` and evaluated at a fixed set of points to get the code word. No randomness is used in the process, since the purpose there is only to provide redundancy and not privacy (in fact, in the systemic variants, the message is directly readable from the code word), yet this doesn't change the fact that we can use decoding procedures to correct errors in the shares.
+In the non-systemic variants of [Reed-Solomon codes](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction), a message `m` represented by a vector `[m0, ..., mD]` is encoded by interpreting it as a polynomial `F(X) = (m0) + (m1 * X) + ... + (mD * X^D)` and then evaluating `F` at a fixed set of points to get the code word. Unlike share generation, no randomness is used in this process since the purpose is only to provide redundancy and not privacy (in fact, in the systemic variants, the message is directly readable from the code word), yet this doesn't change the fact that we can use decoding procedures to correct errors in shares.
 
 Several such [decoding procedures](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction#Error_correction_algorithms) exist, some of which are explained [here](https://en.wikiversity.org/wiki/Reed%E2%80%93Solomon_codes_for_coders) and [there](https://jeremykun.com/2015/09/07/welch-berlekamp/), yet the one we'll use here is conceptually simple and has a certain beauty to it. Also keep in mind that some of the typical optimizations used in implementations of the alternative approaches get their speed-up by relying on properties of the more common setting over binary extension fields, while we here are interested in the setting over prime fields as we would like to simulate (bounded) integer arithmetic in our application of secret sharing to secure computation -- which is straight forward in prime fields but less clear in binary extension fields.
 
@@ -297,11 +296,7 @@ The algorithms presented above have time complexity `Oh(N^2)` but are not the mo
 However, there are also other fast interpolation algorithms without these constraints, as detailed in for instance Modern Computer Algebra or [this thesis](http://cr.yp.to/f2mult/mateer-thesis.pdf), which also reduces the asymptotic complexity to `Oh(N * log N)`. This former reference also contains fast `Oh(N * log N)` methods for arithmetic and the EEA.
 
 
-# Dump
-
-TODO: use image form Voyager or from Mars (who used Reed-Solomon codes, [Wiki](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction))
-
-
-
 # Next Steps
+
+The first three posts have been a lot of theory and it's now time to turn to applications.
 

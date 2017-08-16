@@ -46,12 +46,20 @@ and concluding with the specialised multi-party computation protocol underlying 
 
 # Private Data Aggregation on a Budget
 
-Given at the workshop on [*Theory and Practice of Multi-Party Computation (TPMPC'17)*](http://www.multipartycomputation.com/tpmpc-2017), this [talk](https://github.com/mortendahl/privateml/raw/master/talks/TPMPC17-slides.pdf) was technical in nature in that it presented the [SDA protocol](https://eprint.iacr.org/2017/643), but also aimed at illustrating the problem that a company may experience when wanting to solve a privacy problem by employing a secure multi-party computation (MPC) protocol: namely, that it may find itself to be the only party that is naturally motivated to invent resources into it. 
+Given at the workshop on [*Theory and Practice of Multi-Party Computation (TPMPC'17)*](http://www.multipartycomputation.com/tpmpc-2017), this [talk](https://github.com/mortendahl/privateml/raw/master/talks/TPMPC17-slides.pdf) was technical in nature in that it presented the [SDA protocol](https://eprint.iacr.org/2017/643), but also aimed at illustrating the problem that a company may experience when wanting to solve a privacy problem by employing a secure multi-party computation (MPC) protocol: namely, that it may find itself to be the only party that is naturally motivated to invest resources into it. 
 
-Moreover, the fact that the other parties are running on mobile devices, and potentially web browsers, poses additional communication and computations concerns that are not always considered in typical MPC protocols.
+Moreover, to remain open to as many potential other parties as possible, it is interesting to minimise the requirements on these in terms of computation, communication, and coordination. By doing so parties running e.g. mobile devices or web browsers may be considered. These concerns however, are not always considered in typical MPC protocols.
 
-The talk presented a concrete proposal in a *community-based* model where members of the community are used as parties, but have to make a minimum of investment as most of the computation is out-sourced to the company and very little coordination is made between the different members. A mechanism for distributing work is also presented in order to lower the individual load by involving more members. The result is a practical protocol for aggregating high-dimensional vectors that is practical for a single company with a community of sporadic parties.
+### Community-based MPC
+To this end SDA presents a simple but concrete proposal in a *community-based model* where members from a community are used as parties. 
 
-Concrete applications was also considered, including analytics, surveys, and place discovery based on users' location history.
+These parties only have to make a minimum of investment as most of the computation is out-sourced to the company and very little coordination is required between the selected members. Furthermore, a mechanism for distributing work is also presented that allows for lowering the individual load by involving more members. 
+
+The result is a practical protocol for *aggregating high-dimensional vectors* that is suitable for a single company with a community of sporadic members.
+
+### Applications
+Concrete and realistic applications was also considered, including analytics, surveys, and place discovery based on users' location history.
+
+As illustrated, the load on community members in these applications were low enough to be reasonably run on mobile phones and even web browsers.
 
 This work was also presented at [*Private Multi-Party Machine Learning (PMPML'16)*](https://pmpml.github.io/PMPML16/) in the form of a [poster](https://github.com/mortendahl/privateml/raw/master/talks/PMPML16-poster.pdf).

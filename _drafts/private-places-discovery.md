@@ -15,3 +15,6 @@ SDA use cases
 - mini golf
 - Tirpitz
 - train on sensitive data, go into production/get feedback on aggregated data
+
+
+# Sketches

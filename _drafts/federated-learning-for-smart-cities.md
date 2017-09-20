@@ -19,7 +19,8 @@ we capture applications that can be expressed as local training followed by an a
 
 - local operation done on mobile devices
 - show Google API: tracking and geofences
-
+- https://developer.android.com/training/location/receive-location-updates.html
+- https://developer.apple.com/documentation/corelocation/getting_the_user_s_location
 
 
 # Smart City Applications
@@ -49,6 +50,7 @@ give concrete performance estimates for each: "using building blocks below"
 - where to put efforts in making biking safer
 - find heavy bike-trafficked intersections in city
 - use sketches to keep dimension down
+- http://theory.stanford.edu/~tim/s15/l/l2.pdf
 
 
 ## Busy Hours

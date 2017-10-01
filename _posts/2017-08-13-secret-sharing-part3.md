@@ -4,7 +4,7 @@ title:      "Secret Sharing, Part 3"
 subtitle:   "Robust Reconstruction via Reed-Solomon Codes"
 date:       2017-08-13 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-01.jpg"
+header-img: "img/post-bg-jupiter.gif"
 ---
 
 <em><strong>This post is still in draft and some minor updates are likely.</strong></em>

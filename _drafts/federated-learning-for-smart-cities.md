@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "Federated Learning for Smart Cities"
-subtitle:   "Crowd-sourcing Location Data with Privacy"
+subtitle:   "Crowdsourcing Location-based Data with Privacy"
 date:       2016-04-02 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"

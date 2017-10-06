@@ -7,7 +7,7 @@ header-img: "img/post-bg-02.jpg"
 author:     "Morten Dahl"
 ---
 
-<em><strong>TL;DR:</strong> first part in a series where we look at secret sharing schemes, including the lesser known packed variant of Shamir's scheme, and give full and efficient implementations; here we start with the textbook approaches, with follow-up posts focusing on improvements from more advanced techniques for [sharing](/2017/06/24/secret-sharing-part2) and reconstruction.</em>
+<em><strong>TL;DR:</strong> first part in a series where we look at secret sharing schemes, including the lesser known packed variant of Shamir's scheme, and give full and efficient implementations; here we start with the textbook approaches, with follow-up posts focusing on improvements from more advanced techniques for [sharing](/2017/06/24/secret-sharing-part2) and [reconstruction](/2017/08/13/secret-sharing-part3).</em>
 
 [Secret sharing](https://en.wikipedia.org/wiki/Secret_sharing) is an old well-known cryptographic primitive, with existing real-world applications in e.g. [Bitcoin signatures](https://bitcoinmagazine.com/articles/threshold-signatures-new-standard-wallet-security-1425937098) and [password management](https://www.vaultproject.io/docs/internals/security.html). But perhaps more interestingly, secret sharing also has strong links to [secure computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) and may for instance be used for [private machine learning](/2017/04/17/private-deep-learning-with-mpc/).
 

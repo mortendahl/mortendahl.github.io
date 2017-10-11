@@ -7,11 +7,11 @@ author:     "Morten Dahl"
 header-img: "img/post-bg-04.jpg"
 ---
 
-<em><strong>This post is still very much a work in progress; in particular, its concrete practically is yet to be seen from implementation experiments.</strong></em>
+<em><strong>This post is still a work in progress; in particular, its concrete practically is yet to be seen from implementation experiments.</strong></em>
 
 <em><strong>TL;DR:</strong> in this blog post we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em>
 
-Using deep learning to analysis images through [convolutional neural networks](http://cs231n.github.io/convolutional-networks/) (CNNs) has gained enormous popularity over the last few years due to their success in out-performing many other approaches on this and related tasks. 
+Using deep learning to analysis images through [convolutional neural networks](http://cs231n.github.io/) (CNNs) has gained enormous popularity over the last few years due to their success in out-performing many other approaches on this and related tasks. 
 
 One recent application took the form of [skin cancer detection](http://www.nature.com/nature/journal/v542/n7639/full/nature21056.html), where anyone can quickly take a photo of a skin lesions using a mobile phone app and have it analysed with "performance on par with [..] experts" (see the [associated video](https://www.youtube.com/watch?v=toK1OSLep3s) for a demo). Having access to a large set of clinical photos played a key part in training this model -- a data set that could be considered sensitive.
 
@@ -35,7 +35,7 @@ Finally, in terms of security we aim for a typical notion used in practice, name
 
 # Image Analysis with CNNs
 
-Our use case is the canonical [MNIST handwritten digit recognition](https://www.tensorflow.org/get_started/mnist/beginners), namely learning to identify the Arabic numeral in a given image, and we will use the following CNN model from a [Keras example](https://github.com/fchollet/keras/blob/master/examples/mnist_transfer_cnn.py) as our base. [TODO](https://github.com/ageron/handson-ml).
+Our use case is the canonical [MNIST handwritten digit recognition](https://www.tensorflow.org/get_started/mnist/beginners), namely learning to identify the Arabic numeral in a given image, and we will use the following CNN model from a [Keras example](https://github.com/fchollet/keras/blob/master/examples/mnist_transfer_cnn.py) as our base. We won't go into the details of this model here since the principles are already [well-covered](https://github.com/ageron/handson-ml).
 
 ```python
 feature_layers = [
@@ -78,7 +78,7 @@ Using [Keras](https://keras.io/) has the benefit that we can perform quick exper
 
 With CNNs in place we next turn to MPC. Unlike the protocol used in [a previous blog post](/2017/04/17/private-deep-learning-with-mpc/), here we will use the state-of-the-art SPDZ protocol as it allows us to have only two servers and have received significant scientific attention over the last few years. As a result, several optimisations are known that can used to speed up our computation as shown later.
 
-The protocol was first described in [SPZD'12](https://eprint.iacr.org/2011/535) and [DKLPSS'13](https://eprint.iacr.org/2012/642), but have also been the subject of at least [one series of blog posts](https://bristolcrypto.blogspot.fr/2016/10/what-is-spdz-part-1-mpc-circuit.html). Several implementations exist, including [one](https://www.cs.bris.ac.uk/Research/CryptographySecurity/SPDZ/) from the cryptography group at the University of Bristol providing both high performance and full active security.
+The protocol was first described in [SPZD'12](https://eprint.iacr.org/2011/535) and [DKLPSS'13](https://eprint.iacr.org/2012/642), but have also been the subject of at least [one series of blog posts](https://bristolcrypto.blogspot.fr/2016/10/what-is-spdz-part-1-mpc-circuit.html). Several implementations exist, including [one](https://www.cs.bris.ac.uk/Research/CryptographySecurity/SPDZ/) from the [cryptography group](http://www.cs.bris.ac.uk/Research/CryptographySecurity/) at the University of Bristol providing both high performance and full active security.
 
 As usual, all computations take place in a field, here identified by a prime `Q`. As we will see, this means we also need a way to encode the fixed-point numbers used by the CNNs as integers modulo a prime, and we have to take care that these never "wrap around" as we then may not be able to recover the correct result.
 
@@ -215,7 +215,7 @@ def decode(field_element, precision=6):
 
 In doing this we have to be careful not to "wrap around" by letting any encoding exceed `Q`; if this happens our decoding procedure will give wrong results.
 
-To get around this we'll simply make sure to pick `Q` large enough relative to chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence actually leave enough room of double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](TODO).
+To get around this we'll simply make sure to pick `Q` large enough relative to chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence actually leave enough room of double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](https://eprint.iacr.org/2017/396).
 
 ```python
 def truncate(x, amount=6):
@@ -341,7 +341,7 @@ Once happy with this the servers simply shares the model parameters and move on 
 
 ### Train on private dataset
 
-While we now begin encrypted training on model parameters that are already "half-way there" and hence can be expected to require fewer epochs, another benefit of transfer learning, as mentioned above, is that recognition of subcomponents tend to happen in the lower layers of the network and may in some cases be use as-is. As a result, we now freeze the parameters of the lower layers and focus training efforts to the upper layers instead.
+While we now begin encrypted training on model parameters that are already "half-way there" and hence can be expected to require fewer epochs, another benefit of transfer learning, as mentioned above, is that recognition of subcomponents tend to happen in the lower layers of the network and may in some cases be used as-is. As a result, we now freeze the parameters of the feature layers and focus training efforts exclusively on the classification layers.
 
 ```python
 for layer in feature_layers:
@@ -382,9 +382,11 @@ Another typical approach to speed up training is to first apply dimensionality r
 
 # Adapting the Protocol
 
-TODO understanding what computation we want to perform can help speed up things; it is not a custom protocol but simply extention/adaptation.
+Having looked at the model we next turn to the protocol: as well shall see, understanding the operations we want to perform can help speed things up. 
 
-Recall from earlier that its worth optimising both round complexity and communication complexity.
+In particular, a lot of the computation can be moved to the crypto provider, who's generated raw material is independent of the private inputs and to some extend even the model. As such, its computation may be done in advance whenever it's convenient and at large scale.
+
+Recall from earlier that it's relevant to optimising both round and communication complexity, and the extensions suggested here are often aimed at improving these at the expense of additional local computation. As such, practical experiments are needed to validate their benefits under concrete conditions.
 
 
 ## Average pooling
@@ -399,18 +401,18 @@ Nothing special related to secure computation here, only thing is to make sure t
 
 ## Dense layers
 
-The matrix dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(X, Y)` for matrices `X` and `Y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate an equal number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
+The matrix dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(X, Y)` for matrices `X` and `Y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
 
-For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values, but by using the preprocessed triples detailed below we instead only have to send of `32 * 128 + 5 * 128 == 4736` values, roughly a factor 5 improvement. And for the first dense layer it is even greater, namely roughly a factor 25. 
+For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples detailed below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
 
 The trick is to ensure that each private value is only sent masked once. To make this work we need triples `(R, S, T)` of random matrices `R` and `S` with the appropriate shapes and such that `T == dot(R, S)`. 
 
 ```python
 def generate_matmul_triple(m, k, n):
-    R = np.random.randint(Q, size=(m, k))
-    S = np.random.randint(Q, size=(k, n))
-    T = np.dot(R, S) % Q
-    return share(R), share(S), share(T) # TODO vectorized version
+    R = wrap(np.random.randint(Q, size=(m, k)))
+    S = wrap(np.random.randint(Q, size=(k, n)))
+    T = np.dot(R, S)
+    return share(R), share(S), share(T)
 ```
 
 Given such a triple we can instead communicate the values of `Rho = X - R` and `Sigma = Y - S` and perform local computation `dot(Rho, Sigma) + dot(R, Sigma) + dot(Rho, S) + T` to obtain `dot(X, Y)`.
@@ -418,8 +420,8 @@ Given such a triple we can instead communicate the values of `Rho = X - R` and `
 ```python
 def matmul(X, Y, triple):
     R, S, T = triple
-    Rho = reconstruct((X - R) % Q) # TODO vectorized version
-    Sigma = reconstruct((Y - S) % Q)
+    Rho = reconstruct(X - R)
+    Sigma = reconstruct(Y - S)
     return np.dot(Rho, Sigma) + np.dot(R, Sigma) + np.dot(Rho, S) + T
 ```
 
@@ -430,94 +432,100 @@ Note that this kind of triple is used in [SecureML](https://eprint.iacr.org/2017
 
 ## Convolutions
 
-TODO describe the special kind of triple following the same principle of only sending masked versions once. there are massive savings here compared to the textbook matrix expension method.
+Like dense layers, convolutions can be treated either as a series of scalar multiplications or as [a matrix multiplication](http://cs231n.github.io/convolutional-networks/#conv), although the latter only after first expanding the tensor of training samples into a matrix with significant duplication. Unsurprisingly this leads to communication costs that in both cases can be improved by introducing another kind of triple.
+
+As an example, the first convolution maps a tensor with shape `(m, 28, 28, 1)` to one with shape `(m, 28, 28, 32)` using `32` filters of shape `(3, 3, 1)` (excluding the bias vector). For batch size `m == 32` this means `7,225,344` communicated elements if we're using only scalar multiplications, and `226,080` if using a matrix multiplication. However, since there are only `(32*28*28) + (32*3*3) == 25,376` private values involved in total (again not counting bias since they only require addition), we see that there is roughly a factor `9` overhead. With a new kind of triple we can remove this overhead and save on communication cost: for 64 bit elements this means `200KB` per batch instead of respectively `1.7MB` and `55MB`.
+
+The triples `(A, B, C)` we need here are similar to those used in matrix multiplication, with `A` and `B` having shapes matching the two inputs, i.e. `(m, 28, 28, 1)` and `(32, 3, 3, 1)`, and `C` matching output shape `(m, 28, 28, 32)`.
 
 
 ## Sigmoid activations
 
-Like [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid) we may use polynomials to approximate the sigmoid activation function on a private value `x`, where a degree-9 polynomial can give a fair level of accuracy. Computing the powers of `x` in this polynomial may of course be done by sequential multiplication, but this means several rounds and corresponding amount of communication.
+As we did [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid), we may use a degree-9 polynomial to approximate the sigmoid activation function with a sufficient level of accuracy. Evaluating this polynomial for a private value `x` requires computing a series of powers of `x`, which of course may be done by sequential multiplication. But this means several rounds and corresponding amount of communication.
 
-So as an alternative we may again use a new kind of preprocessed triple that allows exponentiation to all intermediate powers to be done in a single round. The length of these "triples" is hence not fixed but equals the exponent, and a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`, in both cases for a uniformly random `a`.
+As an alternative we can again use a new kind of preprocessed triple that allows exponentiation to all required powers to be done in a single round. The length of these "triples" is not fixed but equals the highest exponent, such that a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`.
 
 ```python
-def generate_exponentiation_triple(exponent):
+def generate_powering_triple(exponent):
     a = random.randrange(Q)
     return [ share(pow(a, e, Q)) for e in range(1, exponent+1) ]
 ```
 
 To use these we notice that if `epsilon = x - a` then `x^n == (epsilon + a)^n`, which by the [the binomal theorem](https://en.wikipedia.org/wiki/Binomial_theorem) may be expressed as a weighted sum of `epsilon^n * a^0`, ..., `epsilon^0 * a^n` using the [binomial coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient) as weights. For instance, we have `x^3 == (c0 * epsilon^3) + (c1 * epsilon^2 * a) + (c2 * epsilon * a^2) + (c3 * a^3)` with `ck = C(3, k)`.
 
-TODO
-
-<!--
+Moreover, a triple for e.g. cubing `x` can also simultaneously be used for squaring `x` simply by skipping some powers and computing different binomial coefficients. Hence, all intermediate powers may be computed using a single triple and communication of one field element. The security of this again follows from the fact that all powers in the triple are independently shared.
 
 ```python
-def exps(x, exponent, triple):
+def pows(x, triple):
     # local masking
     a = triple[0]
     v = sub(x, a)
     # communication: the players simultanously send their share to the other
     epsilon = reconstruct(v)
-    # local combination
-    e_powers = [ pow(epsilon, e, Q) for e in reversed(range(exponent+1)) ]
-    a_powers = [ONE] + triple
+    # local combination to compute all powers
     x_powers = []
-    for intermediate in range(1, exponent+1):
-        coeffs    = ( binom(intermediate, e, exact=True) for e in range(intermediate+1) )
-        x_powers += [reduce(add, mul_public(b, c * e) for c,e,b in zip(cs, es, bs) ))]
-    return powers
+    for exponent in range(1, len(triple)+1):
+        # prepare all term values
+        a_powers = [ONE] + triple[:exponent]
+        e_powers = [ pow(epsilon, e, Q) for e in range(exponent+1) ]
+        coeffs   = [ binom(exponent, k) for k in range(exponent+1) ]
+        # compute and sum terms
+        terms = ( mul_public(a,e*c) for a,e,c in zip(a_powers,reversed(e_powers),coeffs) )
+        x_powers.append(reduce(lambda x,y: add(x, y), terms))
+    return x_powers
 ```
 
-This is a local operation once `epsilon` is known, and hence exponentiation only takes one round.
+Once we have these powers of `x`, evaluating a polynomial with public coefficients is then just a weighted sum.
 
-There is one caveat however, and that is that we now run an increased risk of wrapping around due to the lack of intermediate precision truncation: the number we end up with has `n` times the normal precision. 
+```python
+def pol_public(x, coeffs, triple):
+    powers = [ONE] + pows(x, triple)
+    terms = ( mul_public(xe, ce) for xe,ce in zip(powers, coeffs) )
+    return reduce(lambda y,z: add(y, z), terms)
+```
 
-One way around this is to temporarily switch to a larger field and perform the exponentiation and truncation there. The conversion to and from this larger field each take one round of communication, meaning exponentiation to any degree may be done in three rounds given the appropriate triples. 
+There is one caveat however, and that is that we now need room for the higher precision of the powers: `x^n` has `n` times the precision of `x` and we want to make sure that this value does not wrap around modulo `Q`.
+
+One way around this is to temporarily switch to a larger field and compute the powers and truncation there. The conversion to and from this larger field `P` each take one round of communication, so polynomial evaluation ends up taking a total of three rounds. 
+
+Security wise we also have to pay a small price, although from a practical perspective there is little difference. In particular, for this operation we rely on *statistical security* instead of perfect security: since `r` is not an uniform random element here, there's a tiny risk that something will be leaked about `x`.
 
 ```python
 def generate_statistical_mask():
-    return random.randrange(Q) % BASE**(2*PRECISION+1 + KAPPA)
+    return random.randrange(2*BOUND * 10**KAPPA)
 
 def generate_zero_triple(field):
     return share(0, field)
 
-def upshare(x, large_zero_triple):
-    # map to positive range
-    x = scalar_add(x, BASE**(2*PRECISION+1), Q)
-    # player 0
+def convert(x, from_field, to_field, zero_triple):
+    # local mapping to positive representation
+    x = add_public(x, BOUND, from_field)
+    # local masking and conversion by player 0
     r = generate_statistical_mask()
-    e = (x[0] + r) % Q
-    y0 = (large_zero_triple[0] - r) % P
-    # player 1
-    xr = (e + x[1]) % Q
-    y1 = (large_zero_triple[1] + xr) % P
-    # combine
+    y0 = (zero_triple[0] - r) % to_field
+    # exchange of masked share: one round of communication
+    e = (x[0] + r) % from_field
+    # local conversion by player 1
+    xr = (e + x[1]) % from_field
+    y1 = (zero_triple[1] + xr) % to_field
+    # local mapping back from positive representation
     y = [y0, y1]
-    y = scalar_sub(y, BASE**(2*PRECISION+1), P)
+    y = sub_public(y, BOUND, to_field)
     return y
 
+def upshare(x, large_zero_triple):
+    return convert(x, Q, P, large_zero_triple)
+
 def downshare(x, small_zero_triple):
-    # map to positive range
-    x = scalar_add(x, BASE**(2*PRECISION+1), P)
-    # player 0
-    r = generate_statistical_mask()
-    e = (x[0] + r) % P
-    y0 = (small_zero_triple[0] - r) % Q
-    # player 1
-    xr = (e + x[1]) % P
-    y1 = (small_zero_triple[1] + xr) % Q
-    # combine
-    y = [y0, y1]
-    return scalar_sub(y, BASE**(2*PRECISION+1), Q)
+    return convert(x, P, Q, small_zero_triple)
 ```
 
-Note that we could of course decide to simply do all computations in the larger field, thereby avoiding the conversion steps; this however may slow down the local computation as we may need arbitrary precision arithmetic as opposed to 64 or 128 bit native arithmetic.
+Note that we could of course decide to simply do all computations in the larger field `P`, thereby avoiding the conversion steps. This will likely slow down the local computations by a non-trivial factor however, as we may need arbitrary precision arithmetic for `P` as opposed to e.g. 64 bit native arithmetic for `Q`.
 
-we have to tweak the field size vs number of rounds: the more exp we want to do in one round, the larger the field must be to avoid the fixed-point encoding wrapping around; larger fields means slower computations but fewer rounds. we need log(exponent) rounds
+Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or switch temporarily to `P` and pay for conversion and arbitrary precision arithmetic. Specifically, for low degree polynomials the former is likely better.
 
-TODO look into [Chebyshev interpolation points](https://en.wikipedia.org/wiki/Chebyshev_nodes)
+TODO: look into [Chebyshev interpolation points](https://en.wikipedia.org/wiki/Chebyshev_nodes) for better accuracy of interpolation
 
--->
 
 ## Softmax and cross-entropy
 

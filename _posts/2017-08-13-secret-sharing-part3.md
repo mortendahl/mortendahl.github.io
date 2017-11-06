@@ -7,8 +7,6 @@ author:     "Morten Dahl"
 header-img: "img/post-bg-jupiter.gif"
 ---
 
-<em><strong>This post is still in draft and some minor updates are likely.</strong></em>
-
 <em><strong>TL;DR:</strong> due to redundancy in the way shares are generated, we can compensate not only for some of them being lost but also for some being manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>
 
 Returning to our motivation in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the generated shares are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 

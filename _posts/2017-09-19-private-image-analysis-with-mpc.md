@@ -9,11 +9,11 @@ header-img: "img/post-bg-04.jpg"
 
 <em><strong>This post is still a work in progress; in particular, its concrete practically is yet to be seen from implementation experiments.</strong></em>
 
-<em><strong>TL;DR:</strong> in this blog post we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em>
+<em><strong>TL;DR:</strong> in this blog post we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 
 
-Using deep learning to analysis images through [convolutional neural networks](http://cs231n.github.io/) (CNNs) has gained enormous popularity over the last few years due to their success in out-performing many other approaches on this and related tasks. 
+Using deep learning to analyse images through [convolutional neural networks](http://cs231n.github.io/) (CNNs) has gained enormous popularity over the last few years due to their success in out-performing many other approaches on this and related tasks. 
 
-One recent application took the form of [skin cancer detection](http://www.nature.com/nature/journal/v542/n7639/full/nature21056.html), where anyone can quickly take a photo of a skin lesions using a mobile phone app and have it analysed with "performance on par with [..] experts" (see the [associated video](https://www.youtube.com/watch?v=toK1OSLep3s) for a demo). Having access to a large set of clinical photos played a key part in training this model -- a data set that could be considered sensitive.
+One recent application took the form of [skin cancer detection](http://www.nature.com/nature/journal/v542/n7639/full/nature21056.html), where anyone can quickly take a photo of a skin lesion using a mobile phone app and have it analysed with "performance on par with [..] experts" (see the [associated video](https://www.youtube.com/watch?v=toK1OSLep3s) for a demo). Having access to a large set of clinical photos played a key part in training this model -- a data set that could be considered sensitive.
 
 Which brings us to privacy and eventually [secure multi-party computation](https://en.wikipedia.org/wiki/Secure_multi-party_computation) (MPC): how many applications are limited today due to the lack of access to data? In the above case, could the model be improved by letting anyone with a mobile phone app contribute to the training data set? And if so, how many would volunteer given the risk of exposing personal health related information?
 
@@ -21,12 +21,14 @@ With MPC we can potentially lower the risk of exposure and hence increase the in
 
 In this blog post we'll look at a simpler use case for image analysis but go over all required techniques. 
 
+<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Nigel Smart](https://twitter.com/smartcryptology), [Adrià Gascón](https://twitter.com/adria), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
+
 
 # Setting
 
-We will assume that the training data set is held by a set of *input providers* and that the training is performed by two distinct *servers* (or *parties*) that are trusted not to collaborate beyond what our protocol specifies. In practice, these servers could for instance be virtual instances in a shared cloud environment operated by two different organisations. 
+We will assume that the training data set is jointly held by a set of *input providers* and that the training is performed by two distinct *servers* (or *parties*) that are trusted not to collaborate beyond what our protocol specifies. In practice, these servers could for instance be virtual instances in a shared cloud environment operated by two different organisations. 
 
-Note that the input providers are only needed in the very beginning to transmit their training data; after that all computations involve only the two servers, meaning it is indeed plausible for the input providers to use e.g. mobile phones. Once trained, the model will remain jointly held in encrypted form by the two servers where anyone can use it to make further encrypted predictions.
+The input providers are only needed in the very beginning to transmit their training data; after that all computations involve only the two servers, meaning it is indeed plausible for the input providers to use e.g. mobile phones. Once trained, the model will remain jointly held in encrypted form by the two servers where anyone can use it to make further encrypted predictions.
 
 For technical reasons we also assume a distinct *crypto provider* that generates certain raw material used during the computation for increased efficiency; there are ways to eliminate this additional entity but we won't go into that here. 
 
@@ -35,7 +37,9 @@ Finally, in terms of security we aim for a typical notion used in practice, name
 
 # Image Analysis with CNNs
 
-Our use case is the canonical [MNIST handwritten digit recognition](https://www.tensorflow.org/get_started/mnist/beginners), namely learning to identify the Arabic numeral in a given image, and we will use the following CNN model from a [Keras example](https://github.com/fchollet/keras/blob/master/examples/mnist_transfer_cnn.py) as our base. We won't go into the details of this model here since the principles are already [well-covered](https://github.com/ageron/handson-ml).
+Our use case is the canonical [MNIST handwritten digit recognition](https://www.tensorflow.org/get_started/mnist/beginners), namely learning to identify the Arabic numeral in a given image, and we will use the following CNN model from a [Keras example](https://github.com/fchollet/keras/blob/master/examples/mnist_transfer_cnn.py) as our base. 
+
+We won't go into the details of this model here since the principles are already well-covered [elsewhere](https://github.com/ageron/handson-ml), but the basic idea is to first run an image through a set of *feature layers* that in some sense map the raw pixels of the input image into abstract properties. These properties are then subsequently combined by a set of *classification layers* to yield a probability distribution over the possible digits. The final outcome is then typically simply the digit with highest assigned probability.
 
 ```python
 feature_layers = [
@@ -116,7 +120,7 @@ Note that the use of an additive scheme means the servers are required to be hig
 
 Having obtained sharings of private values we may next perform certain operations on these. The first set of these is what we call linear operations since they allow us to form linear combinations of private values.
 
-The first are addition on subtraction, which are simple local computations on the shares already held by each server.
+The first are addition and subtraction, which are simple local computations on the shares already held by each server.
 
 ```python
 def add(x, y):
@@ -160,9 +164,9 @@ Note that the security of these operations is straight-forward since no communic
 
 Multiplication of two private values is where we really start to deviate from the protocol used [previously](/2017/04/17/private-deep-learning-with-mpc/). The techniques used there inherently need at least three parties so won't be much help in our two party setting. 
 
-Perhaps more interesting though, is that the new techniques used here allow us to shift parts of the computation to an *offline phase* where raw material that doesn't depend on any of the private values can be generated at convenience. As we shall see later, this can be used to significantly speed up the *online phase* where training and prediction is taking place.
+Perhaps more interesting though, is that the new techniques used here allow us to shift parts of the computation to an *offline phase* where *raw material* that doesn't depend on any of the private values can be generated at convenience. As we shall see later, this can be used to significantly speed up the *online phase* where training and prediction is taking place.
 
-The raw material needed here is popularly called a *multiplication triple* (and sometimes *Beaver triple* due to their introduction in [Beaver'91](https://scholar.google.com/scholar?cluster=14306306930077045887)) and consists of independent sharings of three values `a`, `b`, and `c` such that `a` and `b` are uniformly random values and `c == a * b % Q`. Here we assume that these triples are generated by the crypto provider, and the resulting shares distributed to the two parties ahead of running the online phase. In other words, when performing a multiplication we assume that `Pi` already knows `a[i]`, `b[i]`, and `c[i]`. 
+This raw material is popularly called a *multiplication triple* (and sometimes *Beaver triple* due to their introduction in [Beaver'91](https://scholar.google.com/scholar?cluster=14306306930077045887)) and consists of independent sharings of three values `a`, `b`, and `c` such that `a` and `b` are uniformly random values and `c == a * b % Q`. Here we assume that these triples are generated by the crypto provider, and the resulting shares distributed to the two parties ahead of running the online phase. In other words, when performing a multiplication we assume that `Pi` already knows `a[i]`, `b[i]`, and `c[i]`. 
 
 ```python
 def generate_multiplication_triple():
@@ -215,7 +219,7 @@ def decode(field_element, precision=6):
 
 In doing this we have to be careful not to "wrap around" by letting any encoding exceed `Q`; if this happens our decoding procedure will give wrong results.
 
-To get around this we'll simply make sure to pick `Q` large enough relative to chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence actually leave enough room of double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](https://eprint.iacr.org/2017/396).
+To get around this we'll simply make sure to pick `Q` large enough relative to the chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence leave enough room for double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](https://eprint.iacr.org/2017/396).
 
 ```python
 def truncate(x, amount=6):
@@ -254,7 +258,7 @@ An additional caveat is that many optimizers use [clipping](http://nmarkou.blogs
 
 ## Layers
 
-Seaking of comparisons, the *ReLU* and max-pooling layers poses similar problems. In [CryptoNets](https://www.microsoft.com/en-us/research/publication/cryptonets-applying-neural-networks-to-encrypted-data-with-high-throughput-and-accuracy/) the former is replaced by a squaring function and the latter by average pooling, while [SecureML](https://eprint.iacr.org/2017/396) implements a ReLU-like activation function by adding complexity that we wish to avoid to keep things simple. As such, we here instead use higher-degree sigmoid activation functions and average-pooling layers. Note that average-pooling also uses a division, yet this time the denominator is a public value, and hence division is simply a public inversion followed by a multiplication.
+Speaking of comparisons, the *ReLU* and max-pooling layers poses similar problems. In [CryptoNets](https://www.microsoft.com/en-us/research/publication/cryptonets-applying-neural-networks-to-encrypted-data-with-high-throughput-and-accuracy/) the former is replaced by a squaring function and the latter by average pooling, while [SecureML](https://eprint.iacr.org/2017/396) implements a ReLU-like activation function by adding complexity that we wish to avoid to keep things simple. As such, we here instead use higher-degree sigmoid activation functions and average-pooling layers. Note that average-pooling also uses a division, yet this time the denominator is a public value, and hence division is simply a public inversion followed by a multiplication.
 
 ```python
 feature_layers = [
@@ -296,24 +300,26 @@ The remaining layers are easily dealt with. Dropout and flatten do not care abou
 
 The final *softmax* layer also causes complications for training in the encrypted setting as we need to compute both an [exponentiation using a private exponent](https://cs.umd.edu/~fenghao/paper/modexp.pdf) as well as normalisation in the form of a division with a private denominator.
 
-While both remain possible we here choose a much simpler approach and allow the predicted class likelihoods for each training sample to be revealed to one of the server, who can then compute the result from the revealed values. Alternatively we could instead assume the existence of a third server that will only do this small computation, and who doesn't see anything else from the training data and hence cannot relate the labels with the sample data.
-
-Nonetheless, this results in a privacy leakage that may or may not pose an acceptable risk. 
+While both remain possible we here choose a much simpler approach and allow the predicted class likelihoods for each training sample to be revealed to one of the servers, who can then compute the result from the revealed values. This of course results in a privacy leakage that may or may not pose an acceptable risk. 
 
 One heuristic improvement is for the servers to first permute the vector of class likelihoods for each training sample before revealing anything, thereby hiding which likelihood corresponds to which class. However, this may be of little effect if e.g. "healthy" often means a narrow distribution over classes while "sick" means a spread distribution.
 
-Note that none of the issues regarding softmax occur later when performing predictions using the trained network, as the servers can there simply skip the softmax layer and let the recipient of the prediction compute it himself on the revealed values: for him it's simply a question of how the values are interpreted.
+Another is to introduce a dedicated third server who only does this small computation, doesn't see anything else from the training data, and hence cannot relate the labels with the sample data. Something is still leaked though, and this is hard to reason about.
+
+Finally, we could also replace this [one-vs-all](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-rest) approach with an [one-vs-one](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-one) approach using e.g. sigmoids. As argued earlier this allows us to fully compute the predictions without decrypting. We still need to compute the loss however, which be done by also considering a different loss function.
+
+Note that none of the issues mentioned here occur when later performing predictions using the trained network, as there is no loss to be computed and the servers can there simply skip the softmax layer and let the recipient of the prediction compute it himself on the revealed values: for him it's simply a question of how the values are interpreted.
 
 
 ## Transfer Learning
 
 At this point [it seems](https://github.com/mortendahl/privateml/blob/master/image-analysis/Keras.ipynb) that we can actually train the model as-is and get decent results. But as often done in CNNs we can get significant speed-ups by employing [transfer](http://cs231n.github.io/transfer-learning/) [learning](http://ruder.io/transfer-learning/); in fact, it is somewhat [well-known](https://yashk2810.github.io/Transfer-Learning/) that "very few people train their own convolutional net from scratch because they don’t have sufficient data" and that "it is always recommended to use transfer learning in practice".
 
-The idea here is that training may be split into a pre-training phase using non-sensitive public data, followed by one using sensitive private data. For instance, in the case of a skin cancer detector, the researchers may choose to pre-train on a public set of photos and then afterwards ask volunteers to improve the model by providing additional photos. 
+A particular application to our setting here is that training may be split into a pre-training phase using non-sensitive public data and a fine-tuning phase using sensitive private data. For instance, in the case of a skin cancer detector, the researchers may choose to pre-train on a public set of photos and then afterwards ask volunteers to improve the model by providing additional photos. 
 
-Moreover, besides a difference in cardinality, there is also room for differences in the two data sets in terms of subjects, as CNNs have a tendency to first decompose these into meaningful subcomponents, the recognition of which is what is being transferred.
+Moreover, besides a difference in cardinality, there is also room for differences in the two data sets in terms of subjects, as CNNs have a tendency to first decompose these into meaningful subcomponents, the recognition of which is what is being transferred. In other words, the technique is strong enough for pre-training to happen on a different type of images than fine-tuning.
 
-In our concrete case of character recognition we will let the "public" images be those of digits `0-4` and the "private" images be those of digits `5-9`. As an alternative, it doesn't seem unreasonable to instead have used for instance characters `a-z` as the former and digits `0-9` as the latter.
+Returning to our concrete use-case of character recognition, we will let the "public" images be those of digits `0-4` and the "private" images be those of digits `5-9`. As an alternative, it doesn't seem unreasonable to instead have used for instance characters `a-z` as the former and digits `0-9` as the latter.
 
 
 ### Pre-train on public dataset
@@ -339,7 +345,7 @@ model.fit(
 Once happy with this the servers simply shares the model parameters and move on to training on the private dataset.
 
 
-### Train on private dataset
+### Fine-tune on private dataset
 
 While we now begin encrypted training on model parameters that are already "half-way there" and hence can be expected to require fewer epochs, another benefit of transfer learning, as mentioned above, is that recognition of subcomponents tend to happen in the lower layers of the network and may in some cases be used as-is. As a result, we now freeze the parameters of the feature layers and focus training efforts exclusively on the classification layers.
 
@@ -375,7 +381,7 @@ In the end we go from 25 epochs to 5 epochs in the simulations.
 
 There are few preprocessing optimisations one could also apply but that we *won't* consider further here. 
 
-The first is to move the computation of the frozen layers to the input provider so that its the output of the flatten layer that is shared with the servers instead of the pixels of the images. In this case the layers are said to perform *feature extraction* and we could potentially also use more powerful layers. However, if we want to keep the model proprietary then this adds significant complexity as the parameters now have to be distributed to the clients in some form.
+The first is to move the computation of the frozen layers to the input provider so that it's the output of the flatten layer that is shared with the servers instead of the pixels of the images. In this case the layers are said to perform *feature extraction* and we could potentially also use more powerful layers. However, if we want to keep the model proprietary then this adds significant complexity as the parameters now have to be distributed to the clients in some form.
 
 Another typical approach to speed up training is to first apply dimensionality reduction techniques such as a [principal component analysis](https://en.wikipedia.org/wiki/Principal_component_analysis). This approach is taken in the encrypted setting in [BSS+'17](https://eprint.iacr.org/2017/857).
 
@@ -396,14 +402,14 @@ Starting with the easiest type of layer, we see that average pooling only requir
 
 ## Dropout
 
-Nothing special related to secure computation here, only thing is to make sure that the two servers agree on which values to drop in each training iteration. This can be by simply agreeing on a seed value.
+Nothing special related to secure computation here, only thing is to make sure that the two servers agree on which values to drop in each training iteration. This can be done by simply agreeing on a seed value.
 
 
 ## Dense layers
 
 The matrix dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(X, Y)` for matrices `X` and `Y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
 
-For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples detailed below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
+For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples described below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
 
 The trick is to ensure that each private value is only sent masked once. To make this work we need triples `(R, S, T)` of random matrices `R` and `S` with the appropriate shapes and such that `T == dot(R, S)`. 
 
@@ -451,7 +457,7 @@ def generate_powering_triple(exponent):
     return [ share(pow(a, e, Q)) for e in range(1, exponent+1) ]
 ```
 
-To use these we notice that if `epsilon = x - a` then `x^n == (epsilon + a)^n`, which by the [the binomal theorem](https://en.wikipedia.org/wiki/Binomial_theorem) may be expressed as a weighted sum of `epsilon^n * a^0`, ..., `epsilon^0 * a^n` using the [binomial coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient) as weights. For instance, we have `x^3 == (c0 * epsilon^3) + (c1 * epsilon^2 * a) + (c2 * epsilon * a^2) + (c3 * a^3)` with `ck = C(3, k)`.
+To use these we notice that if `epsilon = x - a` then `x^n == (epsilon + a)^n`, which by [the binomal theorem](https://en.wikipedia.org/wiki/Binomial_theorem) may be expressed as a weighted sum of `epsilon^n * a^0`, ..., `epsilon^0 * a^n` using the [binomial coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient) as weights. For instance, we have `x^3 == (c0 * epsilon^3) + (c1 * epsilon^2 * a) + (c2 * epsilon * a^2) + (c3 * a^3)` with `ck = C(3, k)`.
 
 Moreover, a triple for e.g. cubing `x` can also simultaneously be used for squaring `x` simply by skipping some powers and computing different binomial coefficients. Hence, all intermediate powers may be computed using a single triple and communication of one field element. The security of this again follows from the fact that all powers in the triple are independently shared.
 
@@ -524,7 +530,6 @@ Note that we could of course decide to simply do all computations in the larger 
 
 Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or switch temporarily to `P` and pay for conversion and arbitrary precision arithmetic. Specifically, for low degree polynomials the former is likely better.
 
-TODO: look into [Chebyshev interpolation points](https://en.wikipedia.org/wiki/Chebyshev_nodes) for better accuracy of interpolation
 
 
 ## Softmax and cross-entropy
@@ -545,26 +550,53 @@ If `sick` e.g. means that several probabilities will be significant while `not s
 - permutation matrix and its inverse
 -->
 
+# Thoughts
 
-# Experimental Results
+As always, when previous thoughts and questions have been answered there is already a new batch waiting.
 
-Coming soon.
+## Activation functions
+
+A natural question is which of the other typical activation functions are efficient in the encrypted setting. As mentioned above, [SecureML](https://eprint.iacr.org/2017/396) makes use of ReLU by switching to garbled circuits, and [CryptoDL](https://arxiv.org/abs/1711.05189) gives low-degree polynomial approximations to both Sigmoid, ReLU, and Tanh (using [Chebyshev polynomials](https://en.wikipedia.org/wiki/Chebyshev_polynomials) for better accuracy).
+
+It may also be relevant to consider non-typical but simpler activations functions, such as squaring as in e.g. [CryptoNets](https://www.microsoft.com/en-us/research/publication/cryptonets-applying-neural-networks-to-encrypted-data-with-high-throughput-and-accuracy/), if for nothing else than simplifying both computation and communication.
 
 
+## Garbled circuits
 
-# Conclusion
+While so far only mentioned in the context of evaluating activation functions, [garbled](https://oblivc.org/) [circuits](https://github.com/encryptogroup/ABY) could in fact also be used for larger parts, including as the main means of secure computation as done in for instance [DeepSecure](https://arxiv.org/abs/1705.08963). 
 
-- mixing different types of MPC can give efficiency improvements: GC as in SecureML and https://eprint.iacr.org/2016/892
+Compared to e.g. SPDZ this technique has the benefit of using only a constant number of communication rounds. The downside is that operations are now often happening on bits instead of on larger field elements, meaning more computation is involved.
 
+
+## Generalised triples
+
+When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase. Concretely, it might for instance be possible to have triples for advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
+
+
+## Precision
+
+A lot of the research around [federated learning](https://research.googleblog.com/2017/04/federated-learning-collaborative.html) involve [gradient compression](https://arxiv.org/abs/1610.05492) in order to save on communication cost. Closer to our setting we have [BMMP'17](https://eprint.iacr.org/2017/1114) which uses quantization to apply homomorphic encryption to deep learning, and even [unencrypted](https://arxiv.org/abs/1610.02132) [production-ready](https://www.tensorflow.org/performance/quantization) systems often consider this technique as a way of improving performance.
+
+
+## Floating point arithmetic
+
+Above we used a fixed-point encoding of real numbers into field elements, yet unencrypted deep learning is typically using a floating point encoding. As shown in [ABZS'12](https://eprint.iacr.org/2012/405) and [the reference implementation of SPDZ](https://github.com/bristolcrypto/SPDZ-2/issues/7), it is also possible to use the latter in the encrypted setting, apparently with performance advantages for certain operations.
+
+
+## GPUs
+
+Since deep learning is today mostly done on GPUs for performance reasons, it is natural to consider whether similar speedups can be achieved by applying them in MPC computations. Some [work](https://www.cs.virginia.edu/~shelat/papers/hms13-gpuyao.pdf) exist on this topic for garbled circuits, yet it seems less popular in the secret sharing setting of e.g. SPDZ. One problem here might be to ensure enough room in the supported integer types or in the integral part of supported floats. 
+
+A potential remedy to this is to decompose numbers using the [CRT](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) into several components that are computed on in parallel. For this to work we would need to do our computations over a ring instead of a field, since our modulus must now be a composite number as opposed to a prime.
 
 
 <!--
 
 # Old
 
+https://eprint.iacr.org/2017/262.pdf
+
 Pooling in MPC:
-- max pooling inefficient
-- average pool, scaled mean pool in CryptoNets
 - doing entirely out of fashion: https://arxiv.org/abs/1412.6806 and http://cs231n.github.io/convolutional-networks/ -- use larger stride in CONV layer once in a while
 
 in numpy:
@@ -573,6 +605,8 @@ in numpy:
 
 Gradient Compression
 - https://arxiv.org/pdf/1610.02132.pdf
+
+https://eprint.iacr.org/2016/1117.pdf
 
 - https://stackoverflow.com/questions/36515202/why-is-the-cross-entropy-method-preferred-over-mean-squared-error-in-what-cases
 - https://jamesmccaffrey.wordpress.com/2013/11/05/why-you-should-use-cross-entropy-error-instead-of-classification-error-or-mean-squared-error-for-neural-network-classifier-training/

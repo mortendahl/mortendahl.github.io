@@ -531,10 +531,11 @@ Note that we could of course decide to simply do all computations in the larger 
 Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or switch temporarily to `P` and pay for conversion and arbitrary precision arithmetic. Specifically, for low degree polynomials the former is likely better.
 
 
-
+<!--
 ## Softmax and cross-entropy
 
 TODO: permutation based on permuted identity matrix?
+-->
 
 <!--
 Let's say that P1 is the one reconstructing the class likelihoods and performing the softmax computation to turn these into probabilities. This means P0 is responsible for permuting the vector `v` of encrypted likelihoods before, as well as applying the inverse permutation on the vector of encrypted probabilities `w` after. 

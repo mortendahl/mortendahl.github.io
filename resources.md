@@ -9,9 +9,9 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
  
-# Recent Research
+# Research Papers
 
-- [GAZELLE: A Low Latency Framework for Secure Neural Network Inference](https://arxiv.org/abs/1801.05507)<br/>
+- [Gazelle: A Low Latency Framework for Secure Neural Network Inference](https://arxiv.org/abs/1801.05507)<br/>
 <em>January 2018</em>
 - [Chameleon: A Hybrid Secure Computation Framework for Machine Learning Applications](https://arxiv.org/abs/1801.03239)<br/>
 <em>January 2018</em>

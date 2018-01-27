@@ -1,15 +1,13 @@
 ---
 layout:     post
 title:      "Private Image Analysis with MPC"
-subtitle:   "Training CNNs on Sensitive Data using SPDZ"
+subtitle:   "Training CNNs on Sensitive Data"
 date:       2017-09-19 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-04.jpg"
 ---
 
-<em><strong>This post is still a work in progress; in particular, its concrete practically is yet to be seen from implementation experiments.</strong></em>
-
-<em><strong>TL;DR:</strong> in this blog post we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 
+<em><strong>TL;DR:</strong> we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 
 
 Using deep learning to analyse images through [convolutional neural networks](http://cs231n.github.io/) (CNNs) has gained enormous popularity over the last few years due to their success in out-performing many other approaches on this and related tasks. 
 
@@ -19,7 +17,7 @@ Which brings us to privacy and eventually [secure multi-party computation](https
 
 With MPC we can potentially lower the risk of exposure and hence increase the incentive to participate. More concretely, by instead performing the training on encrypted data we can prevent anyone from ever seeing not only individual data, but also the learned model parameters. Further techniques such as [differential privacy](https://en.wikipedia.org/wiki/Differential_privacy) could additionally be used to hide any leakage from predictions as well, but we won't go into that here.
 
-In this blog post we'll look at a simpler use case for image analysis but go over all required techniques. 
+In this blog post we'll look at a simpler use case for image analysis but go over all required techniques. A few notebooks are presented along the way, with the main one given as part of the [proof of concept implementation](#proof-of-concept-implementation).
 
 <em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Nigel Smart](https://twitter.com/smartcryptology), [Adrià Gascón](https://twitter.com/adria), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
@@ -30,7 +28,7 @@ We will assume that the training data set is jointly held by a set of *input pro
 
 The input providers are only needed in the very beginning to transmit their training data; after that all computations involve only the two servers, meaning it is indeed plausible for the input providers to use e.g. mobile phones. Once trained, the model will remain jointly held in encrypted form by the two servers where anyone can use it to make further encrypted predictions.
 
-For technical reasons we also assume a distinct *crypto provider* that generates certain raw material used during the computation for increased efficiency; there are ways to eliminate this additional entity but we won't go into that here. 
+For technical reasons we also assume a distinct *crypto producer* that generates certain raw material used during the computation for increased efficiency; there are ways to eliminate this additional entity but we won't go into that here. 
 
 Finally, in terms of security we aim for a typical notion used in practice, namely *honest-but-curious (or passive) security*, where the servers are assumed to follow the protocol but may otherwise try to learn as much possible from the data they see. While a slightly weaker notion than *fully malicious (or active) security* with respect to the servers, this still gives strong protection against anyone who may compromise one of the servers *after* the computations, despite what they do. Note that for the purpose of this blog post we will actually allow a small privacy leakage during training as detailed later.
 
@@ -38,8 +36,6 @@ Finally, in terms of security we aim for a typical notion used in practice, name
 # Image Analysis with CNNs
 
 Our use case is the canonical [MNIST handwritten digit recognition](https://www.tensorflow.org/get_started/mnist/beginners), namely learning to identify the Arabic numeral in a given image, and we will use the following CNN model from a [Keras example](https://github.com/fchollet/keras/blob/master/examples/mnist_transfer_cnn.py) as our base. 
-
-We won't go into the details of this model here since the principles are already well-covered [elsewhere](https://github.com/ageron/handson-ml), but the basic idea is to first run an image through a set of *feature layers* that in some sense map the raw pixels of the input image into abstract properties. These properties are then subsequently combined by a set of *classification layers* to yield a probability distribution over the possible digits. The final outcome is then typically simply the digit with highest assigned probability.
 
 ```python
 feature_layers = [
@@ -75,6 +71,8 @@ model.fit(
     validation_data=(x_test, y_test))
 ```
 
+We won't go into the details of this model here since the principles are already [well-covered](http://cs231n.stanford.edu/) [elsewhere](https://github.com/ageron/handson-ml), but the basic idea is to first run an image through a set of *feature layers* that transforms the raw pixels of the input image into abstract properties that are more relevant for our classification task. These properties are then subsequently combined by a set of *classification layers* to yield a probability distribution over the possible digits. The final outcome is then typically simply the digit with highest assigned probability.
+
 Using [Keras](https://keras.io/) has the benefit that we can perform quick experiments on unencrypted data to get an idea of the performance of the model itself, and it  provides a simple interface to later mimic in the encrypted setting.
 
 
@@ -92,6 +90,7 @@ Concretely, we have an interest in keeping `Q` is small as possible, not only be
 
 Note that while the protocol in general supports computations between any number of parties we here present it for the two-party setting only. Moreover, as mentioned earlier, we aim only for passive security and assume a crypto provider that will honestly generate the needed triples.
 
+The code for this section is available in [this associated notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Basic%20SPDZ.ipynb).
 
 ## Sharing and reconstruction
 
@@ -99,9 +98,9 @@ Sharing a private value between the two servers is done using the simple [additi
 
 ```python
 def share(secret):
-    x0 = random.randrange(Q)
-    x1 = (secret - x0) % Q
-    return [x0, x1]
+    share0 = random.randrange(Q)
+    share1 = (secret - share0) % Q
+    return [share0, share1]
 ```
 
 And when specified by the protocol, the private value can be reconstruct by a server sending his share to the other.
@@ -125,12 +124,12 @@ The first are addition and subtraction, which are simple local computations on t
 ```python
 def add(x, y):
     z0 = (x[0] + y[0]) % Q
-    z1 = (y[1] + y[1]) % Q
+    z1 = (x[1] + y[1]) % Q
     return [z0, z1]
 
 def sub(x, y):
     z0 = (x[0] - y[0]) % Q
-    z1 = (y[1] - y[1]) % Q
+    z1 = (x[1] - y[1]) % Q
     return [z0, z1]
 ```
 
@@ -169,7 +168,7 @@ Perhaps more interesting though, is that the new techniques used here allow us t
 This raw material is popularly called a *multiplication triple* (and sometimes *Beaver triple* due to their introduction in [Beaver'91](https://scholar.google.com/scholar?cluster=14306306930077045887)) and consists of independent sharings of three values `a`, `b`, and `c` such that `a` and `b` are uniformly random values and `c == a * b % Q`. Here we assume that these triples are generated by the crypto provider, and the resulting shares distributed to the two parties ahead of running the online phase. In other words, when performing a multiplication we assume that `Pi` already knows `a[i]`, `b[i]`, and `c[i]`. 
 
 ```python
-def generate_multiplication_triple():
+def generate_mul_triple():
     a = random.randrange(Q)
     b = random.randrange(Q)
     c = a * b % Q
@@ -178,7 +177,7 @@ def generate_multiplication_triple():
 
 Note that a large portion of the effort in the original papers and the full implementation is spent on removing the crypto provider and instead letting the parties generate these triples on their own; we won't go into that here but see the resources pointed to earlier for details.
 
-To use multiplication triples to compute the product of two private values `x` and `y` we proceed as follows. The idea is simply to use `a` and `b` to respectively mask `x` and `y` and then reconstruct the masked values as respectively `epsilon` and `delta`. As public values, `epsilon` and `delta` may then be combined locally by each server to form a sharing of `z == x * y`.
+To use multiplication triples to compute the product of two private values `x` and `y` we proceed as follows. The idea is simply to use `a` and `b` to respectively mask `x` and `y` and then reconstruct the masked values as respectively `alpha` and `beta`. As public values, `alpha` and `beta` may then be combined locally by each server to form a sharing of `z == x * y`.
 
 ```python
 def mul(x, y, triple):
@@ -187,16 +186,16 @@ def mul(x, y, triple):
     d = sub(x, a)
     e = sub(y, b)
     # communication: the players simultaneously send their shares to the other
-    delta = reconstruct(d)
-    epsilon = reconstruct(e)
+    alpha = reconstruct(d)
+    beta  = reconstruct(e)
     # local combination
-    r = delta * epsilon % Q
-    s = mul_public(a, epsilon)
-    t = mul_public(b, delta)
-    return add(s, add(t, add_public(c, r)))
+    f = alpha * beta % Q
+    g = mul_public(a, beta)
+    h = mul_public(b, alpha)
+    return add(h, add(g, add_public(c, f)))
 ```
 
-If we write out the equations we see that `delta * epsilon == xy - xb - ay + ab`, `a * epsilon == ay - ab`, and `b * delta == bx - ab`, so that the sum of these with `c` cancels out everything except `xy`. In terms of complexity we see that communication of two field elements in one round is required. 
+If we write out the equations we see that `alpha * beta == xy - xb - ay + ab`, `a * beta == ay - ab`, and `b * alpha == bx - ab`, so that the sum of these with `c` cancels out everything except `xy`. In terms of complexity we see that communication of two field elements in one round is required. 
 
 Finally, since `x` and `y` are [perfectly hidden](https://en.wikipedia.org/wiki/Information-theoretic_security) by `a` and `b`, neither server learns anything new as long as each triple is only used once. Moreover, the newly formed sharing of `z` is "fresh" in the sense that it contains no information about the sharings of `x` and `y` that were used in its construction, since the sharing of `c` was independent of the sharings of `a` and `b`.
 
@@ -231,13 +230,44 @@ def truncate(x, amount=6):
 With this in place we are now (in theory) set to perform any desired computation on encrypted data.
 
 
+The changes presented here are available in this [associated Python notebook](TODO).
+
+
+## Tensor operations
+
+The first thing to do is to realise that deep learning systems typically operate on [*tensors*](https://www.tensorflow.org/programmers_guide/tensors) instead of scalar values, and as such it is natural to adapt our secure operations to these objects. This is pretty straightforward using NumPy though, as shown e.g. for multiplication below.
+
+```python
+def generate_mul_triple(shape):
+    a = np.random.randint(Q, size=shape)
+    b = np.random.randint(Q, size=shape)
+    c = np.multiply(a, b) % Q
+    return share(a), share(b), share(c)
+
+def mul(x, y, triple):
+    a, b, c = triple
+    alpha = reconstruct((x - a) % Q)
+    beta  = reconstruct((y - b) % Q)
+    return (
+        np.multiply(alpha, beta) % Q + \
+        np.multiply(alpha, b) % Q + \
+        np.multiply(a, beta) % Q + \
+        c
+    ) % Q
+```
+
+Note that for simplicity I'm here skipping some technical issues that are needed in order to make NumPy play nicely; see the [proof of concept](#proof-of-concept-implementation) for full details.
+
+
+
+
 # Adapting the Model
 
 While it is in principle possible to compute any function securely with what we already have, and hence also the base model from above, in practice it is relevant to first consider variants of the model that are more MPC friendly, and vice versa. In slightly more picturesque words, it is common to open up our two black boxes and adapt the two technologies to better fit each other.
 
 The root of this comes from some operations being surprisingly expensive in the encrypted setting. We saw above that addition and multiplication are relatively cheap, yet comparison and division with private denominator are not. For this reason we make a few changes to the model to avoid these.
 
-The various changes presented here as well as their simulation performances are available as full Keras models in the [associated Python notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Keras.ipynb).
+The various changes presented in this section as well as their simulation performances are available in full in the [associated Python notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Keras.ipynb).
 
 
 ## Optimizer
@@ -304,9 +334,9 @@ While both remain possible we here choose a much simpler approach and allow the 
 
 One heuristic improvement is for the servers to first permute the vector of class likelihoods for each training sample before revealing anything, thereby hiding which likelihood corresponds to which class. However, this may be of little effect if e.g. "healthy" often means a narrow distribution over classes while "sick" means a spread distribution.
 
-Another is to introduce a dedicated third server who only does this small computation, doesn't see anything else from the training data, and hence cannot relate the labels with the sample data. Something is still leaked though, and this is hard to reason about.
+Another is to introduce a dedicated third server who only does this small computation, doesn't see anything else from the training data, and hence cannot relate the labels with the sample data. Something is still leaked though, and this quantity is hard to reason about.
 
-Finally, we could also replace this [one-vs-all](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-rest) approach with an [one-vs-one](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-one) approach using e.g. sigmoids. As argued earlier this allows us to fully compute the predictions without decrypting. We still need to compute the loss however, which be done by also considering a different loss function.
+Finally, we could also replace this [one-vs-all](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-rest) approach with an [one-vs-one](https://en.wikipedia.org/wiki/Multiclass_classification#One-vs.-one) approach using e.g. sigmoids. As argued earlier this allows us to fully compute the predictions without decrypting. We still need to compute the loss however, which could be done by also considering a different loss function.
 
 Note that none of the issues mentioned here occur when later performing predictions using the trained network, as there is no loss to be computed and the servers can there simply skip the softmax layer and let the recipient of the prediction compute it himself on the revealed values: for him it's simply a question of how the values are interpreted.
 
@@ -392,8 +422,8 @@ Having looked at the model we next turn to the protocol: as well shall see, unde
 
 In particular, a lot of the computation can be moved to the crypto provider, who's generated raw material is independent of the private inputs and to some extend even the model. As such, its computation may be done in advance whenever it's convenient and at large scale.
 
-Recall from earlier that it's relevant to optimising both round and communication complexity, and the extensions suggested here are often aimed at improving these at the expense of additional local computation. As such, practical experiments are needed to validate their benefits under concrete conditions.
-
+Recall from earlier that it's relevant to optimise both round and communication complexity, and the extensions suggested here are often aimed at improving these at the expense of additional local computation. As such, practical experiments are needed to validate their benefits under concrete conditions.
+ 
 
 ## Average pooling
 
@@ -407,31 +437,34 @@ Nothing special related to secure computation here, only thing is to make sure t
 
 ## Dense layers
 
-The matrix dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(X, Y)` for matrices `X` and `Y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
+The dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(x, y)` for matrices `x` and `y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
 
 For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples described below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
 
-The trick is to ensure that each private value is only sent masked once. To make this work we need triples `(R, S, T)` of random matrices `R` and `S` with the appropriate shapes and such that `T == dot(R, S)`. 
+The trick is to ensure that each private value is only sent masked once. To make this work we need triples `(a, b, c)` of random matrices `a` and `b` with the appropriate shapes and such that `c == dot(a, b)`. 
 
 ```python
-def generate_matmul_triple(m, k, n):
-    R = wrap(np.random.randint(Q, size=(m, k)))
-    S = wrap(np.random.randint(Q, size=(k, n)))
-    T = np.dot(R, S)
-    return share(R), share(S), share(T)
+def generate_dot_triple(m, k, n):
+    a = np.random.randint(Q, size=(m, k))
+    b = np.random.randint(Q, size=(k, n))
+    c = np.dot(a, b)
+    return share(a), share(b), share(c)
 ```
 
-Given such a triple we can instead communicate the values of `Rho = X - R` and `Sigma = Y - S` and perform local computation `dot(Rho, Sigma) + dot(R, Sigma) + dot(Rho, S) + T` to obtain `dot(X, Y)`.
+Given such a triple we can instead communicate the values of `alpha = x - a` and `beta = y - b` and perform local computation `dot(alpha, beta) + dot(alpha, b) + dot(a, beta) + c` to obtain `dot(x, y)`.
 
 ```python
-def matmul(X, Y, triple):
-    R, S, T = triple
-    Rho = reconstruct(X - R)
-    Sigma = reconstruct(Y - S)
-    return np.dot(Rho, Sigma) + np.dot(R, Sigma) + np.dot(Rho, S) + T
+def dot(x, y, triple):
+    a, b, c = triple
+    alpha = reconstruct(x - a)
+    beta  = reconstruct(y - b)
+    return np.dot(alpha, beta) + \
+           np.dot(alpha, b) + \
+           np.dot(a, beta) + \
+           c
 ```
 
-Security of using these triples follows the same argument as for multiplication triples: the communicated masked values perfectly hides `X` and `Y` while `T` being an independent fresh sharing makes sure that the result cannot leak anything about its constitutes. 
+Security of using these triples follows the same argument as for multiplication triples: the communicated masked values perfectly hides `x` and `y` while `c` being an independent fresh sharing makes sure that the result cannot leak anything about its constitutes. 
 
 Note that this kind of triple is used in [SecureML](https://eprint.iacr.org/2017/396), which also give techniques allowing the servers to generate them without the help of the crypto provider.
 
@@ -442,7 +475,7 @@ Like dense layers, convolutions can be treated either as a series of scalar mult
 
 As an example, the first convolution maps a tensor with shape `(m, 28, 28, 1)` to one with shape `(m, 28, 28, 32)` using `32` filters of shape `(3, 3, 1)` (excluding the bias vector). For batch size `m == 32` this means `7,225,344` communicated elements if we're using only scalar multiplications, and `226,080` if using a matrix multiplication. However, since there are only `(32*28*28) + (32*3*3) == 25,376` private values involved in total (again not counting bias since they only require addition), we see that there is roughly a factor `9` overhead. With a new kind of triple we can remove this overhead and save on communication cost: for 64 bit elements this means `200KB` per batch instead of respectively `1.7MB` and `55MB`.
 
-The triples `(A, B, C)` we need here are similar to those used in matrix multiplication, with `A` and `B` having shapes matching the two inputs, i.e. `(m, 28, 28, 1)` and `(32, 3, 3, 1)`, and `C` matching output shape `(m, 28, 28, 32)`.
+The triples `(a, b, c)` we need here are similar to those used in dot products, with `a` and `b` having shapes matching the two inputs, i.e. `(m, 28, 28, 1)` and `(32, 3, 3, 1)`, and `c` matching output shape `(m, 28, 28, 32)`.
 
 
 ## Sigmoid activations
@@ -452,9 +485,9 @@ As we did [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-si
 As an alternative we can again use a new kind of preprocessed triple that allows exponentiation to all required powers to be done in a single round. The length of these "triples" is not fixed but equals the highest exponent, such that a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`.
 
 ```python
-def generate_powering_triple(exponent):
-    a = random.randrange(Q)
-    return [ share(pow(a, e, Q)) for e in range(1, exponent+1) ]
+def generate_pows_triple(exponent, shape):
+    a = np.random.randint(Q, size=shape)
+    return [ share(np.power(a, e) % Q) for e in range(1, exponent+1) ]
 ```
 
 To use these we notice that if `epsilon = x - a` then `x^n == (epsilon + a)^n`, which by [the binomal theorem](https://en.wikipedia.org/wiki/Binomial_theorem) may be expressed as a weighted sum of `epsilon^n * a^0`, ..., `epsilon^0 * a^n` using the [binomial coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient) as weights. For instance, we have `x^3 == (c0 * epsilon^3) + (c1 * epsilon^2 * a) + (c2 * epsilon * a^2) + (c3 * a^3)` with `ck = C(3, k)`.
@@ -551,6 +584,82 @@ If `sick` e.g. means that several probabilities will be significant while `not s
 - permutation matrix and its inverse
 -->
 
+
+# Proof of Concept Implementation
+
+
+Proof of concept. In an attempt to make results reproducible. Running on GCP Compute Engine since it'll take a while.
+
+### Fine tuning
+```python
+from pond.nn import Sequential, Dense, Sigmoid, Dropout, Reveal, Softmax
+
+classifier = Sequential([
+    Dense(128, 6272),
+    Sigmoid(),
+    Dropout(.5), # TODO
+    Dense(5, 128),
+    Reveal(),
+    Softmax()
+])
+```
+
+```python
+from pond.nn import CrossEntropy
+from pond.tensor import PrivateEncodedTensor
+
+classifier.initialize()
+
+classifier.fit(
+    PrivateEncodedTensor(x_train_features), 
+    PrivateEncodedTensor(y_train), 
+    loss=CrossEntropy(), 
+    epochs=3
+)
+```
+
+## Running the code
+
+```bash
+## Setup GCP instance
+laptop$ gcloud compute instances create server \ 
+          --custom-cpu=1 \
+          --custom-memory=6GB
+```
+
+```bash
+laptop$ gcloud compute ssh server -- -L 8888:localhost:8888
+```
+
+```bash
+server$ sudo apt-get update && \
+        sudo apt-get install -y python3 python3-pip git && \
+        sudo pip3 install jupyter numpy tensorflow keras
+```
+
+```bash
+server$ git clone https://github.com/mortendahl/privateml.git && \
+        cd privateml/image-analysis/ && \
+```
+
+```bash
+server$ screen jupyter notebook
+```
+
+`ctrl+a d`
+
+```bash
+laptop$ gcloud compute ssh server -- -L 8888:localhost:8888
+server$ screen -r
+```
+
+```bash
+## Stop GCP instance
+gcloud compute instances stop server
+```
+
+
+
 # Thoughts
 
 As always, when previous thoughts and questions have been answered there is already a new batch waiting.
@@ -571,7 +680,15 @@ Compared to e.g. SPDZ this technique has the benefit of using only a constant nu
 
 ## Generalised triples
 
-When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase. Concretely, it might for instance be possible to have triples for advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
+When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase in the form of additional types of triples.
+
+As mentioned earlier, we might seek to ensure that each private value is only sent masked once. So if we are e.g. computing both `dot(X, Y)` and `dot(X, Z)` then it might make sense to have a triple `(R, S, T, U, V)` that allows us to compute both results yet only send `X` masked once, as done in e.g. [BCG+'17](https://eprint.iacr.org/2017/1234). 
+
+One relevant case is training, where some values are used to compute both the output of the layer during the forward phase, but also typically cached and used again to update the weights during the backward phase (for instance in dense layers). 
+
+Another, perhaps more important case, is if we are only interested in during prediction:  TODO TODO TODO
+
+Additionally, it might also be possible to have triples for more advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
 
 
 ## Precision

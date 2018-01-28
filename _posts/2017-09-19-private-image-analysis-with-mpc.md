@@ -26,7 +26,7 @@ In this blog post we'll look at a simpler use case for image analysis but go ove
 
 We will assume that the training data set is jointly held by a set of *input providers* and that the training is performed by two distinct *servers* (or *parties*) that are trusted not to collaborate beyond what our protocol specifies. In practice, these servers could for instance be virtual instances in a shared cloud environment operated by two different organisations. 
 
-The input providers are only needed in the very beginning to transmit their training data; after that all computations involve only the two servers, meaning it is indeed plausible for the input providers to use e.g. mobile phones. Once trained, the model will remain jointly held in encrypted form by the two servers where anyone can use it to make further encrypted predictions.
+The input providers are only needed in the very beginning to transmit their (encrypted) training data; after that all computations involve only the two servers, meaning it is indeed plausible for the input providers to use e.g. mobile phones. Once trained, the model will remain jointly held in encrypted form by the two servers where anyone can use it to make further encrypted predictions.
 
 For technical reasons we also assume a distinct *crypto producer* that generates certain raw material used during the computation for increased efficiency; there are ways to eliminate this additional entity but we won't go into that here. 
 
@@ -73,192 +73,81 @@ model.fit(
 
 We won't go into the details of this model here since the principles are already [well-covered](http://cs231n.stanford.edu/) [elsewhere](https://github.com/ageron/handson-ml), but the basic idea is to first run an image through a set of *feature layers* that transforms the raw pixels of the input image into abstract properties that are more relevant for our classification task. These properties are then subsequently combined by a set of *classification layers* to yield a probability distribution over the possible digits. The final outcome is then typically simply the digit with highest assigned probability.
 
-Using [Keras](https://keras.io/) has the benefit that we can perform quick experiments on unencrypted data to get an idea of the performance of the model itself, and it  provides a simple interface to later mimic in the encrypted setting.
+As we shall see, using [Keras](https://keras.io/) has the benefit that we can perform quick experiments on unencrypted data to get an idea of the performance of the model itself, as well as providing a simple interface to later mimic in the encrypted setting.
 
 
 # Secure Computation with SPDZ
 
-With CNNs in place we next turn to MPC. Unlike the protocol used in [a previous blog post](/2017/04/17/private-deep-learning-with-mpc/), here we will use the state-of-the-art SPDZ protocol as it allows us to have only two servers and have received significant scientific attention over the last few years. As a result, several optimisations are known that can used to speed up our computation as shown later.
+With CNNs in place we next turn to MPC. For this we will use the state-of-the-art SPDZ protocol as it allows us to only have two servers and to improve *online* performance by moving certain computations to an *offline* phase as described in detail in earlier [blog](/2017/09/03/the-spdz-protocol-part1) [posts](/2017/09/10/the-spdz-protocol-part2).
 
-The protocol was first described in [SPZD'12](https://eprint.iacr.org/2011/535) and [DKLPSS'13](https://eprint.iacr.org/2012/642), but have also been the subject of at least [one series of blog posts](https://bristolcrypto.blogspot.fr/2016/10/what-is-spdz-part-1-mpc-circuit.html). Several implementations exist, including [one](https://www.cs.bris.ac.uk/Research/CryptographySecurity/SPDZ/) from the [cryptography group](http://www.cs.bris.ac.uk/Research/CryptographySecurity/) at the University of Bristol providing both high performance and full active security.
+As typical in secure computation protocols, all computations take place in a field, here identified by a prime `Q`. This means we need to [encode](/2017/09/03/the-spdz-protocol-part1#TODO) the floating-point numbers used by the CNNs as integers modulo a prime, which puts certain constraints on `Q` and in turn has an affect on performance.
 
-As usual, all computations take place in a field, here identified by a prime `Q`. As we will see, this means we also need a way to encode the fixed-point numbers used by the CNNs as integers modulo a prime, and we have to take care that these never "wrap around" as we then may not be able to recover the correct result.
+Moreover, [recall](/2017/09/10/the-spdz-protocol-part2#TODO) that in interactive computations such as the SPDZ protocol it becomes relevant to also consider communication and round complexity, in addition to the typical time complexity. Here, the former measures the number of bits sent across the network, which is a relatively slow process, and the latter the number of synchronisation points needed between the two servers, which may block one of them with nothing to do until the other catches up. Both hence also have a big impact on overall executing time.
 
-Moreover, while the computational resources used by a procedure is often only measured in time complexity, i.e. the time it takes the CPU to perform the computation, with interactive computations such as the SPDZ protocol it also becomes relevant to consider communication and round complexity. The former measures the number of bits sent across the network, which is a relatively slow process, and the latter the number of synchronisation points needed between the two parties, which may block one of them with nothing to do until the other catches up. Both hence also have a big impact on overall executing time.
-
-Concretely, we have an interest in keeping `Q` is small as possible, not only because we can then do arithmetic operations using only a single word sized operations (as opposed to arbitrary precision arithmetic which is significantly slower), but also because we have to transmit less bits when sending field elements across the network.
-
-Note that while the protocol in general supports computations between any number of parties we here present it for the two-party setting only. Moreover, as mentioned earlier, we aim only for passive security and assume a crypto provider that will honestly generate the needed triples.
-
-The code for this section is available in [this associated notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Basic%20SPDZ.ipynb).
-
-## Sharing and reconstruction
-
-Sharing a private value between the two servers is done using the simple [additive scheme](/2017/06/04/secret-sharing-part1/#additive-sharing). This may be performed by anyone, including an input provider, and keeps the value [perfectly private](https://en.wikipedia.org/wiki/Information-theoretic_security) as long as the servers are not colluding.
-
-```python
-def share(secret):
-    share0 = random.randrange(Q)
-    share1 = (secret - share0) % Q
-    return [share0, share1]
-```
-
-And when specified by the protocol, the private value can be reconstruct by a server sending his share to the other.
-
-```python
-def reconstruct(shares):
-    return sum(shares) % Q
-```
-
-Of course, if both parties are to learn the private value then they can send their share simultaneously and hence still only use one round of communication.
-
-Note that the use of an additive scheme means the servers are required to be highly robust, unlike e.g. [Shamir's scheme](http://127.0.0.1:4000/2017/06/04/secret-sharing-part1/) which may handle some servers dropping out. If this is a reasonable assumption though, then additive sharing provides significant advantages.
-
-
-## Linear operations
-
-Having obtained sharings of private values we may next perform certain operations on these. The first set of these is what we call linear operations since they allow us to form linear combinations of private values.
-
-The first are addition and subtraction, which are simple local computations on the shares already held by each server.
-
-```python
-def add(x, y):
-    z0 = (x[0] + y[0]) % Q
-    z1 = (x[1] + y[1]) % Q
-    return [z0, z1]
-
-def sub(x, y):
-    z0 = (x[0] - y[0]) % Q
-    z1 = (x[1] - y[1]) % Q
-    return [z0, z1]
-```
-
-And if one of the values is public then we may simplify as follows.
-
-```python
-def add_public(x, k):
-    y0 = (x[0] + k) % Q
-    y1 =  x[1]
-    return [y0, y1]
-
-def sub_public(x, k):
-    y0 = (x[0] - k) % Q
-    y1 =  x[1]
-    return [y0, y1]
-```
-
-Next we may also perform multiplication with a public value by again only performing a local operation on the share already held by each server.
-
-```python
-def mul_public(x, k):
-    y0 = (x[0] * k) % Q
-    y1 = (x[1] * k) % Q 
-    return [y0, y1]
-```
-
-Note that the security of these operations is straight-forward since no communication is taking place between the two parties and hence nothing new could have been revealed.
-
-
-## Multiplication
-
-Multiplication of two private values is where we really start to deviate from the protocol used [previously](/2017/04/17/private-deep-learning-with-mpc/). The techniques used there inherently need at least three parties so won't be much help in our two party setting. 
-
-Perhaps more interesting though, is that the new techniques used here allow us to shift parts of the computation to an *offline phase* where *raw material* that doesn't depend on any of the private values can be generated at convenience. As we shall see later, this can be used to significantly speed up the *online phase* where training and prediction is taking place.
-
-This raw material is popularly called a *multiplication triple* (and sometimes *Beaver triple* due to their introduction in [Beaver'91](https://scholar.google.com/scholar?cluster=14306306930077045887)) and consists of independent sharings of three values `a`, `b`, and `c` such that `a` and `b` are uniformly random values and `c == a * b % Q`. Here we assume that these triples are generated by the crypto provider, and the resulting shares distributed to the two parties ahead of running the online phase. In other words, when performing a multiplication we assume that `Pi` already knows `a[i]`, `b[i]`, and `c[i]`. 
-
-```python
-def generate_mul_triple():
-    a = random.randrange(Q)
-    b = random.randrange(Q)
-    c = a * b % Q
-    return share(a), share(b), share(c)
-```
-
-Note that a large portion of the effort in the original papers and the full implementation is spent on removing the crypto provider and instead letting the parties generate these triples on their own; we won't go into that here but see the resources pointed to earlier for details.
-
-To use multiplication triples to compute the product of two private values `x` and `y` we proceed as follows. The idea is simply to use `a` and `b` to respectively mask `x` and `y` and then reconstruct the masked values as respectively `alpha` and `beta`. As public values, `alpha` and `beta` may then be combined locally by each server to form a sharing of `z == x * y`.
-
-```python
-def mul(x, y, triple):
-    a, b, c = triple
-    # local masking
-    d = sub(x, a)
-    e = sub(y, b)
-    # communication: the players simultaneously send their shares to the other
-    alpha = reconstruct(d)
-    beta  = reconstruct(e)
-    # local combination
-    f = alpha * beta % Q
-    g = mul_public(a, beta)
-    h = mul_public(b, alpha)
-    return add(h, add(g, add_public(c, f)))
-```
-
-If we write out the equations we see that `alpha * beta == xy - xb - ay + ab`, `a * beta == ay - ab`, and `b * alpha == bx - ab`, so that the sum of these with `c` cancels out everything except `xy`. In terms of complexity we see that communication of two field elements in one round is required. 
-
-Finally, since `x` and `y` are [perfectly hidden](https://en.wikipedia.org/wiki/Information-theoretic_security) by `a` and `b`, neither server learns anything new as long as each triple is only used once. Moreover, the newly formed sharing of `z` is "fresh" in the sense that it contains no information about the sharings of `x` and `y` that were used in its construction, since the sharing of `c` was independent of the sharings of `a` and `b`.
-
-
-## Fixed-point encoding
-
-The last step is to provide a mapping between the rational numbers used by the CNNs and the field elements used by the SPDZ protocol. As typically done, we here take a fixed-point approach where rational numbers are scaled by a fixed amount and then rounded off to an integer less than the field size `Q`.
-
-```python
-def encode(rational, precision=6):
-    upscaled = int(rational * 10**precision)
-    field_element = upscaled % Q
-    return field_element
-
-def decode(field_element, precision=6):
-    upscaled = field_element if field_element <= Q/2 else field_element - Q
-    rational = upscaled / 10**precision
-    return rational
-```
-
-In doing this we have to be careful not to "wrap around" by letting any encoding exceed `Q`; if this happens our decoding procedure will give wrong results.
-
-To get around this we'll simply make sure to pick `Q` large enough relative to the chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence leave enough room for double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](https://eprint.iacr.org/2017/396).
-
-```python
-def truncate(x, amount=6):
-    y0 = x[0] // 10**amount
-    y1 = Q - ((Q - x[1]) // 10**amount)
-    return [y0, y1]
-```
-
-With this in place we are now (in theory) set to perform any desired computation on encrypted data.
-
-
-The changes presented here are available in this [associated Python notebook](TODO).
+Most importantly however, is that the only "native" operations we have in these protocols is addition and multiplication. Division, comparison, etc. can be done, but are more expensive in terms of our three performance measures. Later we shall see how to mitigate some of the issues raised due to this, but here we first recall the basic SPDZ protocol.
 
 
 ## Tensor operations
 
-The first thing to do is to realise that deep learning systems typically operate on [*tensors*](https://www.tensorflow.org/programmers_guide/tensors) instead of scalar values, and as such it is natural to adapt our secure operations to these objects. This is pretty straightforward using NumPy though, as shown e.g. for multiplication below.
+When we introduced the SPDZ protocol [earlier](/2017/09/03/the-spdz-protocol-part1) we did so in the form of classes `PublicValue` and `PrivateValue` representing respectively a (scalar) value known in clear by both servers and an encrypted value known only in secret shared form. In this blog post, we now instead present it more naturally via classes `PublicTensor` and `PrivateTensor` that reflect the heavy use of [tensors](https://www.tensorflow.org/programmers_guide/tensors) in our deep learning setting. 
 
 ```python
-def generate_mul_triple(shape):
-    a = np.random.randint(Q, size=shape)
-    b = np.random.randint(Q, size=shape)
-    c = np.multiply(a, b) % Q
-    return share(a), share(b), share(c)
-
-def mul(x, y, triple):
-    a, b, c = triple
-    alpha = reconstruct((x - a) % Q)
-    beta  = reconstruct((y - b) % Q)
-    return (
-        np.multiply(alpha, beta) % Q + \
-        np.multiply(alpha, b) % Q + \
-        np.multiply(a, beta) % Q + \
-        c
-    ) % Q
+class PrivateTensor:
+    
+    def __init__(self, values, shares0=None, shares1=None):
+        if not values is None:
+            shares0, shares1 = share(values)
+        self.shares0 = shares0
+        self.shares1 = shares1
+    
+    def reconstruct(self):
+        return PublicTensor(reconstruct(self.shares0, self.shares1))
+        
+    def add(x, y):
+        if type(y) is PublicTensor:
+            shares0 = (x.values + y.shares0) % Q
+            shares1 =             y.shares1
+            return PrivateTensor(None, shares0, shares1)
+        if type(y) is PrivateTensor:
+            shares0 = (x.shares0 + y.shares0) % Q
+            shares1 = (x.shares1 + y.shares1) % Q
+            return PrivateTensor(None, shares0, shares1)
+            
+    def mul(x, y):
+        if type(y) is PublicTensor:
+            shares0 = (x.shares0 * y.values) % Q
+            shares1 = (x.shares1 * y.values) % Q
+            return PrivateTensor(None, shares0, shares1)
+        if type(y) is PrivateTensor:
+            a, b, a_mul_b = generate_mul_triple(x.shape, y.shape)
+            alpha = (x - a).reconstruct()
+            beta  = (y - b).reconstruct()
+            return alpha.mul(beta) + \
+                   alpha.mul(b) + \
+                   a.mul(beta) + \
+                   a_mul_b
 ```
 
-Note that for simplicity I'm here skipping some technical issues that are needed in order to make NumPy play nicely; see the [proof of concept](#proof-of-concept-implementation) for full details.
+As seen, the adaptation is pretty straightforward using NumPy and the general form of for instance `PrivateTensor` is almost exactly the same, only occationally passing a shape around as well. There are a few technical details however, all of which are available in full in [the associated notebook](https://github.com/mortendahl/privateml/blob/master/spdz/Tensor%20SPDZ.ipynb). 
 
+```python
+def share(secrets):
+    shares0 = sample_random_tensor(secrets.shape)
+    shares1 = (secrets - shares0) % Q
+    return shares0, shares1
 
+def reconstruct(shares0, shares1):
+    secrets = (shares0 + shares1) % Q
+    return secrets
+
+def generate_mul_triple(x_shape, y_shape):
+    a = sample_random_tensor(x_shape)
+    b = sample_random_tensor(y_shape)
+    c = np.multiply(a, b) % Q
+    return PrivateTensor(a), PrivateTensor(b), PrivateTensor(c)
+```
+
+As such, perhaps the biggest difference is in the above base utility methods where this shape is used.
 
 
 # Adapting the Model
@@ -305,7 +194,7 @@ classification_layers = [
     Dense(128),
     Activation('sigmoid'),
     Dropout(.50),
-    Dense(5),
+    Dense(NUM_CLASSES),
     Activation('softmax')
 ]
 
@@ -409,7 +298,7 @@ In the end we go from 25 epochs to 5 epochs in the simulations.
 
 ## Preprocessing
 
-There are few preprocessing optimisations one could also apply but that we *won't* consider further here. 
+There are few preprocessing optimisations one could also apply but that we won't consider further here. 
 
 The first is to move the computation of the frozen layers to the input provider so that it's the output of the flatten layer that is shared with the servers instead of the pixels of the images. In this case the layers are said to perform *feature extraction* and we could potentially also use more powerful layers. However, if we want to keep the model proprietary then this adds significant complexity as the parameters now have to be distributed to the clients in some form.
 
@@ -418,7 +307,7 @@ Another typical approach to speed up training is to first apply dimensionality r
 
 # Adapting the Protocol
 
-Having looked at the model we next turn to the protocol: as well shall see, understanding the operations we want to perform can help speed things up. 
+Having looked at the model we next turn to the protocol: as well shall see, understanding the [operations](https://github.com/wiseodd/hipsternet) we want to perform can help speed things up. 
 
 In particular, a lot of the computation can be moved to the crypto provider, who's generated raw material is independent of the private inputs and to some extend even the model. As such, its computation may be done in advance whenever it's convenient and at large scale.
 
@@ -427,7 +316,7 @@ Recall from earlier that it's relevant to optimise both round and communication 
 
 ## Average pooling
 
-Starting with the easiest type of layer, we see that average pooling only requires a summation followed by a division with a public denominator, and hence can be implemented by a multiplication with a public value: since the denominator is public we can easily find its inverse and then simply multiply and truncate. As such, pooling is an entirely local operation.
+Starting with the easiest type of layer, we notice that the forward pass of average pooling only requires a summation followed by a division with a public denominator. Hence, it can be implemented by a multiplication with a public value: since the denominator is public we can easily find its inverse and then simply multiply and truncate. Likewise, the backward pass is simply a scaling, and hence both directions are entirely local operations.
 
 
 ## Dropout
@@ -437,31 +326,43 @@ Nothing special related to secure computation here, only thing is to make sure t
 
 ## Dense layers
 
-The dot product needed for dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(x, y)` for matrices `x` and `y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
+The dot product needed for both the forward and backward pass of dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(x, y)` for matrices `x` and `y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
 
 For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples described below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
 
-The trick is to ensure that each private value is only sent masked once. To make this work we need triples `(a, b, c)` of random matrices `a` and `b` with the appropriate shapes and such that `c == dot(a, b)`. 
+As also noted [previously](/2017/09/10/the-spdz-protocol-part2/#TODO), the trick is to ensure that each private value in the matrices is only sent masked once. To make this work we need triples `(a, b, c)` of random matrices `a` and `b` with the appropriate shapes and such that `c == dot(a, b)`. 
 
 ```python
-def generate_dot_triple(m, k, n):
-    a = np.random.randint(Q, size=(m, k))
-    b = np.random.randint(Q, size=(k, n))
-    c = np.dot(a, b)
-    return share(a), share(b), share(c)
+def generate_dot_triple(x_shape, y_shape):
+    a = sample_random_tensor(x_shape)
+    b = sample_random_tensor(y_shape)
+    c = np.dot(a, b) % Q
+    return PrivateTensor(a), PrivateTensor(b), PrivateTensor(c)
 ```
 
-Given such a triple we can instead communicate the values of `alpha = x - a` and `beta = y - b` and perform local computation `dot(alpha, beta) + dot(alpha, b) + dot(a, beta) + c` to obtain `dot(x, y)`.
+Given such a triple we can instead communicate the values of `alpha = x - a` and `beta = y - b` followed by a local computation to obtain `dot(x, y)`.
+
 
 ```python
-def dot(x, y, triple):
-    a, b, c = triple
-    alpha = reconstruct(x - a)
-    beta  = reconstruct(y - b)
-    return np.dot(alpha, beta) + \
-           np.dot(alpha, b) + \
-           np.dot(a, beta) + \
-           c
+class PrivateTensor:
+    
+    ...
+        
+    def dot(x, y):
+      
+        if type(y) is PublicTensor:
+            shares0 = x.shares0.dot(y.values) % Q
+            shares1 = x.shares1.dot(y.values) % Q
+            return PrivateTensor(None, shares0, shares1)
+            
+        if type(y) is PrivateTensor:
+            a, b, a_dot_b = generate_dot_triple(x.shape, y.shape)
+            alpha = (x - a).reconstruct()
+            beta  = (y - b).reconstruct()
+            return alpha.dot(beta) + \
+                   alpha.dot(b) + \
+                   a.dot(beta) + \
+                   a_dot_b
 ```
 
 Security of using these triples follows the same argument as for multiplication triples: the communicated masked values perfectly hides `x` and `y` while `c` being an independent fresh sharing makes sure that the result cannot leak anything about its constitutes. 
@@ -473,116 +374,30 @@ Note that this kind of triple is used in [SecureML](https://eprint.iacr.org/2017
 
 Like dense layers, convolutions can be treated either as a series of scalar multiplications or as [a matrix multiplication](http://cs231n.github.io/convolutional-networks/#conv), although the latter only after first expanding the tensor of training samples into a matrix with significant duplication. Unsurprisingly this leads to communication costs that in both cases can be improved by introducing another kind of triple.
 
-As an example, the first convolution maps a tensor with shape `(m, 28, 28, 1)` to one with shape `(m, 28, 28, 32)` using `32` filters of shape `(3, 3, 1)` (excluding the bias vector). For batch size `m == 32` this means `7,225,344` communicated elements if we're using only scalar multiplications, and `226,080` if using a matrix multiplication. However, since there are only `(32*28*28) + (32*3*3) == 25,376` private values involved in total (again not counting bias since they only require addition), we see that there is roughly a factor `9` overhead. With a new kind of triple we can remove this overhead and save on communication cost: for 64 bit elements this means `200KB` per batch instead of respectively `1.7MB` and `55MB`.
+As an example, the first convolution maps a tensor with shape `(m, 28, 28, 1)` to one with shape `(m, 28, 28, 32)` using `32` filters of shape `(3, 3, 1)` (excluding the bias vector). For batch size `m == 32` this means `7,225,344` communicated elements if we're using only scalar multiplications, and `226,080` if using a matrix multiplication. However, since there are only `(32*28*28) + (32*3*3) == 25,376` private values involved in total (again not counting bias since they only require addition), we see that there is roughly a factor `9` overhead. In other words, each private value is being masked and sent several times. With a new kind of triple we can remove this overhead and save on communication cost: for 64 bit elements this means `200KB` per batch instead of respectively `1.7MB` and `55MB`.
 
 The triples `(a, b, c)` we need here are similar to those used in dot products, with `a` and `b` having shapes matching the two inputs, i.e. `(m, 28, 28, 1)` and `(32, 3, 3, 1)`, and `c` matching output shape `(m, 28, 28, 32)`.
 
 
 ## Sigmoid activations
 
-As we did [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid), we may use a degree-9 polynomial to approximate the sigmoid activation function with a sufficient level of accuracy. Evaluating this polynomial for a private value `x` requires computing a series of powers of `x`, which of course may be done by sequential multiplication. But this means several rounds and corresponding amount of communication.
+As done [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid), we may use a degree-9 polynomial to approximate the sigmoid activation function with a sufficient level of accuracy. Evaluating this polynomial for a private value `x` requires computing a series of powers of `x`, which of course may be done by sequential multiplication -- but this means several rounds and corresponding amount of communication.
 
-As an alternative we can again use a new kind of preprocessed triple that allows exponentiation to all required powers to be done in a single round. The length of these "triples" is not fixed but equals the highest exponent, such that a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`.
+As an alternative we can again use a new kind of preprocessed triple that allows us to compute all required powers in a single round. As shown [previously](/2017/09/10/the-spdz-protocol-part2/), the length of these "triples" is not fixed but equals the highest exponent, such that a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`.
 
-```python
-def generate_pows_triple(exponent, shape):
-    a = np.random.randint(Q, size=shape)
-    return [ share(np.power(a, e) % Q) for e in range(1, exponent+1) ]
-```
-
-To use these we notice that if `epsilon = x - a` then `x^n == (epsilon + a)^n`, which by [the binomal theorem](https://en.wikipedia.org/wiki/Binomial_theorem) may be expressed as a weighted sum of `epsilon^n * a^0`, ..., `epsilon^0 * a^n` using the [binomial coefficients](https://en.wikipedia.org/wiki/Binomial_coefficient) as weights. For instance, we have `x^3 == (c0 * epsilon^3) + (c1 * epsilon^2 * a) + (c2 * epsilon * a^2) + (c3 * a^3)` with `ck = C(3, k)`.
-
-Moreover, a triple for e.g. cubing `x` can also simultaneously be used for squaring `x` simply by skipping some powers and computing different binomial coefficients. Hence, all intermediate powers may be computed using a single triple and communication of one field element. The security of this again follows from the fact that all powers in the triple are independently shared.
-
-```python
-def pows(x, triple):
-    # local masking
-    a = triple[0]
-    v = sub(x, a)
-    # communication: the players simultanously send their share to the other
-    epsilon = reconstruct(v)
-    # local combination to compute all powers
-    x_powers = []
-    for exponent in range(1, len(triple)+1):
-        # prepare all term values
-        a_powers = [ONE] + triple[:exponent]
-        e_powers = [ pow(epsilon, e, Q) for e in range(exponent+1) ]
-        coeffs   = [ binom(exponent, k) for k in range(exponent+1) ]
-        # compute and sum terms
-        terms = ( mul_public(a,e*c) for a,e,c in zip(a_powers,reversed(e_powers),coeffs) )
-        x_powers.append(reduce(lambda x,y: add(x, y), terms))
-    return x_powers
-```
-
-Once we have these powers of `x`, evaluating a polynomial with public coefficients is then just a weighted sum.
+Once we have these powers of `x`, evaluating a polynomial with public coefficients is then just a local weighted sum. The security of this again follows from the fact that all powers in the triple are independently shared.
 
 ```python
 def pol_public(x, coeffs, triple):
-    powers = [ONE] + pows(x, triple)
+    powers = pows(x, triple)
     terms = ( mul_public(xe, ce) for xe,ce in zip(powers, coeffs) )
     return reduce(lambda y,z: add(y, z), terms)
 ```
 
-There is one caveat however, and that is that we now need room for the higher precision of the powers: `x^n` has `n` times the precision of `x` and we want to make sure that this value does not wrap around modulo `Q`.
-
-One way around this is to temporarily switch to a larger field and compute the powers and truncation there. The conversion to and from this larger field `P` each take one round of communication, so polynomial evaluation ends up taking a total of three rounds. 
-
-Security wise we also have to pay a small price, although from a practical perspective there is little difference. In particular, for this operation we rely on *statistical security* instead of perfect security: since `r` is not an uniform random element here, there's a tiny risk that something will be leaked about `x`.
-
-```python
-def generate_statistical_mask():
-    return random.randrange(2*BOUND * 10**KAPPA)
-
-def generate_zero_triple(field):
-    return share(0, field)
-
-def convert(x, from_field, to_field, zero_triple):
-    # local mapping to positive representation
-    x = add_public(x, BOUND, from_field)
-    # local masking and conversion by player 0
-    r = generate_statistical_mask()
-    y0 = (zero_triple[0] - r) % to_field
-    # exchange of masked share: one round of communication
-    e = (x[0] + r) % from_field
-    # local conversion by player 1
-    xr = (e + x[1]) % from_field
-    y1 = (zero_triple[1] + xr) % to_field
-    # local mapping back from positive representation
-    y = [y0, y1]
-    y = sub_public(y, BOUND, to_field)
-    return y
-
-def upshare(x, large_zero_triple):
-    return convert(x, Q, P, large_zero_triple)
-
-def downshare(x, small_zero_triple):
-    return convert(x, P, Q, small_zero_triple)
-```
-
-Note that we could of course decide to simply do all computations in the larger field `P`, thereby avoiding the conversion steps. This will likely slow down the local computations by a non-trivial factor however, as we may need arbitrary precision arithmetic for `P` as opposed to e.g. 64 bit native arithmetic for `Q`.
-
-Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or switch temporarily to `P` and pay for conversion and arbitrary precision arithmetic. Specifically, for low degree polynomials the former is likely better.
+We have the same caveat related to fixed-point precision as [earlier](/2017/09/10/the-spdz-protocol-part2/#TODO) though, namely that we need more room for the higher precision of the powers: `x^n` has `n` times the precision of `x` and we want to make sure that it does not wrap around modulo `Q` since then we cannot decode correctly anymore. As done there, we can solve this by introducing a sufficiently larger field `P` to which we temporarily switch while computing the powers.
 
 
-<!--
-## Softmax and cross-entropy
-
-TODO: permutation based on permuted identity matrix?
--->
-
-<!--
-Let's say that P1 is the one reconstructing the class likelihoods and performing the softmax computation to turn these into probabilities. This means P0 is responsible for permuting the vector `v` of encrypted likelihoods before, as well as applying the inverse permutation on the vector of encrypted probabilities `w` after. 
-
-`E(v) -> pi(E(v)) -> pi(v) -> pi(w) -> E(pi(w)) -> E(w)`
-
-Since P1 is holding a part of the encrypted values P0 cannot do the permutation as a local operation. Instead she can use a permutation matrix `P` by applying a random permutation `pi: [C] -> [C]` to the rows of an identity matrix, and then jointly compute vector `pi(v) = dot(P, v)`
-
-Player P0 
-
-If `sick` e.g. means that several probabilities will be significant while `not sick` means that only a single probability will be non-zero then this heuristic doesn't hide anything.
-
-- permutation matrix and its inverse
--->
+Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or perform the switch and pay for conversion and arithmetic on larger numbers. Specifically, for low degree polynomials the former is likely better.
 
 
 # Proof of Concept Implementation
@@ -666,7 +481,7 @@ As always, when previous thoughts and questions have been answered there is alre
 
 ## Activation functions
 
-A natural question is which of the other typical activation functions are efficient in the encrypted setting. As mentioned above, [SecureML](https://eprint.iacr.org/2017/396) makes use of ReLU by switching to garbled circuits, and [CryptoDL](https://arxiv.org/abs/1711.05189) gives low-degree polynomial approximations to both Sigmoid, ReLU, and Tanh (using [Chebyshev polynomials](https://en.wikipedia.org/wiki/Chebyshev_polynomials) for better accuracy).
+A natural question is which of the other typical activation functions are efficient in the encrypted setting. As mentioned above, [SecureML](https://eprint.iacr.org/2017/396) makes use of ReLU by temporarily switching to garbled circuits, and [CryptoDL](https://arxiv.org/abs/1711.05189) gives low-degree polynomial approximations to both Sigmoid, ReLU, and Tanh (using [Chebyshev polynomials](https://en.wikipedia.org/wiki/Chebyshev_polynomials) for better accuracy).
 
 It may also be relevant to consider non-typical but simpler activations functions, such as squaring as in e.g. [CryptoNets](https://www.microsoft.com/en-us/research/publication/cryptonets-applying-neural-networks-to-encrypted-data-with-high-throughput-and-accuracy/), if for nothing else than simplifying both computation and communication.
 
@@ -682,13 +497,11 @@ Compared to e.g. SPDZ this technique has the benefit of using only a constant nu
 
 When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase in the form of additional types of triples.
 
-As mentioned earlier, we might seek to ensure that each private value is only sent masked once. So if we are e.g. computing both `dot(X, Y)` and `dot(X, Z)` then it might make sense to have a triple `(R, S, T, U, V)` that allows us to compute both results yet only send `X` masked once, as done in e.g. [BCG+'17](https://eprint.iacr.org/2017/1234). 
+As mentioned several times (and also suggested in e.g. [BCG+'17](https://eprint.iacr.org/2017/1234)), we typically seek to ensure that each private value is only sent masked once. So if we are e.g. computing both `dot(x, y)` and `dot(x, z)` then it might make sense to have a triple `(r, s, t, u, v)` where `r` is used to mask `x`, `s` to mask `y`, `u` to mask `z`, and `t` and `u` are used to compute the result. This pattern happens during training for instance, where values computed during the forward pass are sometimes cached and reused during the backward pass. 
 
-One relevant case is training, where some values are used to compute both the output of the layer during the forward phase, but also typically cached and used again to update the weights during the backward phase (for instance in dense layers). 
+Perhaps more importantly though is when we are only making predictions with a model, i.e. computing with fixed weights. In this case we only want to [mask the weights once and then reuse](/2017/09/10/the-spdz-protocol-part2#TODO) these for each prediction. Doing so means we only have to mask and communicate proportionally to the input tensor flowing through the model, as opposed to propotionally to both the input tensor and the weights, as also done in e.g. [JVC'18](https://arxiv.org/abs/1801.05507). More generally, we ideally want to communicate proportionally only to the values that change, which can be achieved (in an amortised sense) using tailored triples.
 
-Another, perhaps more important case, is if we are only interested in during prediction:  TODO TODO TODO
-
-Additionally, it might also be possible to have triples for more advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
+Finally, it is also possible to have [triples for more advanced functions](/2017/09/10/the-spdz-protocol-part2#TODO) such as evaluating both a dense layer and its activation function with a single round of communication. Main question here seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
 
 
 ## Precision

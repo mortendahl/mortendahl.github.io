@@ -11,7 +11,8 @@ email:       "mortendahlcs@gmail.com"
  
 # Research Papers
 
-- [Gazelle: A Low Latency Framework for Secure Neural Network Inference](https://arxiv.org/abs/1801.05507)<br/>
+- \[LDX'18\] [<em>PrivPy: Enabling Scalable and General Privacy-Preserving Computation</em>](https://arxiv.org/abs/1801.10117)
+- \[JVC'18\] [Gazelle: A Low Latency Framework for Secure Neural Network Inference](https://arxiv.org/abs/1801.05507)<br/>
 <em>January 2018</em>
 - [Chameleon: A Hybrid Secure Computation Framework for Machine Learning Applications](https://arxiv.org/abs/1801.03239)<br/>
 <em>January 2018</em>

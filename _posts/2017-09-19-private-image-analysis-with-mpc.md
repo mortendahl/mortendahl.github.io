@@ -80,9 +80,9 @@ As we shall see, using [Keras](https://keras.io/) has the benefit that we can pe
 
 With CNNs in place we next turn to MPC. For this we will use the state-of-the-art SPDZ protocol as it allows us to only have two servers and to improve *online* performance by moving certain computations to an *offline* phase as described in detail in earlier [blog](/2017/09/03/the-spdz-protocol-part1) [posts](/2017/09/10/the-spdz-protocol-part2).
 
-As typical in secure computation protocols, all computations take place in a field, here identified by a prime `Q`. This means we need to [encode](/2017/09/03/the-spdz-protocol-part1#TODO) the floating-point numbers used by the CNNs as integers modulo a prime, which puts certain constraints on `Q` and in turn has an affect on performance.
+As typical in secure computation protocols, all computations take place in a field, here identified by a prime `Q`. This means we need to [encode](/2017/09/03/the-spdz-protocol-part1#fixed-point-encoding) the floating-point numbers used by the CNNs as integers modulo a prime, which puts certain constraints on `Q` and in turn has an affect on performance.
 
-Moreover, [recall](/2017/09/10/the-spdz-protocol-part2#TODO) that in interactive computations such as the SPDZ protocol it becomes relevant to also consider communication and round complexity, in addition to the typical time complexity. Here, the former measures the number of bits sent across the network, which is a relatively slow process, and the latter the number of synchronisation points needed between the two servers, which may block one of them with nothing to do until the other catches up. Both hence also have a big impact on overall executing time.
+Moreover, [recall](/2017/09/10/the-spdz-protocol-part2) that in interactive computations such as the SPDZ protocol it becomes relevant to also consider communication and round complexity, in addition to the typical time complexity. Here, the former measures the number of bits sent across the network, which is a relatively slow process, and the latter the number of synchronisation points needed between the two servers, which may block one of them with nothing to do until the other catches up. Both hence also have a big impact on overall executing time.
 
 Most importantly however, is that the only "native" operations we have in these protocols is addition and multiplication. Division, comparison, etc. can be done, but are more expensive in terms of our three performance measures. Later we shall see how to mitigate some of the issues raised due to this, but here we first recall the basic SPDZ protocol.
 
@@ -172,7 +172,7 @@ model.compile(
     metrics=['accuracy'])
 ```
 
-An additional caveat is that many optimizers use [clipping](http://nmarkou.blogspot.fr/2017/07/deep-learning-why-you-should-use.html) to prevent gradients from growing too small or too large. This requires a [comparison on private values](https://www.iacr.org/archive/pkc2007/44500343/44500343.pdf), which again is a somewhat expensive operation in the encrypted setting, and as a result we aim to avoid using this technique altogether. To get realistic results from our Keras simulation we increase the bounds as seen above.
+An additional caveat is that many optimizers use [clipping](http://nmarkou.blogspot.fr/2017/07/deep-learning-why-you-should-use.html) to prevent gradients from growing too small or too large. This requires a [comparison on private values](https://www1.cs.fau.de/filepool/publications/octavian_securescm/smcint-scn10.pdf), which again is a somewhat expensive operation in the encrypted setting, and as a result we aim to avoid using this technique altogether. To get realistic results from our Keras simulation we increase the bounds as seen above.
 
 
 ## Layers
@@ -314,23 +314,23 @@ In particular, a lot of the computation can be moved to the crypto provider, who
 Recall from earlier that it's relevant to optimise both round and communication complexity, and the extensions suggested here are often aimed at improving these at the expense of additional local computation. As such, practical experiments are needed to validate their benefits under concrete conditions.
  
 
-## Average pooling
-
-Starting with the easiest type of layer, we notice that the forward pass of average pooling only requires a summation followed by a division with a public denominator. Hence, it can be implemented by a multiplication with a public value: since the denominator is public we can easily find its inverse and then simply multiply and truncate. Likewise, the backward pass is simply a scaling, and hence both directions are entirely local operations.
-
-
 ## Dropout
 
-Nothing special related to secure computation here, only thing is to make sure that the two servers agree on which values to drop in each training iteration. This can be done by simply agreeing on a seed value.
+Starting with the easiest type of layer, we notice that nothing special related to secure computation happens here, and the only thing is to make sure that the two servers agree on which values to drop in each training iteration. This can be done by simply agreeing on a seed value.
+ 
+
+## Average pooling
+
+The forward pass of average pooling only requires a summation followed by a division with a public denominator. Hence, it can be implemented by a multiplication with a public value: since the denominator is public we can easily find its inverse and then simply multiply and truncate. Likewise, the backward pass is simply a scaling, and hence both directions are entirely local operations.
 
 
 ## Dense layers
 
 The dot product needed for both the forward and backward pass of dense layers can of course be implemented in the typical fashion using multiplication and addition. If we want to compute `dot(x, y)` for matrices `x` and `y` with shapes respectively `(m, k)` and `(k, n)` then this requires `m * n * k` multiplications, meaning we have to communicate the same number of masked values. While these can all be sent in parallel so we only need one round, if we allow ourselves to use another kind of preprocessed triple then we can reduce the communication cost by an order of magnitude.
 
-For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples described below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. And for the first dense layer it is even greater, namely slightly more than a factor 25. 
+For instance, the second dense layer in our model computes a dot product between a `(32, 128)` and a `(128, 5)` matrix. Using the typical approach requires sending `32 * 5 * 128 == 22400` masked values per batch, but by using the preprocessed triples described below we instead only have to send `32 * 128 + 5 * 128 == 4736` values, almost a factor 5 improvement. For the first dense layer it is even greater, namely slightly more than a factor 25. 
 
-As also noted [previously](/2017/09/10/the-spdz-protocol-part2/#TODO), the trick is to ensure that each private value in the matrices is only sent masked once. To make this work we need triples `(a, b, c)` of random matrices `a` and `b` with the appropriate shapes and such that `c == dot(a, b)`. 
+As also noted [previously](/2017/09/10/the-spdz-protocol-part2/), the trick is to ensure that each private value in the matrices is only sent masked once. To make this work we need triples `(a, b, c)` of random matrices `a` and `b` with the appropriate shapes and such that `c == dot(a, b)`. 
 
 ```python
 def generate_dot_triple(x_shape, y_shape):
@@ -383,45 +383,38 @@ The triples `(a, b, c)` we need here are similar to those used in dot products, 
 
 As done [earlier](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid), we may use a degree-9 polynomial to approximate the sigmoid activation function with a sufficient level of accuracy. Evaluating this polynomial for a private value `x` requires computing a series of powers of `x`, which of course may be done by sequential multiplication -- but this means several rounds and corresponding amount of communication.
 
-As an alternative we can again use a new kind of preprocessed triple that allows us to compute all required powers in a single round. As shown [previously](/2017/09/10/the-spdz-protocol-part2/), the length of these "triples" is not fixed but equals the highest exponent, such that a triple for squaring, for instance, consists of independent sharings of `a` and `a^2`, while one for cubing consists of independent sharings of `a`, `a^2`, and `a^3`.
+As an alternative we can again use a new kind of preprocessed triple that allows us to compute all required powers in a single round. As shown [previously](/2017/09/10/the-spdz-protocol-part2/), the length of these "triples" is not fixed but equals the highest exponent, such that a triple for e.g. squaring consists of independent sharings of `a` and `a**2`, while one for cubing consists of independent sharings of `a`, `a**2`, and `a**3`.
 
 Once we have these powers of `x`, evaluating a polynomial with public coefficients is then just a local weighted sum. The security of this again follows from the fact that all powers in the triple are independently shared.
 
 ```python
 def pol_public(x, coeffs, triple):
     powers = pows(x, triple)
-    terms = ( mul_public(xe, ce) for xe,ce in zip(powers, coeffs) )
-    return reduce(lambda y,z: add(y, z), terms)
+    return sum( xe * ce for xe, ce in zip(powers, coeffs) )
 ```
 
-We have the same caveat related to fixed-point precision as [earlier](/2017/09/10/the-spdz-protocol-part2/#TODO) though, namely that we need more room for the higher precision of the powers: `x^n` has `n` times the precision of `x` and we want to make sure that it does not wrap around modulo `Q` since then we cannot decode correctly anymore. As done there, we can solve this by introducing a sufficiently larger field `P` to which we temporarily switch while computing the powers.
+We have the same caveat related to fixed-point precision as [earlier](/2017/09/10/the-spdz-protocol-part2/) though, namely that we need more room for the higher precision of the powers: `x**n` has `n` times the precision of `x` and we want to make sure that it does not wrap around modulo `Q` since then we cannot decode correctly anymore. As done there, we can solve this by introducing a sufficiently larger field `P` to which we temporarily [switch](/2017/09/10/the-spdz-protocol-part2/) while computing the powers, at the expense of two extra rounds of communication.
 
 
-Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or perform the switch and pay for conversion and arithmetic on larger numbers. Specifically, for low degree polynomials the former is likely better.
+Practical experiments can show whether it best to stay in `Q` and use a few more multiplication rounds, or perform the switch and pay for conversion and arithmetic on larger numbers. Specifically, for low degree polynomials the former is likely better.
 
 
 # Proof of Concept Implementation
 
+A [proof-of-concept implementation](https://github.com/mortendahl/privateml/tree/master/image-analysis/) is available for experimentation and reproducibility. Still a work in progress, the code currently supports training a new classifier from encrypted features, but not feature extraction on encrypted images. In other words, it assumes that the input providers themselves run their images through the feature extraction layers and send the results in encrypted form to the servers; as such, the weights for that part of the model are currently not kept private. A future version will address this and allow training and predictions directly from images by enabling the feature layers to also run on encrypted data.
 
-Proof of concept. In an attempt to make results reproducible. Running on GCP Compute Engine since it'll take a while.
-
-### Fine tuning
 ```python
-from pond.nn import Sequential, Dense, Sigmoid, Dropout, Reveal, Softmax
+from pond.nn import Sequential, Dense, Sigmoid, Dropout, Reveal, Softmax, CrossEntropy
+from pond.tensor import PrivateEncodedTensor
 
 classifier = Sequential([
     Dense(128, 6272),
     Sigmoid(),
-    Dropout(.5), # TODO
+    Dropout(.5),
     Dense(5, 128),
     Reveal(),
     Softmax()
 ])
-```
-
-```python
-from pond.nn import CrossEntropy
-from pond.tensor import PrivateEncodedTensor
 
 classifier.initialize()
 
@@ -433,28 +426,68 @@ classifier.fit(
 )
 ```
 
-## Running the code
+The code is split into several Python notebooks, and comes with a set of precomputed weights that allows for skipping some of the steps:
+
+- The first one deals with [pre-training on the public data](https://github.com/mortendahl/privateml/tree/master/image-analysis/Pre-training.ipynb) using Keras, and produces the model used for feature extraction. This step can be skipped by using the repository's precomputed weights instead.
+
+- The second one applies the above model to do [feature extraction on the private data](https://github.com/mortendahl/privateml/tree/master/image-analysis/Feature%20extraction.ipynb), thereby producing the features used for training the new encrypted classifier. In future versions this will be done by first encrypting the data. This step cannot be skipped as the extracted data is too large.
+
+- The third takes the extracted features and [trains a new encrypted classifier](https://github.com/mortendahl/privateml/tree/master/image-analysis/Fine-tuning.ipynb). This is by far the most expensive step and may be skipped by using the repository's precomputed weights instead.
+
+- Finally, the fourth notebook uses the new classifier to perform [encrypted predictions](https://github.com/mortendahl/privateml/tree/master/image-analysis/Prediction.ipynb) from new images. Again feature extraction is currently done unencrypted.
+
+Running the code is a matter of cloning the repository
 
 ```bash
-## Setup GCP instance
+$ git clone https://github.com/mortendahl/privateml.git && \
+  cd privateml/image-analysis/
+```
+
+installing the dependencies
+  
+```bash
+$ pip3 install jupyter numpy tensorflow keras h5py
+```
+
+launching a notebook
+
+```bash
+$ jupyter notebook
+```
+
+and navigating to either of the four notebooks mentioned above.
+
+
+<!--
+## Running on GCE
+
+Since especially the encrypted training is a rather lengthy process, it might be worth running at least this part on e.g. a remote cloud instance. To use the [Google Compute Engine](https://cloud.google.com/compute/) one can do the following, after setting up [`gcloud`](https://cloud.google.com/sdk/) (which is also available in Homebrew as `brew cask info google-cloud-sdk`).
+
+We first set up a fresh compute instance to function as out notebook server and connect to it.
+
+```bash
 laptop$ gcloud compute instances create server \ 
           --custom-cpu=1 \
           --custom-memory=6GB
-```
-
-```bash
+          
 laptop$ gcloud compute ssh server -- -L 8888:localhost:8888
 ```
+
+Once connected we install dependencies, pull down the notebooks, and launch Jupyter. Note that we do the latter in a screen to let the notebook computations run even if we disconnect our SSH session.
 
 ```bash
 server$ sudo apt-get update && \
         sudo apt-get install -y python3 python3-pip git && \
         sudo pip3 install jupyter numpy tensorflow keras
+        
+server$ git clone https://github.com/mortendahl/privateml.git && \
+        cd privateml/image-analysis/
+        
+server$ screen jupyter notebook
 ```
 
 ```bash
-server$ git clone https://github.com/mortendahl/privateml.git && \
-        cd privateml/image-analysis/ && \
+
 ```
 
 ```bash
@@ -472,12 +505,24 @@ server$ screen -r
 ## Stop GCP instance
 gcloud compute instances stop server
 ```
-
+-->
 
 
 # Thoughts
 
 As always, when previous thoughts and questions have been answered there is already a new batch waiting.
+
+
+## Generalised triples
+
+When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase in the form of additional types of triples.
+
+As mentioned several times (and also suggested in e.g. [BCG+'17](https://eprint.iacr.org/2017/1234)), we typically seek to ensure that each private value is only sent masked once. So if we are e.g. computing both `dot(x, y)` and `dot(x, z)` then it might make sense to have a triple `(r, s, t, u, v)` where `r` is used to mask `x`, `s` to mask `y`, `u` to mask `z`, and `t` and `u` are used to compute the result. This pattern happens during training for instance, where values computed during the forward pass are sometimes cached and reused during the backward pass. 
+
+Perhaps more importantly though is when we are only making predictions with a model, i.e. computing with fixed private weights. In this case we only want to [mask the weights once and then reuse](/2017/09/10/the-spdz-protocol-part2) these for each prediction. Doing so means we only have to mask and communicate proportionally to the input tensor flowing through the model, as opposed to propotionally to both the input tensor and the weights, as also done in e.g. [JVC'18](https://arxiv.org/abs/1801.05507). More generally, we ideally want to communicate proportionally only to the values that change, which can be achieved (in an amortised sense) using tailored triples.
+
+Finally, it is in principle also possible to have [triples for more advanced functions](/2017/09/10/the-spdz-protocol-part2) such as evaluating both a dense layer and its activation function with a single round of communication, but the big obstacle here seems to be scalability in terms of triple storage and amount of computation needed for the recombination step, especially when working with tensors.
+
 
 ## Activation functions
 
@@ -488,25 +533,14 @@ It may also be relevant to consider non-typical but simpler activations function
 
 ## Garbled circuits
 
-While so far only mentioned in the context of evaluating activation functions, [garbled](https://oblivc.org/) [circuits](https://github.com/encryptogroup/ABY) could in fact also be used for larger parts, including as the main means of secure computation as done in for instance [DeepSecure](https://arxiv.org/abs/1705.08963). 
+While mentioned above only as a way of securely evaluating more advanced activation functions, [garbled](https://oblivc.org/) [circuits](https://github.com/encryptogroup/ABY) could in fact also be used for larger parts, including as the main means of secure computation as done in for instance [DeepSecure](https://arxiv.org/abs/1705.08963). 
 
 Compared to e.g. SPDZ this technique has the benefit of using only a constant number of communication rounds. The downside is that operations are now often happening on bits instead of on larger field elements, meaning more computation is involved.
 
 
-## Generalised triples
-
-When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase in the form of additional types of triples.
-
-As mentioned several times (and also suggested in e.g. [BCG+'17](https://eprint.iacr.org/2017/1234)), we typically seek to ensure that each private value is only sent masked once. So if we are e.g. computing both `dot(x, y)` and `dot(x, z)` then it might make sense to have a triple `(r, s, t, u, v)` where `r` is used to mask `x`, `s` to mask `y`, `u` to mask `z`, and `t` and `u` are used to compute the result. This pattern happens during training for instance, where values computed during the forward pass are sometimes cached and reused during the backward pass. 
-
-Perhaps more importantly though is when we are only making predictions with a model, i.e. computing with fixed weights. In this case we only want to [mask the weights once and then reuse](/2017/09/10/the-spdz-protocol-part2#TODO) these for each prediction. Doing so means we only have to mask and communicate proportionally to the input tensor flowing through the model, as opposed to propotionally to both the input tensor and the weights, as also done in e.g. [JVC'18](https://arxiv.org/abs/1801.05507). More generally, we ideally want to communicate proportionally only to the values that change, which can be achieved (in an amortised sense) using tailored triples.
-
-Finally, it is also possible to have [triples for more advanced functions](/2017/09/10/the-spdz-protocol-part2#TODO) such as evaluating both a dense layer and its activation function with a single round of communication. Main question here seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
-
-
 ## Precision
 
-A lot of the research around [federated learning](https://research.googleblog.com/2017/04/federated-learning-collaborative.html) involve [gradient compression](https://arxiv.org/abs/1610.05492) in order to save on communication cost. Closer to our setting we have [BMMP'17](https://eprint.iacr.org/2017/1114) which uses quantization to apply homomorphic encryption to deep learning, and even [unencrypted](https://arxiv.org/abs/1610.02132) [production-ready](https://www.tensorflow.org/performance/quantization) systems often consider this technique as a way of improving performance.
+A lot of the research around [federated learning](https://research.googleblog.com/2017/04/federated-learning-collaborative.html) involve [gradient compression](https://arxiv.org/abs/1610.05492) in order to save on communication cost. Closer to our setting we have [BMMP'17](https://eprint.iacr.org/2017/1114) which uses quantization to apply homomorphic encryption to deep learning, and even [unencrypted](https://arxiv.org/abs/1610.02132) [production-ready](https://www.tensorflow.org/performance/quantization) systems often consider this technique as a way of improving performance also in terms of [learning](https://ai.intel.com/lowering-numerical-precision-increase-deep-learning-performance/).
 
 
 ## Floating point arithmetic
@@ -516,9 +550,9 @@ Above we used a fixed-point encoding of real numbers into field elements, yet un
 
 ## GPUs
 
-Since deep learning is today mostly done on GPUs for performance reasons, it is natural to consider whether similar speedups can be achieved by applying them in MPC computations. Some [work](https://www.cs.virginia.edu/~shelat/papers/hms13-gpuyao.pdf) exist on this topic for garbled circuits, yet it seems less popular in the secret sharing setting of e.g. SPDZ. One problem here might be to ensure enough room in the supported integer types or in the integral part of supported floats. 
+Since deep learning is typically done on GPUs today for performance reasons, it is natural to consider whether similar speedups can be achieved by applying them in MPC computations. Some [work](https://www.cs.virginia.edu/~shelat/papers/hms13-gpuyao.pdf) exist on this topic for garbled circuits, yet it seems less popular in the secret sharing setting of e.g. SPDZ. 
 
-A potential remedy to this is to decompose numbers using the [CRT](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) into several components that are computed on in parallel. For this to work we would need to do our computations over a ring instead of a field, since our modulus must now be a composite number as opposed to a prime.
+One problem here might be maturity and availability of arbitrary precision arithmetic support on GPUs (but see e.g. [this](http://www.comp.hkbu.edu.hk/~chxw/fgc_2010.pdf) and [that](https://github.com/skystar0227/CUMP)) as needed for computations on field elements larger than e.g. 64 bits. One potential remedy is to decompose numbers using the [CRT](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) into several components that are computed on in parallel. For this to work we would need to do our computations over a ring instead of a field, since our modulus must now be a composite number as opposed to a prime.
 
 
 <!--

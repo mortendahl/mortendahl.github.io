@@ -401,7 +401,7 @@ Practical experiments can show whether it best to stay in `Q` and use a few more
 
 # Proof of Concept Implementation
 
-A [proof-of-concept implementation](https://github.com/mortendahl/privateml/tree/master/image-analysis/) is available for experimentation and reproducibility. Still a work in progress, the code currently supports training a new classifier from encrypted features, but not feature extraction on encrypted images. In other words, it assumes that the input providers themselves run their images through the feature extraction layers and send the results in encrypted form to the servers; as such, the weights for that part of the model are currently not kept private. A future version will address this and allow training and predictions directly from images by enabling the feature layers to also run on encrypted data.
+A [proof-of-concept implementation](https://github.com/mortendahl/privateml/tree/master/image-analysis/) without networking is available for experimentation and reproducibility. Still a work in progress, the code currently supports training a new classifier from encrypted features, but not feature extraction on encrypted images. In other words, it assumes that the input providers themselves run their images through the feature extraction layers and send the results in encrypted form to the servers; as such, the weights for that part of the model are currently not kept private. A future version will address this and allow training and predictions directly from images by enabling the feature layers to also run on encrypted data.
 
 ```python
 from pond.nn import Sequential, Dense, Sigmoid, Dropout, Reveal, Softmax, CrossEntropy
@@ -552,8 +552,11 @@ Above we used a fixed-point encoding of real numbers into field elements, yet un
 
 Since deep learning is typically done on GPUs today for performance reasons, it is natural to consider whether similar speedups can be achieved by applying them in MPC computations. Some [work](https://www.cs.virginia.edu/~shelat/papers/hms13-gpuyao.pdf) exist on this topic for garbled circuits, yet it seems less popular in the secret sharing setting of e.g. SPDZ. 
 
-One problem here might be maturity and availability of arbitrary precision arithmetic support on GPUs (but see e.g. [this](http://www.comp.hkbu.edu.hk/~chxw/fgc_2010.pdf) and [that](https://github.com/skystar0227/CUMP)) as needed for computations on field elements larger than e.g. 64 bits. One potential remedy is to decompose numbers using the [CRT](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) into several components that are computed on in parallel. For this to work we would need to do our computations over a ring instead of a field, since our modulus must now be a composite number as opposed to a prime.
+Biggest problem here might be maturity and availability of arbitrary precision arithmetic on GPUs (but see e.g. [this](http://www.comp.hkbu.edu.hk/~chxw/fgc_2010.pdf) and [that](https://github.com/skystar0227/CUMP)) as needed for computations on field elements larger than e.g. 64 bits. Two things might be worth keeping in mind here though: firstly, while the values we compute on are larger than those natively supported, they are still bounded by the modulus; and secondly, we can do our secure computations over a ring instead of a field.
 
+<!--
+One potential remedy is to decompose numbers using the [CRT](https://en.wikipedia.org/wiki/Chinese_remainder_theorem) into several components that are computed on in parallel. For this to work we would need to do our computations over a ring instead of a field, since our modulus must now be a composite number as opposed to a prime.
+-->
 
 <!--
 

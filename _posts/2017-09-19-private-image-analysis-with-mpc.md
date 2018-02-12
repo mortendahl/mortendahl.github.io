@@ -526,7 +526,7 @@ Finally, it is in principle also possible to have [triples for more advanced fun
 
 ## Activation functions
 
-A natural question is which of the other typical activation functions are efficient in the encrypted setting. As mentioned above, [SecureML](https://eprint.iacr.org/2017/396) makes use of ReLU by temporarily switching to garbled circuits, and [CryptoDL](https://arxiv.org/abs/1711.05189) gives low-degree polynomial approximations to both Sigmoid, ReLU, and Tanh (using [Chebyshev polynomials](https://en.wikipedia.org/wiki/Chebyshev_polynomials) for better accuracy).
+A natural question is which of the other typical activation functions are efficient in the encrypted setting. As mentioned above, [SecureML](https://eprint.iacr.org/2017/396) makes use of ReLU by temporarily switching to garbled circuits, and [CryptoDL](https://arxiv.org/abs/1711.05189) gives low-degree polynomial approximations to both Sigmoid, ReLU, and Tanh (using [Chebyshev polynomials](https://en.wikipedia.org/wiki/Chebyshev_polynomials) for [better accuracy](http://www.chebfun.org/docs/guide/guide04.html#47-the-runge-phenomenon)).
 
 It may also be relevant to consider non-typical but simpler activations functions, such as squaring as in e.g. [CryptoNets](https://www.microsoft.com/en-us/research/publication/cryptonets-applying-neural-networks-to-encrypted-data-with-high-throughput-and-accuracy/), if for nothing else than simplifying both computation and communication.
 

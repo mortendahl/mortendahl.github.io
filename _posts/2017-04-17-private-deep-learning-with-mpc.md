@@ -199,7 +199,7 @@ The term "deep learning" is a massive exaggeration of what we'll be doing here, 
 
 ## A simple function
 
-The first experiment is about training a network to recognize the first bit in a vector of three. The four rows in `X` below are used as the input training data, with the corresponding row in `y` as the desired output.
+The first experiment is about training a network to recognize the first bit in a sequence. The four rows in `X` below are used as the input training data, with the corresponding row in `y` as the desired output.
 
 ```python
 X = np.array([
@@ -321,7 +321,7 @@ And based on the evaluation above, the network does indeed seem to have learned 
 
 ## Slightly more advanced function
 
-Turning to the (negated) parity experiment next, the network cannot simply mirror one of the three components as before, but intuitively has to compute the xor between the first and second, and ignore the third.
+Turning to the (negated) parity experiment next, the network cannot simply mirror one of the three components as before, but intuitively has to compute the xor between the first and second bit (the third being for the bias).
 
 ```python
 X = np.array([

@@ -1,7 +1,7 @@
 ---
 layout:     post
-title:      "More Fun with Triples"
-subtitle:   "Adapting the SPDZ protocol"
+title:      "The SPDZ Protocol, Part 2"
+subtitle:   "More Fun with Triples"
 date:       2017-09-10 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-04.jpg"
@@ -9,11 +9,36 @@ header-img: "img/post-bg-04.jpg"
 
 <em><strong>TL;DR:</strong> we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 
 
+https://www1.cs.fau.de/filepool/publications/octavian_securescm/smcint-scn10.pdf
+
+https://www.iacr.org/archive/pkc2007/44500343/44500343.pdf
 
 
-## Underlying principles
+## Principles
+
+
 
 ## Squaring
+
+```python
+def generate_square_triple():
+    a = random.randrange(Q)
+    b = pow(a, 2, Q)
+    return PrivateValue(a), PrivateValue(b)
+```
+
+```python
+class PrivateValue:
+    
+    ...
+    
+    def square(x):
+        a, aa = generate_square_triple()
+        alpha = (x - a).reconstruct()
+        return alpha.square() + \
+               (a * alpha) * 2 + \
+               aa
+```
 
 ## Powering
 
@@ -49,14 +74,6 @@ def pows(x, triple):
     return x_powers
 ```
 
-Once we have these powers of `x`, evaluating a polynomial with public coefficients is then just a weighted sum.
-
-```python
-def pol_public(x, coeffs, triple):
-    powers = [ONE] + pows(x, triple)
-    terms = ( mul_public(xe, ce) for xe,ce in zip(powers, coeffs) )
-    return reduce(lambda y,z: add(y, z), terms)
-```
 
 ## Share conversion
 
@@ -100,10 +117,14 @@ Note that we could of course decide to simply do all computations in the larger 
 
 Practical experiments will show whether it best to stay in `Q` and use a few more rounds, or switch temporarily to `P` and pay for conversion and arbitrary precision arithmetic. Specifically, for low degree polynomials the former is likely better.
 
+
+
 ## Bit-decomposition
 
 
 ## Generalised triples
+
+**TODO** only send the masking of a value once; reuse masked version until the variable is updated
 
 When seeking to reduce communication, one may also wonder how much can be pushed to the preprocessing phase in the form of additional types of triples.
 
@@ -115,4 +136,4 @@ Another, perhaps more important case, is if we are only interested in during pre
 
 Additionally, it might also be possible to have triples for more advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
 
-
+# Application

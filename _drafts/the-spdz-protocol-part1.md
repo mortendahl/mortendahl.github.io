@@ -1,13 +1,22 @@
 ---
 layout:     post
-title:      "The SPDZ Protocol"
+title:      "The SPDZ Protocol, Part 1"
 subtitle:   "Secure Computation using Precomputed Triples"
 date:       2017-09-03 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-04.jpg"
+header-img: "assets/spdz/Bristol-GB.jpg"
 ---
 
-<em><strong>TL;DR:</strong> TODO.</em> 
+<em><strong>TL;DR:</strong> We'll go through and implement the state-of-the-art SPDZ protocol for secure computation.</em> 
+
+In this blog post we'll go through the state-of-the-art SPDZ protocol for secure computation. Unlike the protocol used in [a previous blog post](/2017/04/17/private-deep-learning-with-mpc/), SPDZ allows us to have as few as two parties computing on private values. Moreover, it has received significant scientific attention over the last few years and as a result several optimisations are known that can used to speed up our computation.
+
+
+
+
+The code for this section is available in [this associated notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Basic%20SPDZ.ipynb).
+
+
 
 https://www.youtube.com/watch?v=N80DV3Brds0
 https://www.youtube.com/watch?v=Ce45hp24b2E
@@ -26,7 +35,6 @@ Finally, in terms of security we aim for a typical notion used in practice, name
 
 # Secure Computation with SPDZ
 
-With CNNs in place we next turn to MPC. Unlike the protocol used in [a previous blog post](/2017/04/17/private-deep-learning-with-mpc/), here we will use the state-of-the-art SPDZ protocol as it allows us to have only two servers and have received significant scientific attention over the last few years. As a result, several optimisations are known that can used to speed up our computation as shown later.
 
 The protocol was first described in [SPZD'12](https://eprint.iacr.org/2011/535) and [DKLPSS'13](https://eprint.iacr.org/2012/642), but have also been the subject of at least [one series of blog posts](https://bristolcrypto.blogspot.fr/2016/10/what-is-spdz-part-1-mpc-circuit.html). Several implementations exist, including [one](https://www.cs.bris.ac.uk/Research/CryptographySecurity/SPDZ/) from the [cryptography group](http://www.cs.bris.ac.uk/Research/CryptographySecurity/) at the University of Bristol providing both high performance and full active security.
 
@@ -38,7 +46,7 @@ Concretely, we have an interest in keeping `Q` is small as possible, not only be
 
 Note that while the protocol in general supports computations between any number of parties we here present it for the two-party setting only. Moreover, as mentioned earlier, we aim only for passive security and assume a crypto provider that will honestly generate the needed triples.
 
-The code for this section is available in [this associated notebook](https://github.com/mortendahl/privateml/blob/master/image-analysis/Basic%20SPDZ.ipynb).
+Note that while the protocol in general supports computations between any number of parties we here use and specialise it for the two-party setting only. Moreover, as mentioned earlier, we aim only for passive security and assume a crypto provider that will honestly generate the needed triples.
 
 ## Sharing and reconstruction
 
@@ -54,57 +62,91 @@ def share(secret):
 And when specified by the protocol, the private value can be reconstruct by a server sending his share to the other.
 
 ```python
-def reconstruct(shares):
-    return sum(shares) % Q
+def reconstruct(share0, share1):
+    return (share0 + share1) % Q
 ```
 
 Of course, if both parties are to learn the private value then they can send their share simultaneously and hence still only use one round of communication.
 
 Note that the use of an additive scheme means the servers are required to be highly robust, unlike e.g. [Shamir's scheme](http://127.0.0.1:4000/2017/06/04/secret-sharing-part1/) which may handle some servers dropping out. If this is a reasonable assumption though, then additive sharing provides significant advantages.
 
+```python
+class PrivateValue:
+    
+    def __init__(self, value, share0=None, share1=None):
+        if not value is None:
+            share0, share1 = share(value)
+        self.share0 = share0
+        self.share1 = share1
+    
+    def reconstruct(self):
+        return PublicValue(reconstruct(self.share0, self.share1))
+```
+
 
 ## Linear operations
 
 Having obtained sharings of private values we may next perform certain operations on these. The first set of these is what we call linear operations since they allow us to form linear combinations of private values.
 
-The first are addition and subtraction, which are simple local computations on the shares already held by each server.
+The first are addition and subtraction, which are simple local computations on the shares already held by each server. And if one of the values is public then we may simplify.
 
 ```python
-def add(x, y):
-    z0 = (x[0] + y[0]) % Q
-    z1 = (x[1] + y[1]) % Q
-    return [z0, z1]
-
-def sub(x, y):
-    z0 = (x[0] - y[0]) % Q
-    z1 = (x[1] - y[1]) % Q
-    return [z0, z1]
+class PrivateValue:
+    
+    ...
+    
+    def add(x, y):
+        if type(y) is PublicValue:
+            share0 = (x.share0 + y.value) % Q
+            share1 =  x.share1
+            return PrivateValue(None, share0, share1)    
+        if type(y) is PrivateValue:
+            share0 = (x.share0 + y.share0) % Q
+            share1 = (x.share1 + y.share1) % Q
+            return PrivateValue(None, share0, share1)
+        
+    def sub(x, y):
+        if type(y) is PublicValue:
+            share0 = (x.share0 - y.value) % Q
+            share1 =  x.share1
+            return PrivateValue(None, share0, share1)
+        if type(y) is PrivateValue:
+            share0 = (x.share0 - y.share0) % Q
+            share1 = (x.share1 - y.share1) % Q
+            return PrivateValue(None, share0, share1)
 ```
 
-And if one of the values is public then we may simplify as follows.
-
 ```python
-def add_public(x, k):
-    y0 = (x[0] + k) % Q
-    y1 =  x[1]
-    return [y0, y1]
+x = PrivateValue(5)
+y = PrivateValue(3)
 
-def sub_public(x, k):
-    y0 = (x[0] - k) % Q
-    y1 =  x[1]
-    return [y0, y1]
+z = x + y
+assert z.reconstruct() == 8
 ```
 
 Next we may also perform multiplication with a public value by again only performing a local operation on the share already held by each server.
 
 ```python
-def mul_public(x, k):
-    y0 = (x[0] * k) % Q
-    y1 = (x[1] * k) % Q 
-    return [y0, y1]
+class PrivateValue:
+    
+    ...
+        
+    def mul(x, y):
+        if type(y) is PublicValue:
+            share0 = (x.share0 * y.value) % Q
+            share1 = (x.share1 * y.value) % Q
+            return PrivateValue(None, share0, share1)
 ```
 
 Note that the security of these operations is straight-forward since no communication is taking place between the two parties and hence nothing new could have been revealed.
+
+```python
+x = PrivateValue(5)
+y = PublicValue(3)
+
+z = x * y
+assert z.reconstruct() == 15
+```
 
 
 ## Multiplication
@@ -119,8 +161,8 @@ This raw material is popularly called a *multiplication triple* (and sometimes *
 def generate_mul_triple():
     a = random.randrange(Q)
     b = random.randrange(Q)
-    c = a * b % Q
-    return share(a), share(b), share(c)
+    c = (a * b) % Q
+    return PrivateValue(a), PrivateValue(b), PrivateValue(c)
 ```
 
 Note that a large portion of efforts in [current](https://eprint.iacr.org/2016/505) [research](https://eprint.iacr.org/2017/1230) and the [full reference implementation](https://www.cs.bris.ac.uk/Research/CryptographySecurity/SPDZ/) is spent on removing the crypto provider and instead letting the parties generate these triples on their own; we won't go into that here but see the resources pointed to earlier for details.
@@ -128,19 +170,23 @@ Note that a large portion of efforts in [current](https://eprint.iacr.org/2016/5
 To use multiplication triples to compute the product of two private values `x` and `y` we proceed as follows. The idea is simply to use `a` and `b` to respectively mask `x` and `y` and then reconstruct the masked values as respectively `alpha` and `beta`. As public values, `alpha` and `beta` may then be combined locally by each server to form a sharing of `z == x * y`.
 
 ```python
-def mul(x, y, triple):
-    a, b, c = triple
-    # local masking
-    d = sub(x, a)
-    e = sub(y, b)
-    # communication: the players simultaneously send their shares to the other
-    alpha = reconstruct(d)
-    beta  = reconstruct(e)
-    # local combination
-    f = alpha * beta % Q
-    g = mul_public(a, beta)
-    h = mul_public(b, alpha)
-    return add(h, add(g, add_public(c, f)))
+class PrivateValue:
+    
+    ...
+    
+    def mul(x, y):
+        if type(y) is PublicValue:
+            ...
+        if type(y) is PrivateValue:
+            a, b, a_mul_b = generate_mul_triple()
+            # local masking followed by communication of the reconstructed values
+            alpha = (x - a).reconstruct()
+            beta  = (y - b).reconstruct()
+            # local re-combination
+            return alpha.mul(beta) + \
+                   alpha.mul(b) + \
+                   a.mul(beta) + \
+                   a_mul_b
 ```
 
 If we write out the equations we see that `alpha * beta == xy - xb - ay + ab`, `a * beta == ay - ab`, and `b * alpha == bx - ab`, so that the sum of these with `c` cancels out everything except `xy`. In terms of complexity we see that communication of two field elements in one round is required. 
@@ -148,7 +194,21 @@ If we write out the equations we see that `alpha * beta == xy - xb - ay + ab`, `
 Finally, since `x` and `y` are [perfectly hidden](https://en.wikipedia.org/wiki/Information-theoretic_security) by `a` and `b`, neither server learns anything new as long as each triple is only used once. Moreover, the newly formed sharing of `z` is "fresh" in the sense that it contains no information about the sharings of `x` and `y` that were used in its construction, since the sharing of `c` was independent of the sharings of `a` and `b`.
 
 
-## Fixed-point encoding
+# Encoding Values
+
+## Integers
+
+```python
+def encode_integer(integer):
+    element = integer % Q
+    return element
+    
+def decode_integer(element):
+    integer = element if element <= Q//2 else element - Q
+    return integer
+```
+
+## Fixedpoints
 
 The last step is to provide a mapping between the rational numbers used by the CNNs and the field elements used by the SPDZ protocol. As typically done, we here take a fixed-point approach where rational numbers are scaled by a fixed amount and then rounded off to an integer less than the field size `Q`.
 
@@ -178,6 +238,21 @@ def truncate(x, amount=6):
 With this in place we are now (in theory) set to perform any desired computation on encrypted data.
 
 
-# Application
+# Private Linear Regression
+
+<em>(coming soon)</em>
+
+<!--
+Regression only: fit on plaintext, predict on encrypted data
+
+## Public weights
+
+## Private weights
 
 TODO
+
+https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1480149/
+
+https://github.com/vyomshm/predicting-coronary-heart-disease-with-tensorflow-and-tensorboard
+
+-->

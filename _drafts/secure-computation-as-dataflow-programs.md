@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "Secure Computations as Dataflow Programs"
+title:      "[Draft] Secure Computations as Dataflow Programs"
 subtitle:   "Implementing the SPDZ Protocol using TensorFlow"
 date:       2018-03-01 12:00:00
 author:     "Morten Dahl"
@@ -10,13 +10,13 @@ header-img: "assets/tensorspdz/tensorflow.png"
 <em><strong>TL;DR:</strong> TODO.</em> 
 
 Why?
-- in OpenMined we're making privacy tools available to practisiners
+- making privacy tools available to practitioners
 
 Implementing MPC protocols is non-trivial. Besides getting the underlying cryptography right there are also challenges such as:
 - coordinating the simultanuous execution of player programmes 
-- making sure data is sent efficiently between them across the network
+- making sure data is sent efficiently between them across the network (batching, async)
 - cross platform
-- streaming triples
+- buffering/streaming triples
 - making sure any value is only being masked once
 - efficient local computations on available hardware (CPUs or GPUs)
 - efficient storage on available hardware
@@ -24,13 +24,13 @@ Implementing MPC protocols is non-trivial. Besides getting the underlying crypto
 - profiling and performance evaluation (incl bottlenecks)
 - graph optimisations
 
-Getting all this right can be overwhelming if starting from stratch, which is one reason that earlier blog posts focused on the principles behind MPC and simply did everything locally instead.
+Getting all this right can be overwhelming, which is one reason that earlier blog posts focused on the principles behind MPC and simply did everything locally instead.
 
 Luckily though, modern distributed computation frameworks have existed for a while and are receiving a lot of attention due to their use in modern machine learning: Tensorflow.
 
 The main obstacle here though is that MPC protocols such as SPDZ, as we saw, perform addition, multiplication, and truncation on integer values that do not immediately fit into native words sizes such as 32 bit integers that are currently the largest type supported in Tensorflow and on GPUs if we want to compute dot products. It is possible to overcome this technicality but we will go into that in another blog post.
 
-Tensorflow, being a framework for optimised distributed computations, is in retrospect an obvious candidate for quickly experimenting with MPC protocols.
+Tensorflow, being a framework for optimised distributed computations and focused on machine learning, is in retrospect an obvious candidate for quickly experimenting with MPC protocols for private machine learning.
 
 https://www.tensorflow.org/programmers_guide/graphs
 https://en.wikipedia.org/wiki/Dataflow_programming
@@ -206,8 +206,6 @@ CLUSTER = tf.train.ClusterSpec({
 Finally, the code that each player executes is about as simple as it gets.
 
 ```python
-ROLE = 0
-
 server = tf.train.Server(CLUSTER, job_name=JOB_NAME, task_index=ROLE)
 server.start()
 server.join()

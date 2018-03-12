@@ -67,24 +67,11 @@ https://github.com/sandtable/ssl_grpc_example
 
 ## The SPDZ Protocol
 
-Looking back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we needed were tensor addition, subtraction, multiplication, dot products, and truncation. We also saw how these can easily be implemented using modular arithmetic, yet required working with numbers larger than what fits into a single machine word (e.g. 64 bits). Concretely, we often ended up working on ~120 bit integers that unfortunately seem to require a significant effort to get supported in e.g. TensorFlow.
+Looking back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we needed were tensor addition, subtraction, multiplication, dot products, and truncation. We also saw how these can easily be implemented using modular arithmetic, yet required working with numbers larger than what normally fits into a single machine word. Concretely, we often ended up working on ~120 bit integers using Python's built-in arbitrary precision objects.
 
-Needed operations
+Unfortunately such objects are not currently supported in most frameworks, including TensorFlow, which today for instance only supports dot products between tensors of 32 bit integers (a constraint that may have something to do with current GPUs, although see for instance **TODO**). Nonetheless, since we only need the operations mentioned above there are efficient ways around this as discussed [elsewhere](TODO).
 
-Recall from earlier posts that the basic operations we needed in the SPDZ protocol for secure computation on fixedpoint values were uniform sampling, modulus reductions, addition, subtraction, multiplication, and truncation of ~120 bit integers. For efficiency we also introduced an explicit dot product.
-
-We will go into detail in another blog post about how these are implemented over 32 bit words.
-
-`crt_add`
-`crt_sub`
-`crt_mul`
-`crt_dot`
-`crt_mod`
-`sample`
-
-`encode`
-`decode`
-
+In summary, below we will simply assume base operations `crt_add`, `crt_sub`, `crt_mul`, `crt_dot`, `crt_mod`, and `sample` that allow us to simulate arithmetic on tensors of ~120 bit integers using (a list of) tensors of e.g. 32 bit integers.
 
 
 ## TensorFlow

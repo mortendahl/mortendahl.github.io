@@ -329,7 +329,7 @@ def dot(x, y):
     return z
 ```
 
-As a verification, TensorBoard shows us that the graph structure is as expected.
+As a verification, TensorBoard shows us that the graph structure is as expected (with some blocks still showing up white).
 
 ![](/assets/tensorspdz/masking-reuse.png)
 
@@ -351,7 +351,7 @@ The heatmap in the above shows that masking and dot products are the most expens
 
 ![](/assets/tensorspdz/computetime-detailed.png)
 
-But we can go even further and get detailed tracing information. Below we see all operations performed by our five players, with the two servers first, followed by the crypto producer, the input provider, and the output receiver. Clicking on one of the operations additionally allows us to pinpoint exactly where in the execution we were.
+But we can go even further and get detailed tracing information. Below we see all operations performed by our five players, with the two servers first, followed by the crypto producer, the input provider, and the output receiver. Clicking on one of the operations additionally allows us to pinpoint exactly where in the execution we were as shown in the bottom panel.
 
 ![](/assets/tensorspdz/tracing.png)
  

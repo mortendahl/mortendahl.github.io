@@ -1,11 +1,13 @@
 ---
 layout:     post
-title:      "[Draft] Secure Computations as Dataflow Programs"
+title:      "Secure Computations as Dataflow Programs"
 subtitle:   "Implementing the SPDZ Protocol using TensorFlow"
 date:       2018-03-01 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/tensorspdz/tensorflow.png"
 ---
+
+<em><strong>This post is still very much a draft.</strong></em> 
 
 <em><strong>TL;DR:</strong> TODO.</em> 
 
@@ -39,10 +41,14 @@ https://github.com/ppwwyyxx/tensorpack
 https://github.com/tensorflow/serving/issues/193
 https://github.com/sandtable/ssl_grpc_example
 
+[TensorBoard](https://www.tensorflow.org/programmers_guide/graph_viz)
 
-# The SPDZ Protocol
 
-If we look back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we need are addition, subtraction, multiplication, dot products, and truncation.
+# Background
+
+## The SPDZ Protocol
+
+If we look back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we need are tensor addition, subtraction, multiplication, dot products, and fixedpoint truncation.
 
 Needed operations
 
@@ -61,10 +67,8 @@ We will go into detail in another blog post about how these are implemented over
 `decode`
 
 
-# Dataflow Programs
 
-
-# TensorFlow
+## TensorFlow
 
 ![](/assets/tensorspdz/structure.png)
 
@@ -169,7 +173,7 @@ def dot(x, y):
     return truncate(z)
 ```
 
-However, we see that with `tf.device()` this is still relatively straight-forward, at least if the [secure protocol](/2017/09/03/the-spdz-protocol-part1/#multiplication) is already understood. We first construct a graph that makes the crypto producer generate a new dot triple. The output nodes of this graph is `a0, a1, b0, b1, ab0, ab1`
+However, we see that with `tf.device()` this is still relatively straight-forward, at least if the [protocol for secure dot prodcuts](/2017/09/03/the-spdz-protocol-part1/#multiplication) is already understood. We first construct a graph that makes the crypto producer generate a new dot triple. The output nodes of this graph is `a0, a1, b0, b1, ab0, ab1`
 
 With `crt_sub` we then build graphs for the two servers that masks `x` and `y`. Note that TensorFlow will here take care of inserting networking code that sends the value of e.g. `a0` to `SERVER_0` during execution.
 
@@ -214,26 +218,15 @@ server.join()
 Here the value of `ROLE` is the only thing that differs between the programs the five players run and typically given as a command-line argument.
 
 
-# Profiling
-
-**TODO** compute time in TensorBoard
-
-![](/assets/tensorspdz/dot-computetime.png)
-
-**TODO** tracing
-
-
 # Optimisations
 
-**TODO** `tf.staging`
-**TODO** XLA
-
+Once the basic is in place we can also start to look at a few optimisations.
 
 ## Reusing Masked Values
 
-In [previous](/2017/09/10/the-spdz-protocol-part2/) [posts](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) it was already mentioned that we'd ideally want to only mask every private value once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both. If we are for instance doing predictions with weights `w` then  ... **TODO** Turns out it's very straight forward to implement this in our setting.
+In [previous](/2017/09/10/the-spdz-protocol-part2/) [posts](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) we already mentioned that we'd ideally want to only mask every private value once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
 
-For starters, the dataflow nature of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` changes (unless of course the value of `w` somehow depends on the value of `x` elsewhere).
+To implement this we first note that the dataflow nature of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` changes (unless of course the value of `w` somehow depends on the value of `x` elsewhere).
 
 We can do better though, since this will not help us in an application that computes both `dot(w, x)` and `dot(w, y)` in each execution.
 
@@ -286,7 +279,7 @@ def mask(x):
     return x.masked
 ```
 
-Finally, `dot` may now be rewritten as below, where we additionally also cache the output node so that a secure computation such as `dot(x, y) + dot(x, y)` will reuses that node in the graph and hence only compute the three remaining steps of `dot(x, y)` once.
+Finally, `dot` may now be rewritten as below, where we additionally also cache the output node so that if the same dot product is needed in several places in the graph then they will all feed from this node.
 
 ```python
 def dot(x, y):
@@ -330,10 +323,42 @@ def dot(x, y):
     return z
 ```
 
+As a verification, TensorBoard shows us that the graph structure is as expected.
+
 ![](/assets/tensorspdz/masking-reuse.png)
 
-# Experiments
+Note here that the leftmost masking block, correspoding to `mask(x)`, is feeding into both dot blocks as intended.
 
-## Setup
 
-GCP
+## Staging
+
+<em>(Coming soon: using `tf.staging` to buffer)</em>
+
+
+# Profiling
+
+As a final reason to be excited about building dataflow programs in TensorFlow, we also look at the built-in profiling services. In particular, in TensorBoard we can easily see how expensive each operation was both in terms of compute and memory.
+
+![](/assets/tensorspdz/computetime.png)
+
+The heatmap in the above shows that masking and dot products are the most expensive operations we ran, and by clicking on e.g. the rightmost dot product we see that it took roughly 50ms to execute (using the [localhost configuration](TODO)). Moreover, below we navigate further into the dot block and see that sharing was probably the most expensive sub-operations, in this particular run taking 36ms.
+
+![](/assets/tensorspdz/computetime-detailed.png)
+
+But we can go even further and get detailed tracing information. Below we see all operations performed by our five players, with the two servers first, followed by the crypto producer, the input provider, and the output receiver. Clicking on one of the operations additionally allows us to pinpoint exactly where in the execution we were.
+
+![](/assets/tensorspdz/tracing.png)
+ 
+This also shows that TensorFlow automatically figured out to use six concurrent threads to run the operations of the first three players, and that the two servers began processing before the crypto producer had completed; in other words, it looks like it figured out how to perform streaming of the computation.
+
+
+# Running the Code
+
+<em>(Coming soon; see the [GitHub repo](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/simple-dense) for now)</em>
+
+<!--
+# Dump
+
+- https://learningtensorflow.com/lesson11/
+- [XLA](https://www.tensorflow.org/performance/xla/)
+-->

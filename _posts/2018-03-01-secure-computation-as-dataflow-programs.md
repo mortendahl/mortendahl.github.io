@@ -9,7 +9,29 @@ header-img: "assets/tensorspdz/tensorflow.png"
 
 <em><strong>This post is still very much a draft.</strong></em> 
 
-<em><strong>TL;DR:</strong> TODO.</em> 
+<em><strong>TL;DR:</strong> using TensorFlow as a distributed computation framework we give a full implementation of the SPDZ protocol with networking.</em> 
+
+Unlike earlier [blog](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) where we focused on the higher-level concepts behind the SPDZ protocol and its [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a actual working implementation with players running on different machines and communicating via typical network stacks.
+
+Moreover, we also seek to investigate some of the benefits of using modern distributed computation platforms when experimenting with secure computations protocols, as opposed to building everything from scratch.
+
+Finally, and perhaps more importantly, since an important part of getting private machine learning into the hands of practitioners is to provide integrations with existing and popular tools such as TensorFlow, this can also be seen as a first step in that direction. While we make no use of all the machine learning tools built into TensorFlow such as automatic gradient computations, we do overcome some of the basic technical obstacles, paving the way of deeper integrations later as pursued for instance in the [OpenMined](https://twitter.com/openminedorg) project.
+
+<!--
+<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask) and several members of the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
+-->
+
+<em><strong>Disclaimer</strong>: this implementation is meant for experimentation only and may not live up to required security. In particular, TensorFlow does not currently seem to have been designed with this application in mind, and although it does not appear to be the case right now, may for instance in future versions perform optimisations behind that scene that breaks the intended security properties.</em>
+
+
+# Introduction
+
+Besides getting all the theory underlying secure computation protocols right, actually implementing them efficiently is also a highly non-trivial task.
+
+
+
+
+Since TensorFlow is among the dominating platforms for machine learning and SPDZ is among the dominating protocols for secure computation, it is perhaps not too 
 
 Why?
 - making privacy tools available to practitioners
@@ -43,12 +65,9 @@ https://github.com/sandtable/ssl_grpc_example
 
 [TensorBoard](https://www.tensorflow.org/programmers_guide/graph_viz)
 
-
-# Background
-
 ## The SPDZ Protocol
 
-If we look back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we need are tensor addition, subtraction, multiplication, dot products, and fixedpoint truncation.
+Looking back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) we've covered so far, we see that the typical secure operations we needed were tensor addition, subtraction, multiplication, dot products, and truncation. We also saw how these can easily be implemented using modular arithmetic, yet required working with numbers larger than what fits into a single machine word (e.g. 64 bits). Concretely, we often ended up working on ~120 bit integers that unfortunately seem to require a significant effort to get supported in e.g. TensorFlow.
 
 Needed operations
 

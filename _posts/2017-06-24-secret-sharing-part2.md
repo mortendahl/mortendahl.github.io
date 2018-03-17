@@ -465,5 +465,5 @@ Putting these pieces together we end up with an efficient procedure for generati
 
 While we have seen that the Fast Fourier Transform can be used to greatly speed up the sharing process, it has a serious limitation when it comes to speeding up the reconstruction process: in its current form it requires all shares to be present and untampered with. As such, for some applications we may be forced to resort to the more traditional and slower approaches of [Newton](https://en.wikipedia.org/wiki/Newton_polynomial) or [Laplace](https://en.wikipedia.org/wiki/Lagrange_polynomial) interpolation.
 
-In the next blog post we will look at a technique for also using the Fast Fourier Transform for reconstruction, using techniques from error correction codes to account for missing or faulty shares, yet get similar speedup benefits to what we achieved here.
+In [the next blog post](/2017/08/13/secret-sharing-part3/) we will look at a technique for also using the Fast Fourier Transform for reconstruction, using techniques from error correction codes to account for missing or faulty shares, yet get similar speedup benefits to what we achieved here.
 

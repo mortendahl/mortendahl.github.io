@@ -19,6 +19,8 @@ With MPC we can potentially lower the risk of exposure and hence increase the in
 
 In this blog post we'll look at a simpler use case for image analysis but go over all required techniques. A few notebooks are presented along the way, with the main one given as part of the [proof of concept implementation](#proof-of-concept-implementation).
 
+[Slides](https://github.com/mortendahl/talks/raw/master/ParisML17.pdf) from a more recent presentation at the [Paris Machine Learning meetup](http://mlparis.org/) are now also available.
+
 <em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Nigel Smart](https://twitter.com/smartcryptology), [Adrià Gascón](https://twitter.com/adria), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
 

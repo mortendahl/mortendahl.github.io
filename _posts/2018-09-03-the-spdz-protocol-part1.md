@@ -7,6 +7,8 @@ author:     "Morten Dahl"
 header-img: "assets/spdz/bristol.jpg"
 ---
 
+<em><strong>This post is still very much a work in progress.</strong></em> 
+
 <em><strong>TL;DR:</strong> We'll go through and implement the state-of-the-art SPDZ protocol for secure computation.</em> 
 
 In this blog post we'll go through the state-of-the-art SPDZ protocol for secure computation. Unlike the protocol used in [a previous blog post](/2017/04/17/private-deep-learning-with-mpc/), SPDZ allows us to have as few as two parties computing on private values. Moreover, it has received significant scientific attention over the last few years and as a result several optimisations are known that can used to speed up our computation.

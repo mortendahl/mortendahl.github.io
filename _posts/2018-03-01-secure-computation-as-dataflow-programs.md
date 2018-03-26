@@ -11,57 +11,40 @@ header-img: "assets/tensorspdz/tensorflow.png"
 
 <em><strong>TL;DR:</strong> using TensorFlow as a distributed computation framework for dataflow programs we give a full implementation of the SPDZ protocol with networking.</em> 
 
-Unlike earlier [blog](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) where we focused on the higher-level concepts behind the SPDZ protocol and its [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a fully working (passively secure) implementation with players running on different machines and communicating via typical network stacks. As part of this, we also seek to investigate the benefits of using a [modern distributed computation](https://en.wikipedia.org/wiki/Dataflow_programming) platform when experimenting with secure computations, as opposed to building everything from scratch.
+Unlike earlier [blog](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) where we focused on the higher-level concepts behind the SPDZ protocol and its [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a fully working (passively secure) implementation with players running on different machines and communicating via typical network stacks. And as part of this we also seek to investigate the benefits of using a [modern distributed computation](https://en.wikipedia.org/wiki/Dataflow_programming) platform when experimenting with secure computations, as opposed to building everything from scratch.
 
-Moreover, this can also be seen as a step in the direction of getting private machine learning into the hands of practitioners, where integration with existing and popular tools such as [TensorFlow](https://www.tensorflow.org/) plays an important part. Concretely, while we here only do a relatively shallow integration that doesn't make use of powerful machine learning tools built into TensorFlow such as automatic gradient computations, we do show how some of the basic technical obstacles can be overcome, potentially paving the way for deeper integrations.
+Additionally, this can also be seen as a step in the direction of getting private machine learning into the hands of practitioners, where integration with existing and popular tools such as [TensorFlow](https://www.tensorflow.org/) play an important part. Concretely, while we here only do a relatively shallow integration that doesn't make use of powerful machine learning tools built into TensorFlow such as [automatic differentiation](https://www.tensorflow.org/api_docs/python/tf/gradients), we do show how some of the basic technical obstacles can be overcome, potentially paving the way for deeper integrations.
 
-<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask) and several members of the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
+<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Kory Mathewson](https://twitter.com/korymath), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
 <em><strong>Disclaimer</strong>: this implementation is meant for experimentation only and may not live up to required security. In particular, TensorFlow does not currently seem to have been designed with this application in mind, and although it does not appear to be the case right now, may for instance in future versions perform optimisations behind that scene that breaks the intended security properties.</em>
 
 
 # Motivation
 
-Due to their distributed nature, implementing secure computation protocols such as SPDZ can be a non-trivial task, and optimising them of course only adds to the complexity. 
+Due to their distributed nature, implementing secure computation protocols such as SPDZ is a non-trivial task, which is only made worse when we start to introduce various optimisations. 
 
-Basic objectives might for instance include how to coordinate the simultanuous execution of several players and making sure data is sent efficiently across the network asynchronously and in batches, useful objectives such as supporting different hardware platforms including for instance both CPUs and GPUs, and conveniences such as tools for inspective, debugging, and profiling.
+For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
 
-In particular, buffering and streaming of data is relevant in secure computations.
+It should furthermore also be easy to experiment with various optimisations, such as transforming the computation graph for improved performance, reusing intermediate results and masked values, and supplying fresh triples during the execution instead of only generating a large batch in the offline phase. Getting all this right can be overwhelming, which is one reason earlier blog posts here focused on the principles behind secure computation protocols and simply did everything locally. 
 
-Implementing MPC protocols is non-trivial. Besides getting the underlying cryptography right there are also challenges such as:
-- buffering/streaming triples
-- making sure any value is only being masked once
-- efficient storage on available hardware
-- debugging and verification
-- profiling and performance evaluation (incl bottlenecks)
-- graph optimisations
-
-Getting all this right can be overwhelming, which is one reason that earlier blog posts focused on the principles behind MPC and simply did everything locally instead.
-
-Luckily though, modern distributed computation frameworks have existed for a while and are receiving a lot of attention due to their use in modern machine learning: Tensorflow.
-
-The main obstacle here though is that MPC protocols such as SPDZ, as we saw, perform addition, multiplication, and truncation on integer values that do not immediately fit into native words sizes such as 32 bit integers that are currently the largest type supported in Tensorflow and on GPUs if we want to compute dot products. It is possible to overcome this technicality but we will go into that in another blog post.
-
-Tensorflow, being a framework for optimised distributed computations and focused on machine learning, is in retrospect an obvious candidate for quickly experimenting with MPC protocols for private machine learning.
+Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of attention these days not least due to their use in advanced machine learning on large datasets, and as we shall see there is a large fundamental overlap between these two applications. In retrospect, this makes for an obvious candidate for quickly experimenting with protocols for private machine learning.
 
 
-## The SPDZ Protocol
+## Prerequisites
 
-Looking back at the [SPDZ](/2017/09/03/the-spdz-protocol-part1/) [protocol](/2017/09/10/the-spdz-protocol-part2/) and some of the [applications](/2017/09/19/private-image-analysis-with-mpc/) covered so far, we see that the typical secure operations needed were tensor addition, subtraction, multiplication, dot products, and truncation. We also saw how these can easily be implemented using modular arithmetic, yet required working with numbers larger than what normally fits into a single machine word. Concretely, we often ended up working on ~120 bit integers using Python's built-in arbitrary precision objects.
+In this post we are going to assume that the main principles behind both TensorFlow and the SPDZ protocol are already understood -- if not then there are [plenty](https://www.tensorflow.org/tutorials/) [of](https://learningtensorflow.com/) [good](https://github.com/ageron/handson-ml) [resources](https://developers.google.com/machine-learning/crash-course/) for the former (including [whitepapers](https://www.tensorflow.org/about/bib)) and e.g. [previous](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) for the latter. One important note though is that TensorFlow works by first constructing a static [computation graph](https://www.tensorflow.org/programmers_guide/graphs) then is then later executed in a session. This means that all our secure operations below are concerned with building such a graph, as opposed to doing any actual execution as in earlier posts.
 
-Unfortunately such objects are not currently supported in most frameworks, including TensorFlow, which today for instance only supports dot products between tensors of 32 bit integers (a constraint that may have something to do with current GPUs, although see for instance **TODO**). Nonetheless, since we only need the operations mentioned above there are efficient ways around this as discussed [elsewhere](TODO).
+We are also going to focus on applications where tensors and linear algebra play integrate roles, as for instance in various [regression](/2018/03/12/private-logistic-regression/) tasks and [deep learning](/2017/09/19/private-image-analysis-with-mpc/). In particular, in these applications the secure operations needed were tensor addition, subtraction, multiplication, dot products, truncation, and sampling.
 
-In summary, below we will simply assume base operations `base_add`, `base_sub`, `base_mul`, `base_dot`, `base_mod`, and `sample` that allow us to simulate arithmetic on tensors of ~120 bit values using (a list of) tensors of 32 bit integers.
+As we shall see this fits very nicely with what's already provided by TensorFlow, with one main exception: to get high precision when working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting we end up encoding into and operating on integers that are larger than what fits in a typically word size, while TensorFlow on the other hand today only supports operations on 32 and 64 bit integers (a constraint that may have something to do with current support on GPUs).
 
-
-## TensorFlow
-
-![](/assets/tensorspdz/structure.png)
+Luckily, since we only need the operations mentioned above, there are efficient ways around this as discussed [elsewhere](/2018/01/29/the-chinese-remainder-theorem/) which allow us to simulate arithmetic on tensors of ~120 bit integers using (a list of) tensors of 32 bit integers. Here, we will simply assume such base operations `base_add`, `base_sub`, `base_mul`, `base_dot`, `base_mod`, and `sample`.
 
 
-# Basic Implementation
+# Basics
 
-Since a secure operation is often expressed in terms of several TensorFlow operations, as a convinient way of defining the computation graph we will use a few abstract operations such as `add` and `dot` that allow us manage this complexity and focus on the secure computation at hand. Since each private value during the computation is represented by two shares, each variable given as input to these abstract operations are also represented by two nodes in the graph. We call each such pair of nodes a private tensor, and introduce a simple class to contain this abstraction; this will also come in handy later when we look at a few optimisations.
+Since a secure operation is often expressed in terms of several TensorFlow operations, as a convinient way of defining the computation graph we will use a few abstract operations such as `add` and `dot` that allow us manage this complexity and focus on the secure computation at hand. Since each private tensor is represented by two shares, each input to these abstract operations are also represented by two (lists of) nodes in the graph. We call each such pair of nodes a private tensor, and introduce a simple class to contain this abstraction; this will also come in handy later when we look at a few optimisations.
 
 ```python
 class PrivateTensor:
@@ -99,13 +82,19 @@ def add(x, y):
     return z
 ```
 
-Notice how easy it is to use [`tf.device()`](https://www.tensorflow.org/api_docs/python/tf/device) to express which server is doing what! This command ties the computation and its resulting value to the specified host, and instructs TensorFlow to automatically insert appropiate networking operations to make sure that the input values are available when needed! For instance, in the above, if `x0` was previous on, say, the input provider then TensorFlow will insert send and receive instructions that copies it to `SERVER_0` as part of computing `add`. All of this is abstracted away and the framework could potentially figure out the best strategy for optimising exactly when to perform sends and receives, including batching to better utilise the network and keeping the compute units busy.
+Notice how easy it is to use [`tf.device()`](https://www.tensorflow.org/api_docs/python/tf/device) to express which server is doing what! This command ties the computation and its resulting value to the specified host, and instructs TensorFlow to automatically insert appropiate networking operations to make sure that the input values are available when needed!
 
-The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope) command on the other hand is simply a logical abstraction that doesn't influence computations but can be used to make the graphs easier to navigate in TensorBoard by grouping subgraphs as single components.
+As an example, in the above, if `x0` was previous on, say, the input provider then TensorFlow will insert send and receive instructions that copies it to `SERVER_0` as part of computing `add`. All of this is abstracted away and the framework will attempt to [figure out](https://www.tensorflow.org/about/bib) the best strategy for optimising exactly when to perform sends and receives, including batching to better utilise the network and keeping the compute units busy.
+
+The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope) command on the other hand is simply a logical abstraction that doesn't influence computations but can be used to make the graphs much easier to visualise in [TensorBoard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) by grouping subgraphs as single components. For instance, inspecting the graph we get from `add(dot(x, w), b)` shows the following.
+
+![](/assets/tensorspdz/structure.png)
+
+Furthermore, we can also inspect where the operations are actually computed, in this case verifying that addition was indeed done locally by the two servers.
 
 ![](/assets/tensorspdz/add.png)
 
-With addition in place we turn to dot products. This is significantly more complexity, not least since we now need to involve the crypto producer, but also since the two servers have to communicate with each other as part of the computation.
+We next turn to dot products. This is significantly more complexity, not least since we now need to involve the crypto producer, but also since the two servers have to communicate with each other as part of the computation.
 
 ```python
 def dot(x, y):
@@ -159,7 +148,7 @@ def dot(x, y):
     return z
 ```
 
-However, with `tf.device()` we see that this is still relatively straight-forward, at least if the [protocol for secure dot products](/2017/09/03/the-spdz-protocol-part1/#multiplication) is already understood. We first construct a graph that makes the crypto producer generate a new dot triple. The output nodes of this graph is `a0, a1, b0, b1, ab0, ab1`
+However, with `tf.device()` we see that this is still relatively straight-forward, at least if the [protocol for secure dot products](/2017/09/19/private-image-analysis-with-mpc/#dense-layers) is already understood. We first construct a graph that makes the crypto producer generate a new dot triple. The output nodes of this graph is `a0, a1, b0, b1, ab0, ab1`
 
 With `base_sub` we then build graphs for the two servers that mask `x` and `y` using `a` and `b` respectively. TensorFlow will again take care of inserting networking code that sends the value of e.g. `a0` to `SERVER_0` during execution.
 
@@ -211,7 +200,7 @@ With the basics in place we can look at a few optimisations.
 
 ## Tracking intermediate results
 
-Our first improvement allows us to reuse computations. For instance, if our goal is to compute `dot(x, y) + dot(x, y)` then we want to avoid computing `dot(x, y)` twice. Concretely, we want to keep track of intermediate nodes in the graph and reuse them when possible.
+Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to reuse the result of the first computation and avoid computing it a second time. Concretely, we want to keep track of intermediate nodes in the graph and reuse them when possible.
 
 To do this we will maintain a glocal dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
 
@@ -239,7 +228,7 @@ While already significant, this change also opens up for our next improvement.
 
 ## Reusing masked tensors
 
-In [previous](/2017/09/10/the-spdz-protocol-part2/) [posts](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) we already mentioned that we'd ideally want to only mask every private tensor once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
+We have [already](/2017/09/10/the-spdz-protocol-part2/) [mentioned](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) that we'd ideally want to only mask every private tensor once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
 
 To implement this we first note that the dataflow nature of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` changes (unless of course the value of `w` somehow depends on the value of `x` elsewhere). However, `w` will currently be masked each time we compute `dot`.
 

@@ -210,7 +210,7 @@ def decode_integer(element):
     return integer
 ```
 
-## Fixedpoint rationals
+## Fixedpoint numbers
 
 The last step is to provide a mapping between the rational numbers used by the CNNs and the field elements used by the SPDZ protocol. As typically done, we here take a fixed-point approach where rational numbers are scaled by a fixed amount and then rounded off to an integer less than the field size `Q`.
 

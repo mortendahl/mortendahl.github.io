@@ -20,9 +20,6 @@ The code for this section is available in [this associated notebook](https://git
 
 
 
-https://www.youtube.com/watch?v=N80DV3Brds0
-https://www.youtube.com/watch?v=Ce45hp24b2E
-
 
 # Setting
 
@@ -239,10 +236,19 @@ def truncate(x, amount=6):
 
 With this in place we are now (in theory) set to perform any desired computation on encrypted data.
 
+# Next Steps
 
+
+
+<!--
 # Dump
 
 TODO
+
+
+
+https://www.youtube.com/watch?v=N80DV3Brds0
+https://www.youtube.com/watch?v=Ce45hp24b2E
 
 https://www.ncbi.nlm.nih.gov/pmc/articles/PMC1480149/
 

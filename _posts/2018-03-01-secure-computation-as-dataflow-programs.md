@@ -198,9 +198,9 @@ Here the value of `ROLE` is the only thing that differs between the programs the
 With the basics in place we can look at a few optimisations.
 
 
-## Tracking intermediate results
+## Tracking nodes
 
-Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to reuse the result of the first computation and avoid computing it a second time. Concretely, we want to keep track of intermediate nodes in the graph and reuse them when possible.
+Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to avoid computing it a second time and instead reuse the first. Concretely, we want to keep track of intermediate nodes in the graph and reuse them whenever possible.
 
 To do this we will maintain a glocal dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
 
@@ -223,16 +223,16 @@ def dot(x, y):
     return z
 ``` 
 
-While already significant, this change also opens up for our next improvement.
+While already significant for some applications, this change also opens up for our next improvement.
 
 
 ## Reusing masked tensors
 
 We have [already](/2017/09/10/the-spdz-protocol-part2/) [mentioned](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) that we'd ideally want to only mask every private tensor once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
 
-To implement this we first note that the dataflow nature of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` changes (unless of course the value of `w` somehow depends on the value of `x` elsewhere). However, `w` will currently be masked each time we compute `dot`.
+To implement this we first note that the [dataflow nature](https://arxiv.org/abs/1603.04467) of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` (unless of course `w` somehow depends on `x` elsewhere). However, with the current setting we will still mask `w` each time we compute `dot`.
 
-To implement this we make masking an explicit operation, which allows us to use the same masked version across all uses.
+To avoid this we simply make masking an explicit `mask` operation, which also allows us to use the same masked version across different operations, e.g. both `dot` and `mul`.
 
 ```python
 def mask(x):

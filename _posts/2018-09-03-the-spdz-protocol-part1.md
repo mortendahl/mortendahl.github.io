@@ -196,7 +196,7 @@ Finally, since `x` and `y` are [perfectly hidden](https://en.wikipedia.org/wiki/
 
 # Encoding Values
 
-## Integers
+## Signed integers
 
 ```python
 def encode_integer(integer):
@@ -208,7 +208,7 @@ def decode_integer(element):
     return integer
 ```
 
-## Fixedpoints
+## Fixedpoint rationals
 
 The last step is to provide a mapping between the rational numbers used by the CNNs and the field elements used by the SPDZ protocol. As typically done, we here take a fixed-point approach where rational numbers are scaled by a fixed amount and then rounded off to an integer less than the field size `Q`.
 
@@ -238,16 +238,7 @@ def truncate(x, amount=6):
 With this in place we are now (in theory) set to perform any desired computation on encrypted data.
 
 
-# Private Linear Regression
-
-<em>(coming soon)</em>
-
-<!--
-Regression only: fit on plaintext, predict on encrypted data
-
-## Public weights
-
-## Private weights
+# Dump
 
 TODO
 

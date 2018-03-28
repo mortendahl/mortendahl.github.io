@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Talks"
-description: "Slides and more"
+description: "Slides and more from recent talks"
 header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
 github:      "mortendahl"
@@ -15,7 +15,10 @@ email:       "mortendahlcs@gmail.com"
 <strong>What Privacy Has Meant For Snips</strong> ([slides](https://github.com/mortendahl/talks/raw/master/PSA17-slides.pdf))
 <br/><em>Privacy in Statistical Analysis (PSA), May 2017</em>
 
-<strong>Private Data Aggregation on a Budget</strong> ([slides](https://github.com/mortendahl/talks/raw/master/HEAT17-slides.pdf))
+<strong>Private Data Aggregation on a Budget</strong>
+([slides](https://github.com/mortendahl/talks/raw/master/HEAT17-slides.pdf),
+[paper](https://eprint.iacr.org/2017/643),
+[code](https://github.com/mortendahl/sda))
 <br/><em>Homomorphic Encryption
 Applications and Technology (HEAT), November 2017</em>
 <br/><em>Theory and Practice of Multi-Party Computation (TPMPC), April 2017</em>

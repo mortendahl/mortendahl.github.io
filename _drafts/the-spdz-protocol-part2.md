@@ -4,18 +4,17 @@ title:      "The SPDZ Protocol, Part 2"
 subtitle:   "More Fun with Triples"
 date:       2017-09-10 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-04.jpg"
+header-img: "assets/spdz/aarhus.jpg"
 ---
 
-<em><strong>TL;DR:</strong> we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 
-
-https://www1.cs.fau.de/filepool/publications/octavian_securescm/smcint-scn10.pdf
-
-https://www.iacr.org/archive/pkc2007/44500343/44500343.pdf
+<em><strong>TL;DR:</strong> ... </em> 
 
 
-## Principles
+# Triples
 
+## Underlying principle
+
+<em>(we turn our operation into a linear operation between private shares and public information; illustrate with mul; SageMath?)</em>
 
 
 ## Squaring
@@ -23,8 +22,8 @@ https://www.iacr.org/archive/pkc2007/44500343/44500343.pdf
 ```python
 def generate_square_triple():
     a = random.randrange(Q)
-    b = pow(a, 2, Q)
-    return PrivateValue(a), PrivateValue(b)
+    aa = pow(a, 2, Q)
+    return PrivateValue(a), PrivateValue(aa)
 ```
 
 ```python
@@ -136,4 +135,10 @@ Another, perhaps more important case, is if we are only interested in during pre
 
 Additionally, it might also be possible to have triples for more advanced functions such as evaluating both a dense layer and its activation function with a single round of communication. Main question here again seems to be efficiency, this time in terms of triple storage and amount of computation needed for the recombination step.
 
-# Application
+<!--
+
+
+https://www1.cs.fau.de/filepool/publications/octavian_securescm/smcint-scn10.pdf
+
+https://www.iacr.org/archive/pkc2007/44500343/44500343.pdf
+-->

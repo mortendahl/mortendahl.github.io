@@ -11,11 +11,13 @@ header-img: "assets/tensorspdz/tensorflow.png"
 
 <em><strong>TL;DR:</strong> using TensorFlow as a distributed computation framework for dataflow programs we give a full implementation of the SPDZ protocol with networking.</em> 
 
-Unlike earlier [blog](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) where we focused on the concepts behind the SPDZ protocol as well as its [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a fully working (passively secure) implementation with players running on different machines and communicating via typical network stacks. And as part of this we also seek to investigate the benefits of using a [modern distributed computation](https://en.wikipedia.org/wiki/Dataflow_programming) platform when experimenting with secure computations, as opposed to building everything from scratch.
+Unlike [earlier](/2017/09/03/the-spdz-protocol-part1/) where we focused on the concepts behind secure computation as well as [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a fully working (passively secure) implementation with players running on different machines and communicating via typical network stacks. And as part of this we investigate the benefits of using a [modern distributed computation](https://en.wikipedia.org/wiki/Dataflow_programming) platform when experimenting with secure computations, as opposed to building everything from scratch.
 
-Additionally, this can also be seen as a step in the direction of getting private machine learning into the hands of practitioners, where integration with existing and popular tools such as [TensorFlow](https://www.tensorflow.org/) plays an important part. Concretely, while we here only do a relatively shallow integration that doesn't make use of powerful machine learning tools built into TensorFlow such as [automatic differentiation](https://www.tensorflow.org/api_docs/python/tf/gradients), we do show how some of the basic technical obstacles can be overcome, potentially paving the way for deeper integrations.
+Additionally, this can also be seen as a step in the direction of getting private machine learning into the hands of practitioners, where integration with existing and popular tools such as [TensorFlow](https://www.tensorflow.org/) plays an important part. Concretely, while we here only do a relatively shallow integration that doesn't make use of some of the powerful tools that comes with TensorFlow (e.g. [automatic differentiation](https://www.tensorflow.org/api_docs/python/tf/gradients)), we do show how basic technical obstacles can be overcome, potentially paving the way for deeper integrations.
 
-To keep it simple, our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), implying that given an input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for pretrained weights `w` and bias `b`. In a [follow-up post](/2018/03/12/private-logistic-regression/) we additionally consider private training of `w` and `b`. As always, [all code](#running-the-code) is available to play with, in this case either locally or on GCP.
+Jumping ahead, it is clear in retrospect that TensorFlow is an obvious candidate framework for quickly experimenting with secure computation protocols, not least in the context of private machine learning.
+
+As always [all code](#running-the-code) is available to play with, in this case either locally or on [GCP](https://cloud.google.com/compute/). To keep it simple our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), meaning that given a private (i.e. encrypted) input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for private but pre-trained weights `w` and bias `b`. In a [follow-up post](/2018/03/12/private-logistic-regression/) we consider private training of `w` and `b`.
 
 <em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Kory Mathewson](https://twitter.com/korymath), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
@@ -24,29 +26,33 @@ To keep it simple, our running example throughout is private prediction using [l
 
 # Motivation
 
-Due to their distributed nature, implementing secure computation protocols such as SPDZ is a non-trivial task, which is only made worse when we start to introduce various optimisations. [But](https://github.com/rdragos/awesome-mpc) [it](https://github.com/bristolcrypto/SPDZ-2) [has](https://github.com/aicis/fresco) [been](http://oblivc.org/) [done](https://github.com/encryptogroup/ABY).
-
-For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
+As hinted above, implementing secure computation protocols such as SPDZ is a non-trivial task due to their distributed nature, which is only made worse when we start to introduce various optimisations ([but](https://github.com/rdragos/awesome-mpc) [it](https://github.com/bristolcrypto/SPDZ-2) [has](https://github.com/aicis/fresco) [been](http://oblivc.org/) [done](https://github.com/encryptogroup/ABY)). For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
 
 It should furthermore also be easy to experiment with various optimisations, such as transforming the computation for improved performance, reusing intermediate results and masked values, and supplying fresh "raw material" in the form of triples during the execution instead of only generating a large batch ahead of time in an offline phase. Getting all this right can be overwhelming, which is one reason earlier blog posts here focused on the principles behind secure computation protocols and simply did everything locally. 
 
-Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of attention these days not least due to their use in advanced machine learning on large datasets, and as we shall see there is a large fundamental overlap between these two applications. In retrospect, this makes for an obvious candidate for quickly experimenting with protocols for private machine learning.
+Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of research and engineering attention these days due to their use in advanced machine learning on large data sets. And since our focus is on private machine learning there is a natural large fundamental overlap. In particular, the secure operations we are interested in are tensor addition, subtraction, multiplication, dot products, truncation, and sampling.
 
 
 ## Prerequisites
 
-In this post we are going to assume that the main principles behind both TensorFlow and the SPDZ protocol are already understood -- if not then there are [plenty](https://www.tensorflow.org/tutorials/) [of](https://learningtensorflow.com/) [good](https://github.com/ageron/handson-ml) [resources](https://developers.google.com/machine-learning/crash-course/) for the former (including [whitepapers](https://www.tensorflow.org/about/bib)) and e.g. [previous](/2017/09/03/the-spdz-protocol-part1/) [posts](/2017/09/10/the-spdz-protocol-part2/) for the latter. One important note though is that TensorFlow works by first constructing a static [computation graph](https://www.tensorflow.org/programmers_guide/graphs) that is subsequently executed in a session. This means that all our secure operations below are concerned with building such a graph, as opposed to actual execution as in earlier posts: we are in some sense making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs.
+We make the assumption that the main principles behind both TensorFlow and the SPDZ protocol are already understood -- if not then there are [plenty](https://www.tensorflow.org/tutorials/) [of](https://learningtensorflow.com/) [good](https://github.com/ageron/handson-ml) [resources](https://developers.google.com/machine-learning/crash-course/) for the former (including [whitepapers](https://www.tensorflow.org/about/bib)) and e.g. [previous](/2017/09/03/the-spdz-protocol-part1/) [blog](/2017/09/10/the-spdz-protocol-part2/) [posts](/2017-09-19-private-image-analysis-with-mpc.md) for the latter. As for the different parties involved, we also here assume a setting with two server, a crypto producer, an input provider, and an output receiver.
 
-We are also going to focus on applications where tensors and linear algebra play integrate roles, as for instance in various [regression](/2018/03/12/private-logistic-regression/) tasks and [deep learning](/2017/09/19/private-image-analysis-with-mpc/). In particular, in these applications the secure operations needed were tensor addition, subtraction, multiplication, dot products, truncation, and sampling.
-
-As we shall see this fits very nicely with what's already provided by TensorFlow, with one main exception: to get high precision when working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting we end up encoding into and operating on integers that are larger than what fits in a typically word size, while TensorFlow on the other hand today only supports operations on 32 and 64 bit integers (a constraint that may have something to do with current support on GPUs).
-
-Luckily though, since we only need the operations mentioned above, there are efficient ways around this as discussed [elsewhere](/2018/01/29/the-chinese-remainder-theorem/) which allow us to simulate arithmetic on tensors of ~120 bit integers using (a list of) tensors of 32 bit integers. Here, we will simply assume such base operations `base_add`, `base_sub`, `base_mul`, `base_dot`, `base_mod`, and `sample`.
+One important note though is that TensorFlow works by first constructing a static [computation graph](https://www.tensorflow.org/programmers_guide/graphs) that is subsequently executed in a session. This means that our efforts in this post are concerned with building such a graph, as opposed to actual execution as earlier: we are to some extend making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs. So besides working at a higher level of abstraction we hence also benefit from the large amount of efforts that have already gone into optimising graph execution.
 
 
 # Basics
 
-Since a secure operation is often expressed in terms of several TensorFlow operations, as a convinient way of defining the computation graph we will use a few abstract operations such as `add`, `mul`, and `dot` that allow us manage this complexity and focus on the secure computation at hand. Since each private tensor is represented by two shares, each input to these abstract operations are also represented by two (lists of) nodes in the graph. We call each such pair of nodes a private tensor, and introduce a simple class to contain this abstraction; this will also come in handy later when we look at a few optimisations.
+As we shall, our needs fit nicely with the operations already provided by TensorFlow, with one main exception: to match typical precision of floating point numbers when instead working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting, we end up encoding into and operating on integers that are larger than what typically fits in a word size, yet TensorFlow today only supports operations on 32 and 64 bit integers (a constraint that may have something to do with current support on GPUs).
+
+Luckily though, for the operations we need there are efficient ways around this that allow us to simulate arithmetic on tensors of ~120 bit integers using a list of tensors of e.g. 32 bit integers. And this decomposition moreover has the very nice property that we can often operate on each tensor in the list independently. So in addition to enabling the use of TensorFlow, this also allows most operations to be performed in parallel and can actually [increase efficiency](https://en.wikipedia.org/wiki/Residue_number_system) compared to operating on single larger numbers although it may initially sound more expensive. 
+
+We discuss the [details](/2018/01/29/the-chinese-remainder-theorem/) of this elsewhere and for the rest of this post simply assume operations `crt_add`, `crt_sub`, `crt_mul`, `crt_dot`, `crt_mod`, and `sample` that performed the expected operations on lists of tensors. Note that `crt_mod`, `crt_mul`, and `crt_sub` together allow us to define a right shift operation for [fixedpoint truncation](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers).
+
+
+## Private tensors
+
+**TODO**
+Since a secure operation is often expressed in terms of several TensorFlow operations as seen below, as a convenient way of managing complexity while defining the computation graph we use abstract operations such as `add`, `mul`, and `dot`. Since each private tensor is represented by two shares in the form of two (lists of) tensors, inputs to these abstract operations are also represented by two (lists of) nodes in the graph. We call each such pair of nodes a private tensor, and introduce a simple class to contain this abstraction.
 
 ```python
 class PrivateTensor:
@@ -57,12 +63,14 @@ class PrivateTensor:
     
     @property
     def shape(self):
-        # thanks to TensorFlow, tensor shapes are known at graph creation time,
-        # meaning we don't have to do anything ourselves to keep track of this
         return self.share0[0].shape
 ```
 
-With this in place we can begin to define the graph construction methods for secure operations. The first one is `add`, where the resulting graph simply instructs the servers to locally combine the two shares they each have using a subgraph created by `base_add`.
+Note that thanks to TensorFlow, tensor shapes can be known at graph creation time, meaning we don't have to do anything ourselves to keep track of this.
+
+## Simple operations
+
+With this in place we can begin to define the graph construction methods for secure operations. The first one is `add`, where the resulting graph simply instructs the two servers to locally combine the shares they each have using a subgraph created by `crt_add`.
 
 ```python
 def add(x, y):
@@ -75,10 +83,10 @@ def add(x, y):
     with tf.name_scope("add"):
     
         with tf.device(SERVER_0):
-            z0 = base_add(x0, y0)
+            z0 = crt_add(x0, y0)
 
         with tf.device(SERVER_1):
-            z1 = base_add(x1, y1)
+            z1 = crt_add(x1, y1)
 
     z = PrivateTensor(z0, z1)
     return z
@@ -95,6 +103,9 @@ The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope
 Furthermore, we can also inspect where the operations are actually computed, in this case verifying that addition was indeed done locally by the two servers.
 
 ![](/assets/tensorspdz/add.png)
+
+
+## Dot products
 
 We next turn to dot products. This is significantly more complexity, not least since we now need to involve the crypto producer, but also since the two servers have to communicate with each other as part of the computation.
 
@@ -133,16 +144,16 @@ def dot(x, y):
         with tf.device(SERVER_0):
             alpha = reconstruct(alpha0, alpha1)
             beta  = reconstruct(beta0, beta1)
-            z0 = base_add(ab0,
-                 base_add(base_dot(a0, beta),
-                 base_add(base_dot(alpha, b0),
+            z0 = crt_add(ab0,
+                 crt_add(base_dot(a0, beta),
+                 crt_add(base_dot(alpha, b0),
                           base_dot(alpha, beta))))
 
         with tf.device(SERVER_1):
             alpha = reconstruct(alpha0, alpha1)
             beta  = reconstruct(beta0, beta1)
-            z1 = base_add(ab1,
-                 base_add(base_dot(a1, beta),
+            z1 = crt_add(ab1,
+                 crt_add(base_dot(a1, beta),
                           base_dot(alpha, b1)))
         
     z = PrivateTensor(z0, z1)
@@ -301,16 +312,16 @@ def dot(x, y):
             with tf.device(SERVER_0):
                 alpha = alpha_on_0
                 beta = beta_on_0
-                z0 = base_add(ab0,
-                     base_add(base_dot(a0, beta),
-                     base_add(base_dot(alpha, b0),
+                z0 = crt_add(ab0,
+                     crt_add(base_dot(a0, beta),
+                     crt_add(base_dot(alpha, b0),
                               base_dot(alpha, beta))))
 
             with tf.device(SERVER_1):
                 alpha = alpha_on_1
                 beta = beta_on_1
-                z1 = base_add(ab1,
-                     base_add(base_dot(a1, beta),
+                z1 = crt_add(ab1,
+                     crt_add(base_dot(a1, beta),
                               base_dot(alpha, b1)))
 
         z = PrivateTensor(z0, z1)

@@ -17,7 +17,7 @@ Additionally, this can also be seen as a step in the direction of getting privat
 
 Jumping ahead, it is clear in retrospect that TensorFlow is an obvious candidate framework for quickly experimenting with secure computation protocols, not least in the context of private machine learning.
 
-As always [all code](#running-the-code) is available to play with, in this case either locally or on [GCP](https://cloud.google.com/compute/). To keep it simple our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), meaning that given a private (i.e. encrypted) input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for private but pre-trained weights `w` and bias `b`. In a [follow-up post](/2018/03/12/private-logistic-regression/) we consider private training of `w` and `b`.
+As always [all code](#running-the-code) is available to play with, in this case either locally or on [GCP](https://cloud.google.com/compute/). To keep it simple our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), meaning that given a private (i.e. encrypted) input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for private but pre-trained weights `w` and bias `b`. In a follow-up we consider private training of `w` and `b`.
 
 <em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Kory Mathewson](https://twitter.com/korymath), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
@@ -211,16 +211,16 @@ server.join()
 Here the value of `ROLE` is the only thing that differs between the programs the five players run and typically given as a command-line argument.
 
 
-# Optimisations
+# Improvements
 
 With the basics in place we can look at a few optimisations.
 
 
 ## Tracking nodes
 
-Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to avoid computing it a second time and instead reuse the first. Concretely, we want to keep track of intermediate nodes in the graph and reuse them whenever possible.
+Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to avoid computing it a second time and instead reuse the first. Concretely, we want to keep track of nodes in the graph and reuse them whenever possible.
 
-To do this we will maintain a glocal dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
+To do this we simply maintain a glocal dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
 
 ```python
 def dot(x, y):
@@ -248,7 +248,7 @@ While already significant for some applications, this change also opens up for o
 
 We have [already](/2017/09/10/the-spdz-protocol-part2/) [mentioned](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) that we'd ideally want to only mask every private tensor once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
 
-To implement this we first note that the [dataflow nature](https://arxiv.org/abs/1603.04467) of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` (unless of course `w` somehow depends on `x` elsewhere). However, with the current setting we will still mask `w` each time we compute `dot`.
+To implement this we first note that the [dataflow nature](https://arxiv.org/abs/1603.04467) of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` (unless of course `w` somehow depends on `x` elsewhere). However, with the current setup we will still mask `w` every time we compute `dot`.
 
 To avoid this we simply make masking an explicit `mask` operation, which also allows us to use the same masked version across different operations, e.g. both `dot` and `mul`.
 
@@ -271,10 +271,10 @@ def mask(x):
                 a0, a1 = share(a)
 
             with tf.device(SERVER_0):
-                alpha0 = base_sub(x0, a0)
+                alpha0 = crt_sub(x0, a0)
 
             with tf.device(SERVER_1):
-                alpha1 = base_sub(x1, a1)
+                alpha1 = crt_sub(x1, a1)
 
             # exchange of alphas
 
@@ -292,7 +292,7 @@ def mask(x):
     return masked
 ```
 
-With this `dot` may be rewritten as below, which is now only responsible for the recombination step.
+With this we may rewrite `dot` as below, which is now only responsible for the recombination step.
 
 ```python
 def dot(x, y):
@@ -311,23 +311,23 @@ def dot(x, y):
         with tf.name_scope("dot"):
 
             with tf.device(CRYPTO_PRODUCER):
-                ab = base_dot(a, b)
+                ab = crt_dot(a, b)
                 ab0, ab1 = share(ab)
 
             with tf.device(SERVER_0):
                 alpha = alpha_on_0
                 beta = beta_on_0
                 z0 = crt_add(ab0,
-                     crt_add(base_dot(a0, beta),
-                     crt_add(base_dot(alpha, b0),
-                              base_dot(alpha, beta))))
+                     crt_add(crt_dot(a0, beta),
+                     crt_add(crt_dot(alpha, b0),
+                             crt_dot(alpha, beta))))
 
             with tf.device(SERVER_1):
                 alpha = alpha_on_1
                 beta = beta_on_1
                 z1 = crt_add(ab1,
-                     crt_add(base_dot(a1, beta),
-                              base_dot(alpha, b1)))
+                     crt_add(crt_dot(a1, beta),
+                             crt_dot(alpha, b1)))
 
         z = PrivateTensor(z0, z1)
         z = truncate(z)
@@ -336,16 +336,22 @@ def dot(x, y):
     return z
 ```
 
-As a verification, TensorBoard shows us that the graph structure is as expected (with some blocks still showing up white).
+As a verification we can see that TensorBoard shows us the expected graph structure, in this case inside the graph for [`sigmoid`](/2017/04/17/private-deep-learning-with-mpc/#approximating-sigmoid).
 
 ![](/assets/tensorspdz/masking-reuse.png)
 
-Note here that the leftmost masking block, correspoding to `mask(w)`, is feeding into both dot blocks as intended.
+Here the value of `square(x)` is first computed, then masked, and finally reused four times.
 
 
-## Precomputing triples
+## Buffering triples
 
-So far the crypto producer is creating triples online in synchronisation with the computation of the two servers. However, a main point of triples is to enable parts of the computation to be done in an offline phase.
+Recall that a main purpose of [triples](/2017/09/03/the-spdz-protocol-part1/#multiplication) is to move the computation of the crypto producer to an *offline phase*, and distribute its results to the two servers ahead of time in order to speed up their computation later during the *online phase*. 
+
+So far we haven't done anything to specify that this should happen though, and from reading the above code it's not unreasonable to assume that the crypto producer will instead compute in synchronisation with the two servers, injecting idle waiting periods throughout their computation. However, from experiments it seems that TensorFlow is actually smart enough here to optimise the graph to do the right thing and batch triple distribution, presumably to save on networking.
+
+![](/assets/tensorspdz/tracing.png)
+
+However, we still have an initial waiting period that we could get rid of by introducing a separate compute-and-distribute execution.
 
 <!--In principle this is entirely straight forward using e.g. `tf.FIFOQueue`, yet there is one obstacle we have to deal with.-->
 
@@ -354,24 +360,63 @@ So far the crypto producer is creating triples online in synchronisation with th
 
 # Profiling
 
-As a final reason to be excited about building dataflow programs in TensorFlow, we also look at the built-in profiling services. In particular, in TensorBoard we can easily see how expensive each operation was both in terms of compute and memory.
+As a final reason to be excited about building dataflow programs in TensorFlow we also look at the built-in [runtime statistics](https://www.tensorflow.org/programmers_guide/graph_viz#runtime_statistics). We have already seen the built-in detailed tracing support above, but in TensorBoard we can also easily see how expensive each operation was both in terms of compute and memory.
 
 ![](/assets/tensorspdz/computetime.png)
 
-The heatmap in the above shows that masking and dot products are the most expensive operations we ran, and by clicking on e.g. the rightmost dot product we see that it took roughly 50ms to execute (using the [localhost configuration](TODO)). Moreover, below we navigate further into the dot block and see that sharing was probably the most expensive sub-operations, in this particular run taking 36ms.
+The heatmap in the above shows that `sigmoid` is the most expensive operation we ran, and by clicking on e.g. the dot product we see that it took roughly 29ms to execute (using the [localhost configuration](#running-the-code)). Moreover, below we navigate further into the dot block and see that sharing was probably the most expensive sub-operations, in this particular run taking 8ms.
 
 ![](/assets/tensorspdz/computetime-detailed.png)
 
-But we can go even further and get detailed tracing information. Below we see all operations performed by our five players, with the two servers first, followed by the crypto producer, the input provider, and the output receiver. Clicking on one of the operations additionally allows us to pinpoint exactly where in the execution we were as shown in the bottom panel.
-
-![](/assets/tensorspdz/tracing.png)
- 
-This also shows that TensorFlow automatically figured out to use six concurrent threads to run the operations of the first three players, and that the two servers began processing before the crypto producer had completed; in other words, it looks like it figured out how to perform streaming of the computation.
+This way we can potentially identify bottlenecks and compare performance of different approaches. And if needed we can of course switch to tracing for even more details.
 
 
 # Running the Code
 
-<em>(Coming soon; see the [GitHub repo](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/simple-dense) for now)</em>
+All code is available in the [GitHub repository](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/) including instructions for setting up either a local or a GCP configuration of hosts. It also comes with a few examples, including private logistic regression as used here.
+
+```python
+from config import session
+from tensorspdz import *
+
+# publicly train `weights` and `bias`
+weights = ...
+bias = ...
+
+# define shape of unknown input
+shape_x = ...
+
+# construct graph for private prediction
+input_x, x = define_input(shape_x, name='x')
+
+init_w, w = define_variable(weights, name='w')
+init_b, b = define_variable(bias, name='b')
+
+y = sigmoid(add(dot(x, w), b))
+
+# start session between all players
+with session() as sess:
+
+    # share and distribute `weights` and `bias` to the two servers
+    sess.run([init_w, init_b])
+
+    # prepare to use `X` as private input for prediction
+    feed_dict = encode_input([
+        (input_x, X)
+    ])
+
+    # run secure computation and reveal output
+    y_pred = decode_output(sess.run(reveal(y), feed_dict=feed_dict))
+    
+    print y_pred
+```
+
+The above shows the essence of specifying and running a secure computation.
+
+
+# Next Steps
+
+Having seen the basics for doing secure computation with TensorFlow we next turn to optimisations and bigger experiments around private training.
 
 <!--
 # Dump

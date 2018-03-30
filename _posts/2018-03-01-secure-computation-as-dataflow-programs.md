@@ -26,7 +26,7 @@ As always [all code](#running-the-code) is available to play with, in this case 
 
 # Motivation
 
-As hinted above, implementing secure computation protocols such as SPDZ is a non-trivial task due to their distributed nature, which is only made worse when we start to introduce various optimisations ([but](https://github.com/rdragos/awesome-mpc) [it](https://github.com/bristolcrypto/SPDZ-2) [has](https://github.com/aicis/fresco) [been](http://oblivc.org/) [done](https://github.com/encryptogroup/ABY)). For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
+As hinted above, implementing secure computation protocols such as SPDZ is a non-trivial task due to their distributed nature, which is only made worse when we start to introduce various optimisations ([but](https://github.com/rdragos/awesome-mpc) [it](https://github.com/bristolcrypto/SPDZ-2) [can](https://github.com/aicis/fresco) [be](http://oblivc.org/) [done](https://github.com/encryptogroup/ABY)). For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
 
 It should furthermore also be easy to experiment with various optimisations, such as transforming the computation for improved performance, reusing intermediate results and masked values, and supplying fresh "raw material" in the form of triples during the execution instead of only generating a large batch ahead of time in an offline phase. Getting all this right can be overwhelming, which is one reason earlier blog posts here focused on the principles behind secure computation protocols and simply did everything locally. 
 
@@ -37,22 +37,25 @@ Luckily though, modern distributed computation frameworks such as [TensorFlow](h
 
 We make the assumption that the main principles behind both TensorFlow and the SPDZ protocol are already understood -- if not then there are [plenty](https://www.tensorflow.org/tutorials/) [of](https://learningtensorflow.com/) [good](https://github.com/ageron/handson-ml) [resources](https://developers.google.com/machine-learning/crash-course/) for the former (including [whitepapers](https://www.tensorflow.org/about/bib)) and e.g. [previous](/2017/09/03/the-spdz-protocol-part1/) [blog](/2017/09/10/the-spdz-protocol-part2/) [posts](/2017-09-19-private-image-analysis-with-mpc.md) for the latter. As for the different parties involved, we also here assume a setting with two server, a crypto producer, an input provider, and an output receiver.
 
-One important note though is that TensorFlow works by first constructing a static [computation graph](https://www.tensorflow.org/programmers_guide/graphs) that is subsequently executed in a session. This means that our efforts in this post are concerned with building such a graph, as opposed to actual execution as earlier: we are to some extend making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs. So besides working at a higher level of abstraction we hence also benefit from the large amount of efforts that have already gone into optimising graph execution.
+One important note though is that TensorFlow works by first constructing a static [computation graph](https://www.tensorflow.org/programmers_guide/graphs) that is subsequently executed in a session. For instance, inspecting the graph we get from `sigmoid(dot(w, x) + b)` in [TensorBoard](https://www.tensorflow.org/programmers_guide/graph_viz) shows the following.
+
+![](/assets/tensorspdz/structure.png)
+
+This means that our efforts in this post are concerned with building such a graph, as opposed to actual execution as earlier: we are to some extend making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs. As a result we benefit not only from working at a higher level of abstraction but also from the large amount of research and engineering that have already gone into optimising graph execution.
 
 
 # Basics
 
-As we shall, our needs fit nicely with the operations already provided by TensorFlow, with one main exception: to match typical precision of floating point numbers when instead working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting, we end up encoding into and operating on integers that are larger than what typically fits in a word size, yet TensorFlow today only supports operations on 32 and 64 bit integers (a constraint that may have something to do with current support on GPUs).
+Our needs fit nicely with the operations already provided by TensorFlow as seen below, with one main exception: to match typical precision of floating point numbers when instead working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting, we end up encoding into and operating on integers that are larger than what typically fits in a word size, yet TensorFlow today only supports operations on 32 and 64 bit integers (a constraint that may have something to do with current support on GPUs).
 
-Luckily though, for the operations we need there are efficient ways around this that allow us to simulate arithmetic on tensors of ~120 bit integers using a list of tensors of e.g. 32 bit integers. And this decomposition moreover has the very nice property that we can often operate on each tensor in the list independently. So in addition to enabling the use of TensorFlow, this also allows most operations to be performed in parallel and can actually [increase efficiency](https://en.wikipedia.org/wiki/Residue_number_system) compared to operating on single larger numbers although it may initially sound more expensive. 
+Luckily though, for the operations we need there are efficient ways around this that allow us to simulate arithmetic on tensors of ~120 bit integers using a list of tensors with identical shape but of e.g. 32 bit integers. And this decomposition moreover has the nice property that we can often operate on each tensor in the list independently. So in addition to enabling the use of TensorFlow, this also allows most operations to be performed in parallel and can actually [increase efficiency](https://en.wikipedia.org/wiki/Residue_number_system) compared to operating on single larger numbers although it may initially sound more expensive. 
 
 We discuss the [details](/2018/01/29/the-chinese-remainder-theorem/) of this elsewhere and for the rest of this post simply assume operations `crt_add`, `crt_sub`, `crt_mul`, `crt_dot`, `crt_mod`, and `sample` that performed the expected operations on lists of tensors. Note that `crt_mod`, `crt_mul`, and `crt_sub` together allow us to define a right shift operation for [fixedpoint truncation](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers).
 
 
 ## Private tensors
 
-**TODO**
-Since a secure operation is often expressed in terms of several TensorFlow operations as seen below, as a convenient way of managing complexity while defining the computation graph we use abstract operations such as `add`, `mul`, and `dot`. Since each private tensor is represented by two shares in the form of two (lists of) tensors, inputs to these abstract operations are also represented by two (lists of) nodes in the graph. We call each such pair of nodes a private tensor, and introduce a simple class to contain this abstraction.
+Each private tensor we operate on is represented by a share on each of the two servers. And for the reasons mentioned above, each share is a list of tensors, which is represented by a list of nodes in the graph. To hide this complexity we introduce a simple class as follows.
 
 ```python
 class PrivateTensor:
@@ -66,11 +69,12 @@ class PrivateTensor:
         return self.share0[0].shape
 ```
 
-Note that thanks to TensorFlow, tensor shapes can be known at graph creation time, meaning we don't have to do anything ourselves to keep track of this.
+Note that thanks to TensorFlow we can know the tensor shapes at graph creation time, meaning we don't have to keep track of this ourselves.
+
 
 ## Simple operations
 
-With this in place we can begin to define the graph construction methods for secure operations. The first one is `add`, where the resulting graph simply instructs the two servers to locally combine the shares they each have using a subgraph created by `crt_add`.
+Since a secure operation is often expressed in terms of several TensorFlow operations as seen below, as a convenient way of managing complexity while constructing the computation graph we use abstract operations such as `add`, `mul`, and `dot`. The first one is `add`, where the resulting graph simply instructs the two servers to locally combine the shares they each have using a subgraph constructed by `crt_add`.
 
 ```python
 def add(x, y):
@@ -80,7 +84,7 @@ def add(x, y):
     x0, x1 = x.share0, x.share1
     y0, y1 = y.share0, y.share1
     
-    with tf.name_scope("add"):
+    with tf.name_scope('add'):
     
         with tf.device(SERVER_0):
             z0 = crt_add(x0, y0)
@@ -96,13 +100,11 @@ Notice how easy it is to use [`tf.device()`](https://www.tensorflow.org/api_docs
 
 As an example, in the above, if `x0` was previous on, say, the input provider then TensorFlow will insert send and receive instructions that copies it to `SERVER_0` as part of computing `add`. All of this is abstracted away and the framework will attempt to [figure out](https://www.tensorflow.org/about/bib) the best strategy for optimising exactly when to perform sends and receives, including batching to better utilise the network and keeping the compute units busy.
 
-The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope) command on the other hand is simply a logical abstraction that doesn't influence computations but can be used to make the graphs much easier to visualise in [TensorBoard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) by grouping subgraphs as single components. For instance, inspecting the graph we get from `sigmoid(add(dot(x, w), b))` shows the following.
-
-![](/assets/tensorspdz/structure.png)
-
-Furthermore, we can also inspect where the operations are actually computed, in this case verifying that addition was indeed done locally by the two servers.
+The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope) command on the other hand is simply a logical abstraction that doesn't influence computations but can be used to make the graphs much easier to visualise in [TensorBoard](https://www.tensorflow.org/programmers_guide/summaries_and_tensorboard) by grouping subgraphs as single components as seen earlier.
 
 ![](/assets/tensorspdz/add.png)
+
+However, as seen here we can also use it to verify where the operations were actually computed, in this case checking that addition was indeed done locally by the two servers (green and turquoise).
 
 
 ## Dot products
@@ -124,7 +126,7 @@ def dot(x, y):
         with tf.device(CRYPTO_PRODUCER):
             a = sample(x.shape)
             b = sample(y.shape)
-            ab = base_dot(a, b)
+            ab = crt_dot(a, b)
             a0, a1 = share(a)
             b0, b1 = share(b)
             ab0, ab1 = share(ab)
@@ -132,12 +134,12 @@ def dot(x, y):
         # masking after distributing the triple
         
         with tf.device(SERVER_0):
-            alpha0 = base_sub(x0, a0)
-            beta0  = base_sub(y0, b0)
+            alpha0 = crt_sub(x0, a0)
+            beta0  = crt_sub(y0, b0)
 
         with tf.device(SERVER_1):
-            alpha1 = base_sub(x1, a1)
-            beta1  = base_sub(y1, b1)
+            alpha1 = crt_sub(x1, a1)
+            beta1  = crt_sub(y1, b1)
 
         # recombination after exchanging alphas and betas
 
@@ -145,16 +147,16 @@ def dot(x, y):
             alpha = reconstruct(alpha0, alpha1)
             beta  = reconstruct(beta0, beta1)
             z0 = crt_add(ab0,
-                 crt_add(base_dot(a0, beta),
-                 crt_add(base_dot(alpha, b0),
-                          base_dot(alpha, beta))))
+                 crt_add(crt_dot(a0, beta),
+                 crt_add(crt_dot(alpha, b0),
+                         crt_dot(alpha, beta))))
 
         with tf.device(SERVER_1):
             alpha = reconstruct(alpha0, alpha1)
             beta  = reconstruct(beta0, beta1)
             z1 = crt_add(ab1,
-                 crt_add(base_dot(a1, beta),
-                          base_dot(alpha, b1)))
+                 crt_add(crt_dot(a1, beta),
+                         crt_dot(alpha, b1)))
         
     z = PrivateTensor(z0, z1)
     z = truncate(z)
@@ -163,15 +165,18 @@ def dot(x, y):
 
 However, with `tf.device()` we see that this is still relatively straight-forward, at least if the [protocol for secure dot products](/2017/09/19/private-image-analysis-with-mpc/#dense-layers) is already understood. We first construct a graph that makes the crypto producer generate a new dot triple. The output nodes of this graph is `a0, a1, b0, b1, ab0, ab1`
 
-With `base_sub` we then build graphs for the two servers that mask `x` and `y` using `a` and `b` respectively. TensorFlow will again take care of inserting networking code that sends the value of e.g. `a0` to `SERVER_0` during execution.
+With `crt_sub` we then build graphs for the two servers that mask `x` and `y` using `a` and `b` respectively. TensorFlow will again take care of inserting networking code that sends the value of e.g. `a0` to `SERVER_0` during execution.
 
 In the third step we then reconstruct `alpha` and `beta` on each server, and compute the recombination step to get the dot product. Note that we have to define `alpha` and `beta` twice, one for each server, since although they contain the same value, if we had instead define them only on one server but used them on both, then we would implicitly have inserted additional networking operations and hence slowed down the computation.
 
-Returning to TensorBoard we can verify that the nodes are indeed tied to the correct players, with yellow being the crypto producer, and green and turquoise being the two servers. Note the convenience of having `tf.name_scope()` here.
-
 ![](/assets/tensorspdz/dot.png)
 
-To fully claim that this has made the distributed aspects of secure computations much easier to express, we also have to see what is actually needed for `td.device()` to work as intended. In the code below we first define an arbitrary job name followed by identifiers for our five players. More interestingly, we then simply specify the network hosts of the five players and wrap this together in a `ClusterSpec`. That's it!
+Returning to TensorBoard we can verify that the nodes are indeed tied to the correct players, with yellow being the crypto producer, and green and turquoise being the two servers. Note the convenience of having `tf.name_scope()` here.
+
+
+## Configuration
+
+To fully claim that this has made the distributed aspects of secure computations much easier to express, we also have to see what is actually needed for `td.device()` to work as intended. In the code below we first define an arbitrary job name followed by identifiers for our five players. More interestingly, we then simply specify their network hosts and wrap this in a `ClusterSpec`. That's it!
 
 ```python
 JOB_NAME = 'spdz'

@@ -30,7 +30,7 @@ As hinted above, implementing secure computation protocols such as SPDZ is a non
 
 It should furthermore also be easy to experiment with various optimisations, such as transforming the computation for improved performance, reusing intermediate results and masked values, and supplying fresh "raw material" in the form of triples during the execution instead of only generating a large batch ahead of time in an offline phase. Getting all this right can be overwhelming, which is one reason earlier blog posts here focused on the principles behind secure computation protocols and simply did everything locally. 
 
-Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of research and engineering attention these days due to their use in advanced machine learning on large data sets. And since our focus is on private machine learning there is a natural large fundamental overlap. In particular, the secure operations we are interested in are tensor addition, subtraction, multiplication, dot products, truncation, and sampling.
+Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of research and engineering attention these days due to their use in advanced machine learning on large data sets. And since our focus is on private machine learning there is a natural large fundamental overlap. In particular, the secure operations we are interested in are tensor addition, subtraction, multiplication, dot products, truncation, and sampling, which all have insecure but highly optimised counterparts in TensorFlow.
 
 
 ## Prerequisites

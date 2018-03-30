@@ -119,7 +119,7 @@ def dot(x, y):
     x0, x1 = x.share0, x.share1
     y0, y1 = y.share0, y.share1
 
-    with tf.name_scope("dot"):
+    with tf.name_scope('dot'):
 
         # triple generation
 
@@ -264,7 +264,7 @@ def mask(x):
         x0, x1 = x.share0, x.share1
         shape = x.shape
       
-        with tf.name_scope("mask"):
+        with tf.name_scope('mask'):
 
             with tf.device(CRYPTO_PRODUCER):
                 a = sample(shape)
@@ -308,7 +308,7 @@ def dot(x, y):
         a, a0, a1, alpha_on_0, alpha_on_1 = mask(x)
         b, b0, b1,  beta_on_0,  beta_on_1 = mask(y)
 
-        with tf.name_scope("dot"):
+        with tf.name_scope('dot'):
 
             with tf.device(CRYPTO_PRODUCER):
                 ab = crt_dot(a, b)

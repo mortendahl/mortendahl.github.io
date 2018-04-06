@@ -7,8 +7,6 @@ author:     "Morten Dahl"
 header-img: "assets/tensorspdz/tensorflow.png"
 ---
 
-<em><strong>Small changes are still likely to happen for this post.</strong></em> 
-
 <em><strong>TL;DR:</strong> using TensorFlow as a distributed computation framework for dataflow programs we give a full implementation of the SPDZ protocol with networking, in turn enabling optimised machine learning on encrypted data.</em> 
 
 Unlike [earlier](/2017/09/03/the-spdz-protocol-part1/) where we focused on the concepts behind secure computation as well as [potential applications](/2017/09/19/private-image-analysis-with-mpc/), here we build a fully working (passively secure) implementation with players running on different machines and communicating via typical network stacks. And as part of this we investigate the benefits of using a [modern distributed computation](https://en.wikipedia.org/wiki/Dataflow_programming) platform when experimenting with secure computations, as opposed to building everything from scratch.
@@ -17,18 +15,18 @@ Additionally, this can also be seen as a step in the direction of getting privat
 
 Jumping ahead, it is clear in retrospect that TensorFlow is an obvious candidate framework for quickly experimenting with secure computation protocols, not least in the context of private machine learning.
 
-As always [all code](#running-the-code) is available to play with, in this case either locally or on [GCP](https://cloud.google.com/compute/). To keep it simple our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), meaning that given a private (i.e. encrypted) input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for private but pre-trained weights `w` and bias `b`. In a follow-up we consider private training of `w` and `b`.
+As always [all code](#experiments) is available to play with, in this case either locally or on [GCP](https://cloud.google.com/compute/). To keep it simple our running example throughout is private prediction using [logistic](https://beckernick.github.io/logistic-regression-from-scratch/) [regression](https://github.com/ageron/handson-ml/blob/master/04_training_linear_models.ipynb), meaning that given a private (i.e. encrypted) input `x` we wish to securely compute `sigmoid(dot(w, x) + b)` for private but pre-trained weights `w` and bias `b`. In a follow-up we consider private training of `w` and `b`.
 
-<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Kory Mathewson](https://twitter.com/korymath), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
+<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Kory Mathewson](https://twitter.com/korymath), [Jan Leike](https://twitter.com/janleike), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
 
-<em><strong>Disclaimer</strong>: this implementation is meant for experimentation only and may not live up to required security. In particular, TensorFlow does not currently seem to have been designed with this application in mind, and although it does not appear to be the case right now, may for instance in future versions perform optimisations behind that scene that break the intended security properties. [More notes](#next-steps) below.</em>
+<em><strong>Disclaimer</strong>: this implementation is meant for experimentation only and may not live up to required security. In particular, TensorFlow does not currently seem to have been designed with this application in mind, and although it does not appear to be the case right now, may for instance in future versions perform optimisations behind that scene that break the intended security properties. [More notes below](#next-steps).</em>
 
 
 # Motivation
 
 As hinted above, implementing secure computation protocols such as [SPDZ](/2017/09/03/the-spdz-protocol-part1/) is a non-trivial task due to their distributed nature, which is only made worse when we start to introduce various optimisations ([but](https://github.com/rdragos/awesome-mpc) [it](https://github.com/bristolcrypto/SPDZ-2) [can](https://github.com/aicis/fresco) [be](http://oblivc.org/) [done](https://github.com/encryptogroup/ABY)). For instance, one has to consider how to best orchestrate the simultanuous execution of multiple programs, how to minimise the overhead of sending data across the network, and how to efficient interleave it with computation so that one server only rarely waits on the other. On top of that, we might also want to support different hardware platforms, including for instance both CPUs and GPUs, and for any serious work it is highly valuable to have tools for visual inspection, debugging, and profiling in order to identify issues and bottlenecks.
 
-It should furthermore also be easy to experiment with various optimisations, such as transforming the computation for improved performance, [reusing intermediate results and masked values](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples), and supplying fresh "raw material" in the form of [triples](/2017/09/03/the-spdz-protocol-part1/#multiplication) during the execution instead of only generating a large batch ahead of time in an offline phase. Getting all this right can be overwhelming, which is one reason earlier blog posts here focused on the principles behind secure computation protocols and simply did everything locally. 
+It should furthermore also be easy to experiment with various optimisations, such as transforming the computation for improved performance, [reusing intermediate results and masked values](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples), and supplying fresh "raw material" in the form of [triples](/2017/09/03/the-spdz-protocol-part1/#multiplication) during the execution instead of only generating a large batch ahead of time in an offline phase. Getting all this right can be overwhelming, which is one reason our earlier blog posts focused on the principles behind secure computation protocols and simply did everything locally. 
 
 Luckily though, modern distributed computation frameworks such as [TensorFlow](https://www.tensorflow.org/) are receiving a lot of research and engineering attention these days due to their use in advanced machine learning on large data sets. And since our focus is on private machine learning there is a natural large fundamental overlap. In particular, the secure operations we are interested in are tensor addition, subtraction, multiplication, dot products, truncation, and sampling, which all have insecure but highly optimised counterparts in TensorFlow.
 
@@ -41,16 +39,16 @@ One important note though is that TensorFlow works by first constructing a stati
 
 ![](/assets/tensorspdz/structure.png)
 
-This means that our efforts in this post are concerned with building such a graph, as opposed to actual execution as earlier: we are to some extend making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs. As a result we benefit not only from working at a higher level of abstraction but also from the large amount of research and engineering that have already gone into optimising graph execution in TensorFlow.
+This means that our efforts in this post are concerned with building such a graph, as opposed to actual execution as earlier: we are to some extend making a small compiler that translates secure computations expressed in a simple language into TensorFlow programs. As a result we benefit not only from working at a higher level of abstraction but also from the large amount of efforts that have already gone into optimising graph execution in TensorFlow.
 
-See [the code](#running-the-code) for a full example.
+See the [experiments](#experiments) for a full example.
 
 
 # Basics
 
 Our needs fit nicely with the operations already provided by TensorFlow as seen next, with one main exception: to match typical precision of floating point numbers when instead working with [fixedpoint numbers](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers) in the secure setting, we end up encoding into and operating on integers that are larger than what fits in the typical word sizes of 32 or 64 bits, yet today these are the only sizes for which TensorFlow provides operations (a constraint that may have something to do with current support on GPUs).
 
-Luckily though, for the operations we need there are efficient ways around this that allow us to simulate arithmetic on tensors of ~120 bit integers using a list of tensors with identical shape but of e.g. 32 bit integers. And this decomposition moreover has the nice property that we can often operate on each tensor in the list independently, so in addition to enabling the use of TensorFlow, this also allows most operations to be performed in parallel and can actually [increase efficiency](https://en.wikipedia.org/wiki/Residue_number_system) compared to operating on single larger numbers although it may initially sound more expensive. 
+Luckily though, for the operations we need there are efficient ways around this that allow us to simulate arithmetic on tensors of ~120 bit integers using a list of tensors with identical shape but of e.g. 32 bit integers. And this decomposition moreover has the nice property that we can often operate on each tensor in the list independently, so in addition to enabling the use of TensorFlow, this also allows most operations to be performed in parallel and can actually [increase efficiency](https://en.wikipedia.org/wiki/Residue_number_system) compared to operating on single larger numbers, despite the fact that it may initially sound more expensive. 
 
 We discuss the [details](/2018/01/29/the-chinese-remainder-theorem/) of this elsewhere and for the rest of this post simply assume operations `crt_add`, `crt_sub`, `crt_mul`, `crt_dot`, `crt_mod`, and `sample` that performed the expected operations on lists of tensors. Note that `crt_mod`, `crt_mul`, and `crt_sub` together allow us to define a right shift operation for [fixedpoint truncation](/2017/09/03/the-spdz-protocol-part1/#fixedpoint-numbers).
 
@@ -69,9 +67,13 @@ class PrivateTensor:
     @property
     def shape(self):
         return self.share0[0].shape
+        
+    @property
+    def unwrapped(self):
+        return self.share0, self.share1
 ```
 
-Note that thanks to TensorFlow we can know the tensor shapes at graph creation time, meaning we don't have to keep track of this ourselves.
+And thanks to TensorFlow we can know the shape of tensors at graph creation time, meaning we don't have to keep track of this ourselves.
 
 
 ## Simple operations
@@ -83,8 +85,8 @@ def add(x, y):
     assert isinstance(x, PrivateTensor)
     assert isinstance(y, PrivateTensor)
     
-    x0, x1 = x.share0, x.share1
-    y0, y1 = y.share0, y.share1
+    x0, x1 = x.unwrapped
+    y0, y1 = y.unwrapped
     
     with tf.name_scope('add'):
     
@@ -106,20 +108,20 @@ The [`tf.name_scope()`](https://www.tensorflow.org/api_docs/python/tf/name_scope
 
 ![](/assets/tensorspdz/add.png)
 
-Note that by selecting *Device* coloring in TensorBoard we can also use it to verify where the operations were actually computed, in this case checking that addition was indeed done locally by the two servers (green and turquoise).
+Note that by selecting *Device* coloring in TensorBoard as done above we can also use it to verify where the operations were actually computed, in this case that addition was indeed done locally by the two servers (green and turquoise).
 
 
 ## Dot products
 
-We next turn to dot products. This is significantly more complexity, not least since we now need to involve the crypto producer, but also since the two servers have to communicate with each other as part of the computation.
+We next turn to dot products. This is more complex, not least since we now need to involve the crypto producer, but also since the two servers have to communicate with each other as part of the computation.
 
 ```python
 def dot(x, y):
     assert isinstance(x, PrivateTensor)
     assert isinstance(y, PrivateTensor)
 
-    x0, x1 = x.share0, x.share1
-    y0, y1 = y.share0, y.share1
+    x0, x1 = x.unwrapped
+    y0, y1 = y.unwrapped
 
     with tf.name_scope('dot'):
 
@@ -169,7 +171,7 @@ However, with `tf.device()` we see that this is still relatively straight-forwar
 
 With `crt_sub` we then build graphs for the two servers that mask `x` and `y` using `a` and `b` respectively. TensorFlow will again take care of inserting networking code that sends the value of e.g. `a0` to `SERVER_0` during execution.
 
-In the third step we then reconstruct `alpha` and `beta` on each server, and compute the recombination step to get the dot product. Note that we have to define `alpha` and `beta` twice, one for each server, since although they contain the same value, if we had instead define them only on one server but used them on both, then we would implicitly have inserted additional networking operations and hence slowed down the computation.
+In the third step we reconstruct `alpha` and `beta` on each server, and compute the recombination step to get the dot product. Note that we have to define `alpha` and `beta` twice, one for each server, since although they contain the same value, if we had instead define them only on one server but used them on both, then we would implicitly have inserted additional networking operations and hence slowed down the computation.
 
 ![](/assets/tensorspdz/dot.png)
 
@@ -190,17 +192,19 @@ INPUT_PROVIDER  = '/job:{}/task:3'.format(JOB_NAME)
 OUTPUT_RECEIVER = '/job:{}/task:4'.format(JOB_NAME)
 
 HOSTS = [
-    'localhost:4440',
-    'localhost:4441',
-    'localhost:4442',
-    'localhost:4443',
-    'localhost:4444'
+    '10.132.0.4:4440',
+    '10.132.0.5:4441',
+    '10.132.0.6:4442',
+    '10.132.0.7:4443',
+    '10.132.0.8:4444',
 ]
 
 CLUSTER = tf.train.ClusterSpec({
     JOB_NAME: HOSTS
 })
 ```
+
+<em>Note that in the screenshots we are actually running the input provider and output receiver on the same host, and hence both show up as `3/device:CPU:0`.</em>
 
 Finally, the code that each player executes is about as simple as it gets.
 
@@ -222,7 +226,7 @@ With the basics in place we can look at a few optimisations.
 
 Our first improvement allows us to reuse computations. For instance, if we need the result of `dot(x, y)` twice then we want to avoid computing it a second time and instead reuse the first. Concretely, we want to keep track of nodes in the graph and link back to them whenever possible.
 
-To do this we simply maintain a glocal dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
+To do this we simply maintain a global dictionary of `PrivateTensor` references as we build the graph, and use this for looking up already existing results before adding new nodes. For instance, `dot` now becomes as follows.
 
 ```python
 def dot(x, y):
@@ -248,11 +252,9 @@ While already significant for some applications, this change also opens up for o
 
 ## Reusing masked tensors
 
-We have [already](/2017/09/10/the-spdz-protocol-part2/) [mentioned](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) that we'd ideally want to only mask every private tensor once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both: if we are e.g. doing multiple predictions with the same weights `w` then in the long term the initial cost of masking `w` can be amortised away.
+We have [already](/2017/09/10/the-spdz-protocol-part2/) [mentioned](/2017/09/19/private-image-analysis-with-mpc/#generalised-triples) that we'd ideally want to mask every private tensor at most once to primarily save on networking. For instance, if we are computing both `dot(w, x)` and `dot(w, y)` then we want to use the same masked version of `w` in both. Specifically, if we are doing many operations with the same masked tensor then the cost of masking it can be amortised away.
 
-To implement this we first note that the [dataflow nature](https://arxiv.org/abs/1603.04467) of TensorFlow will take care of only recomputing the parts of the graph that actually change when the input values are changed. For instance, an application that computes `dot(w, x)` will reuse the value of `w` between executions with different values of `x` (unless of course `w` somehow depends on `x` elsewhere). However, with the current setup we will still mask `w` every time we compute `dot`.
-
-To avoid this we simply make masking an explicit `mask` operation, which also allows us to use the same masked version across different operations, e.g. both `dot` and `mul`.
+But with the current setup we mask every time we compute e.g. `dot` or `mul` since masking is baked into these. So to avoid this we simply make masking an explicit operation, additionally allowing us to also use the same masked version across different operations.
 
 ```python
 def mask(x):
@@ -260,10 +262,10 @@ def mask(x):
     
     node_key = ('mask', x)
     masked = nodes.get(node_key, None)
-    
+
     if masked is None:
       
-        x0, x1 = x.share0, x.share1
+        x0, x1 = x.unwrapped
         shape = x.shape
       
         with tf.name_scope('mask'):
@@ -281,34 +283,56 @@ def mask(x):
             # exchange of alphas
 
             with tf.device(SERVER_0):
-                alpha = reconstruct(alpha0, alpha1)
-                alpha_on_0 = alpha
+                alpha_on_0 = reconstruct(alpha0, alpha1)
 
             with tf.device(SERVER_1):
-                alpha = reconstruct(alpha0, alpha1)
-                alpha_on_1 = alpha
+                alpha_on_1 = reconstruct(alpha0, alpha1)
 
-        masked = (a, a0, a1, alpha_on_0, alpha_on_1)
+        masked = MaskedPrivateTensor(a, a0, a1, alpha_on_0, alpha_on_1)
         nodes[node_key] = masked
         
     return masked
 ```
 
+Note that we introduce a `MaskedPrivateTensor` class as part of this, which is again simply a convenient way of abstracting over the five lists of tensors we get from `mask(x)`.
+
+```python
+class MaskedPrivateTensor(object):
+
+    def __init__(self, a, a0, a1, alpha_on_0, alpha_on_1):
+        self.a  = a
+        self.a0 = a0
+        self.a1 = a1
+        self.alpha_on_0 = alpha_on_0
+        self.alpha_on_1 = alpha_on_1
+
+    @property
+    def shape(self):
+        return self.a[0].shape
+
+    @property
+    def unwrapped(self):
+        return self.a, self.a0, self.a1, self.alpha_on_0, self.alpha_on_1
+```
+
+
 With this we may rewrite `dot` as below, which is now only responsible for the recombination step.
 
 ```python
 def dot(x, y):
-    assert isinstance(x, PrivateTensor)
-    assert isinstance(y, PrivateTensor)
+    assert isinstance(x, PrivateTensor) or isinstance(x, MaskedPrivateTensor)
+    assert isinstance(y, PrivateTensor) or isinstance(y, MaskedPrivateTensor)
 
     node_key = ('dot', x, y)
     z = nodes.get(node_key, None)
 
     if z is None:
+      
+        if isinstance(x, PrivateTensor): x = mask(x)
+        if isinstance(y, PrivateTensor): y = mask(y)
 
-        # make sure we have masked version of both inputs
-        a, a0, a1, alpha_on_0, alpha_on_1 = mask(x)
-        b, b0, b1,  beta_on_0,  beta_on_1 = mask(y)
+        a, a0, a1, alpha_on_0, alpha_on_1 = x.unwrapped
+        b, b0, b1,  beta_on_0,  beta_on_1 = y.unwrapped
 
         with tf.name_scope('dot'):
 
@@ -344,57 +368,80 @@ As a verification we can see that TensorBoard shows us the expected graph struct
 
 Here the value of `square(x)` is first computed, then masked, and finally reused in four multiplications.
 
+There is an inefficiency though: while the [dataflow nature](https://arxiv.org/abs/1603.04467) of TensorFlow will in general take care of only recomputing the parts of the graph that have changed between two executions, this does not apply to operations involving sampling via e.g. [`tf.random_uniform`](https://www.tensorflow.org/api_docs/python/tf/random_uniform), which is used in our sharing and masking. Consequently, masks are not being reused across executions.
+
+
+## Caching values
+
+To get around the above issue we can introduce caching of values that survive across different executions of the graph, and an easy way of doing this is to store tensors in [variables](https://www.tensorflow.org/api_docs/python/tf/Variable). Normal executions will read from these, while an explicit `cache_populators` set of operations allow us to populated them.
+
+For example, wrapping our two tensors `w` and `b` with such `cache` operation gets us the above graph.
+
+![](/assets/tensorspdz/cached.png)
+
+When executing the cache population operations TensorFlow automatically figures out which subparts of the graph it needs to execute to generate the values to be cached, and which can be ignored.
+
+![](/assets/tensorspdz/cached-populate.png)
+
+And likewise when predicting, in this case skipping sharing and masking.
+
+![](/assets/tensorspdz/cached-predict.png)
+
+
 
 ## Buffering triples
 
 Recall that a main purpose of [triples](/2017/09/03/the-spdz-protocol-part1/#multiplication) is to move the computation of the crypto producer to an *offline phase* and distribute its results to the two servers ahead of time in order to speed up their computation later during the *online phase*. 
 
-So far we haven't done anything to specify that this should happen though, and from reading the above code it's not unreasonable to assume that the crypto producer will instead compute in synchronisation with the two servers, injecting idle waiting periods throughout their computation. However, from experiments it seems that TensorFlow is smart enough here to optimise the graph to do the right thing and batch triple distribution, presumably to save on networking.
+So far we haven't done anything to specify that this should happen though, and from reading the above code it's not unreasonable to assume that the crypto producer will instead compute in synchronisation with the two servers, injecting idle waiting periods throughout their computation. However, from experiments it seems that TensorFlow is already smart enough to optimise the graph to do the right thing and batch triple distribution, presumably to save on networking. We still have an initial waiting period though, that we could get rid of by introducing a separate compute-and-distribute execution that fills up buffers.
 
 ![](/assets/tensorspdz/tracing.png)
 
-However, we still have an initial waiting period that we could get rid of by introducing a separate compute-and-distribute execution that fills up buffers.
-
-<!--In principle this is entirely straight forward using e.g. `tf.FIFOQueue`, yet there is one obstacle we have to deal with.-->
-
-<em>(Coming soon...)</em>
+We'll skip this issue for now and instead return to it when looking at private training. Like here, it is not unreasonable to expect significant performance improvements there from distributing the training data ahead of time.
 
 
 # Profiling
 
-As a final reason to be excited about building dataflow programs in TensorFlow we also look at the built-in [runtime statistics](https://www.tensorflow.org/programmers_guide/graph_viz#runtime_statistics). We have already seen the built-in detailed tracing support above, but in TensorBoard we can also easily see how expensive each operation was both in terms of compute and memory.
+As a final reason to be excited about building dataflow programs in TensorFlow we also look at the built-in [runtime statistics](https://www.tensorflow.org/programmers_guide/graph_viz#runtime_statistics). We have already seen the built-in detailed tracing support above, but in TensorBoard we can also easily see how expensive each operation was both in terms of compute and memory. The numbers reported here are from the [experiments](#experiments) below.
 
 ![](/assets/tensorspdz/computetime.png)
 
-The heatmap above e.g. shows that `sigmoid` was the most expensive operation in the run and that the dot product took roughly 29ms to execute (using the [localhost configuration](#running-the-code)). Moreover, in the below figure we have navigated further into the dot block and can see that sharing was probably the most expensive sub-operation, in this particular run taking about 8ms.
+The heatmap above e.g. shows that `sigmoid` was the most expensive operation in the run and that the dot product took roughly 30ms to execute. Moreover, in the below figure we have navigated further into the dot block and see that sharing in this particular run taking about 3ms.
 
 ![](/assets/tensorspdz/computetime-detailed.png)
 
 This way we can potentially identify bottlenecks and compare performance of different approaches. And if needed we can of course switch to tracing for even more details.
 
 
-# Running the Code
+# Experiments
 
-All code is available in the [GitHub repository](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/) including instructions for setting up either a local or a GCP configuration of hosts. It also comes with a few examples, including private logistic regression as used here.
+The [GitHub repository](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/) contains the code needed for experimentation, including examples and instructions for setting up either a [local configuration](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/configs/localhost) or a [GCP configuration](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/configs/gcp) of hosts. For the running example of private prediciton using a logistic regression model we use the GCP configuration, i.e. the parties are running on different virtual hosts located in the same Google Cloud zone, here on some of the weaker instances, namely dual core and 10GB memory.
 
-A typical secure computation might take the form shown below, where we first build a graph and then execute it.
+A slightly simplified version of our program is as follows, where we first train a model in public, build a graph for the private prediction computation, and then run it in a fresh session.
 
 ```python
 from config import session
-from tensorspdz import *
+from tensorspdz import (
+    define_input, define_variable,
+    add, dot, sigmoid, cache, mask,
+    encode_input, decode_output
+)
 
 # publicly train `weights` and `bias`
-weights = ...
-bias = ...
+weights, bias = train_publicly()
 
 # define shape of unknown input
-shape_x = ...
+shape_x = X.shape
 
 # construct graph for private prediction
 input_x, x = define_input(shape_x, name='x')
 
 init_w, w = define_variable(weights, name='w')
 init_b, b = define_variable(bias, name='b')
+
+if use_caching:
+    w = cache(mask(w))
+    b = cache(b)
 
 y = sigmoid(add(dot(x, w), b))
 
@@ -403,6 +450,10 @@ with session() as sess:
 
     # share and distribute `weights` and `bias` to the two servers
     sess.run([init_w, init_b])
+    
+    if use_caching:
+        # compute and store cached values
+        sess.run(cache_populators)
 
     # prepare to use `X` as private input for prediction
     feed_dict = encode_input([
@@ -415,16 +466,28 @@ with session() as sess:
     print decode_output(y_pred)
 ```
 
-Note that as mentioned in the beginning, this code is meant for experimentation only and should not be put in a production environment.
+Running this a few times with different sizes of `X` gives the timings below, where the entire computation is considered including triple generation and distribution; slightly surprisingly there were no real difference between caching masked values or not.
+
+<center>
+<img width="80%" height="80%" src="/assets/tensorspdz/timings-10000.png" />
+</center>
+
+Processing batches of size 1, 10, and 100 took roughly the same time, ~60ms on average, which might suggest a lower latency bound due to networking. At 1000 the time jumps to ~110ms, at 10,000 to ~600ms, and finally at 100,000 to ~5s. As such, if latency is important than we can perform ~1600 predictions per second, while if more flexible then at least ~20,000 per second.
+
+<center>
+<img width="80%" height="80%" src="/assets/tensorspdz/timings-100000.png" />
+</center>
+
+This however is measuring only timings reported by profiling, with actual execution time taking a bit longer; hopefully some of the production-oriented tools such as [`tf.serving`](https://www.tensorflow.org/serving/) that come with TensorFlow can improve on this.
 
 
-# Next Steps
+# Thoughts
 
-Having seen the basics for doing secure computation with TensorFlow we next turn to further optimisations and more realistic experiments. Concretely, we look at private training of logistic regression models, and on a realistic data set as opposed to the toy data set used here.
+After private prediction it'll of course also be interesting to look at private training. Caching of masked training data might be more relevant here since it remains fixed through-out the process.
 
-We could also aim at improving the serving of models for private predictions. In particular, using the production-ready [`tf.serving`](https://www.tensorflow.org/serving/) we might be able to avoid much of the initial overhead we current have in orchestration, as well as having endpoints that can be [safely exposed](https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md) to the public.
+The serving of models can also be improved, using for instance the production-ready [`tf.serving`](https://www.tensorflow.org/serving/) we might be able to avoid much of the initial overhead we current have in orchestration, as well as having endpoints that can be [safely exposed](https://github.com/tensorflow/tensorflow/blob/master/SECURITY.md) to the public.
 
-Finally, there are also security improvements to be made on e.g. communication between the five parties. In particular, in the current version of TensorFlow all communication is happening over unencrypted and unauthenticated [gRPC](https://grpc.io/) connections, which means that someone listening in on the network traffic in principle could learn all private values. Since support for [TLS](https://grpc.io/docs/guides/auth.html) is already there in gRPC it might be straight-forward to make use of it in TensorFlow without a significant impact on performance.
+Finally, there are security improvements to be made on e.g. communication between the five parties. In particular, in the current version of TensorFlow all communication is happening over unencrypted and unauthenticated [gRPC](https://grpc.io/) connections, which means that someone listening in on the network traffic in principle could learn all private values. Since support for [TLS](https://grpc.io/docs/guides/auth.html) is already there in gRPC it might be straight-forward to make use of it in TensorFlow without a significant impact on performance. Likewise, TensorFlow does not currently use a strong pseudo-random generator for [`tf.random_uniform`](https://www.tensorflow.org/api_docs/python/tf/random_uniform).
 
 
 <!--
@@ -433,6 +496,7 @@ Finally, there are also security improvements to be made on e.g. communication b
 - https://learningtensorflow.com/lesson11/
 - [XLA](https://www.tensorflow.org/performance/xla/)
 
+TODO overhead compared to plain (maybe wait until training?)
 
 https://www.tensorflow.org/programmers_guide/graphs
 https://en.wikipedia.org/wiki/Dataflow_programming

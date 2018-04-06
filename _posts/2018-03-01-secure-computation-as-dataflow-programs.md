@@ -375,7 +375,7 @@ There is an inefficiency though: while the [dataflow nature](https://arxiv.org/a
 
 To get around the above issue we can introduce caching of values that survive across different executions of the graph, and an easy way of doing this is to store tensors in [variables](https://www.tensorflow.org/api_docs/python/tf/Variable). Normal executions will read from these, while an explicit `cache_populators` set of operations allow us to populated them.
 
-For example, wrapping our two tensors `w` and `b` with such `cache` operation gets us the above graph.
+For example, wrapping our two tensors `w` and `b` with such `cache` operation gets us the following graph.
 
 ![](/assets/tensorspdz/cached.png)
 
@@ -397,7 +397,7 @@ So far we haven't done anything to specify that this should happen though, and f
 
 ![](/assets/tensorspdz/tracing.png)
 
-We'll skip this issue for now and instead return to it when looking at private training. Like here, it is not unreasonable to expect significant performance improvements there from distributing the training data ahead of time.
+We'll skip this issue for now and instead return to it when looking at private training since it is not unreasonable to expect significant performance improvements there from distributing the training data ahead of time.
 
 
 # Profiling
@@ -417,7 +417,7 @@ This way we can potentially identify bottlenecks and compare performance of diff
 
 The [GitHub repository](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/) contains the code needed for experimentation, including examples and instructions for setting up either a [local configuration](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/configs/localhost) or a [GCP configuration](https://github.com/mortendahl/privateml/tree/master/tensorflow/spdz/configs/gcp) of hosts. For the running example of private prediciton using a logistic regression model we use the GCP configuration, i.e. the parties are running on different virtual hosts located in the same Google Cloud zone, here on some of the weaker instances, namely dual core and 10GB memory.
 
-A slightly simplified version of our program is as follows, where we first train a model in public, build a graph for the private prediction computation, and then run it in a fresh session.
+A slightly simplified version of our program is as follows, where we first train a model in public, build a graph for the private prediction computation, and then run it in a fresh session. The model was somewhat arbitrarily picked to have 100 features.
 
 ```python
 from config import session

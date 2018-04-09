@@ -55,7 +55,7 @@ We discuss the [details](/2018/01/29/the-chinese-remainder-theorem/) of this els
 
 ## Private tensors
 
-Each private tensor we operate on is represented by a share on each of the two servers. And for the reasons mentioned above, each share is a list of tensors, which is represented by a list of nodes in the graph. To hide this complexity we introduce a simple class as follows.
+Each private tensor is determined by two shares, one of each server. And for the reasons mentioned above, each share is given by a list of tensors, which is represented by a list of nodes in the graph. To hide this complexity we introduce a simple class as follows.
 
 ```python
 class PrivateTensor:

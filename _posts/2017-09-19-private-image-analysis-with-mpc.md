@@ -21,7 +21,7 @@ In this blog post we'll look at a simpler use case for image analysis but go ove
 
 [Slides](https://github.com/mortendahl/talks/raw/master/ParisML17.pdf) from a more recent presentation at the [Paris Machine Learning meetup](http://mlparis.org/) are now also available.
 
-<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Nigel Smart](https://twitter.com/smartcryptology), [Adrià Gascón](https://twitter.com/adria), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic!</em>
+<em>A big thank you goes out to [Andrew Trask](https://twitter.com/iamtrask), [Nigel Smart](https://twitter.com/smartcryptology), [Adrià Gascón](https://twitter.com/adria), and the [OpenMined community](https://twitter.com/openminedorg) for inspiration and interesting discussions on this topic! [Jakukyo Friel](https://weakish.github.io/) has also very kindly made a [Chinese translation](https://www.jqr.com/article/000113).</em>
 
 
 # Setting

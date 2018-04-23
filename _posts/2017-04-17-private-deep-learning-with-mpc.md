@@ -15,6 +15,7 @@ We will assume that we have three non-colluding parties `P0`, `P1`, and `P2` tha
 
 To be able to do this we will need to compute securely on rational numbers with a certain precision; in particular, to add and multiply these. We will also need to compute the [Sigmoid function](http://mathworld.wolfram.com/SigmoidFunction.html) `1/(1+np.exp(-x))`, which in its traditional form results in surprisingly heavy operations in the secure setting. As a result we'll follow the approach of *Building Safe A.I.* and approximate it using polynomials, yet look at a few optimizations.
 
+<em>This post also exist [in Chinese](https://www.jqr.com/article/000109) thanks to [Jakukyo Friel](https://weakish.github.io/).</em>
 
 # Secure Multi-Party Computation
 

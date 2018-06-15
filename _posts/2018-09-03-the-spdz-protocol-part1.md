@@ -69,7 +69,7 @@ def reconstruct(share0, share1):
 
 Of course, if both parties are to learn the private value then they can send their share simultaneously and hence still only use one round of communication.
 
-Note that the use of an additive scheme means the servers are required to be highly robust, unlike e.g. [Shamir's scheme](http://127.0.0.1:4000/2017/06/04/secret-sharing-part1/) which may handle some servers dropping out. If this is a reasonable assumption though, then additive sharing provides significant advantages.
+Note that the use of an additive scheme means the servers are required to be highly robust, unlike e.g. [Shamir's scheme](/2017/06/04/secret-sharing-part1/) which may handle some servers dropping out. If this is a reasonable assumption though, then additive sharing provides significant advantages.
 
 ```python
 class PrivateValue:

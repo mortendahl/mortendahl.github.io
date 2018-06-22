@@ -17,7 +17,6 @@ Visit me on
 <a href="https://github.com/mortendahl">GitHub</a>,
 <a href="https://gitlab.com/mortendahl">GitLab</a>,
 <a href="https://medium.com/@mortendahl">Medium</a>,
-<a href="https://www.flickr.com/photos/mortendahl/">Flickr</a>,
 <a href="https://keybase.io/mortendahl">Keybase</a>,
 and <a href="https://www.linkedin.com/in/mortendahlcs">LinkedIn</a>!
 </i>

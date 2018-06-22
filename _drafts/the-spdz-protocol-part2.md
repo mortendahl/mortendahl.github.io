@@ -118,9 +118,6 @@ Practical experiments will show whether it best to stay in `Q` and use a few mor
 
 
 
-## Bit-decomposition
-
-
 ## Generalised triples
 
 **TODO** only send the masking of a value once; reuse masked version until the variable is updated

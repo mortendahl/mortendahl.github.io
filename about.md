@@ -15,6 +15,7 @@ Background in computer science with work experience in software engineering, cry
 Visit me on
 <a href="https://www.twitter.com/mortendahlcs">Twitter</a>,
 <a href="https://github.com/mortendahl">GitHub</a>,
+<a href="https://gitlab.com/mortendahl">GitLab</a>,
 <a href="https://medium.com/@mortendahl">Medium</a>,
 <a href="https://www.flickr.com/photos/mortendahl/">Flickr</a>,
 <a href="https://keybase.io/mortendahl">Keybase</a>,

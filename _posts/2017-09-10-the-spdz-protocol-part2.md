@@ -7,6 +7,8 @@ author:     "Morten Dahl"
 header-img: "assets/spdz/aarhus.jpg"
 ---
 
+<em><strong>This post is still very much a work in progress.</strong></em>
+
 <em><strong>TL;DR:</strong> ... </em> 
 
 
@@ -38,6 +40,8 @@ class PrivateValue:
                (a * alpha) * 2 + \
                aa
 ```
+
+## Dot
 
 ## Powering
 

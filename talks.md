@@ -9,6 +9,10 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
 
+<strong>Technologies for Private Machine Learning</strong>
+([slides](https://github.com/mortendahl/talks/blob/master/IFIP18-slides.pdf))
+<br/><small><em>[IFIP Summer School on Privacy and Identity Management](https://www.ifip-summerschool.org/), August 2018</em></small>
+
 <strong>Cryptography behind Private Machine Learning</strong>
 ([slides](https://github.com/mortendahl/talks/raw/master/ParisCybersecurity18-slides.pdf))
 <br/><small><em>[(Cyber)Security for Software Engineers](https://www.meetup.com/Security-in-the-cloud/events/250842210/), June 2018</em></small>

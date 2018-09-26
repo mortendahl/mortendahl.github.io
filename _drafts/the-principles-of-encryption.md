@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "The Principles of Encryption"
-subtitle:   "Discrete Logarithms and ElGamal's Scheme"
+subtitle:   "ElGamal's Scheme and Hidden Algebraic Structures"
 date:       2017-02-08 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"

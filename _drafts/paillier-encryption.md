@@ -1,11 +1,79 @@
 ---
 layout:     post
-title:      "A Primer on Paillier Encryption"
+title:      "An Illustrated Primer on Paillier Encryption"
 subtitle:   "Overview, Applications, and Implementation"
-date:       2017-02-08 12:00:00
+date:       2017-07-21 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"
 ---
+
+<em><strong>TL;DR:</strong> the Paillier encryption scheme is not only interesting for allowing computation on encrypted values, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra.</em>
+
+# Overview
+
+The Paillier encryption scheme is defined by a mapping `enc(m, r) = g^m * r^n mod n^2` that turns a pair `(m, r)` into a ciphertext `c`, as well as its inverse `dec` that recovers both `m` and `r` from a ciphertext. Here, `enc` is implicitly using a public encryption key `ek` that everyone can know while `dec` is using a private decryption key `dk` that only those allowed to decrypt should know.
+
+The `m` is typically the message we want to encrypt while `r` is a randomness picked uniformly at random for each new encryption; as such, we get a [probabilistic encryption scheme](TODO) where encryptions of the same message `m` each yield a different ciphertext `c` due to different randomness being used, in turn making it impossible to guess `m` by brute force even if it only takes on a few different values (as one would have to guess `r` as well, which can be picked large enough to make it impossible to guess, or at least only with negligable probability).
+
+To fully define this mapping we note that `m` can be any value from `Zn = {0, 1, ..., n-1}` while `r` is limited to those numbers in `Zn` that have a multiplication inverse, i.e. `Zn*`; together this implies that `c` is a value in `Zn^2*`, ie. amoung the values in `{0, 1, ..., n^2 - 1}` that have multiplication inverses. Finally, `n = p * q` is a typical RSA modulus consisting of two primes `p` and `q`, and `g` is a fixed generator, typically picked as `g = 1 + n`.
+
+Besides being probabilistic, a highly attractive property of the Paillier is that it allows for computing on encrypted values through homomorphic properties. In particuar, we can combine encryptions of `m1` and `m2` to get an encryption of `m1 + m2`, and an encryption of `m` with a constant `k` to get an encryption of `m * k`, in both cases without decrypting anything (and hence without learning anything about `m1` and `m2`.
+
+To see how this works let's start with addition: given `c1 = enc(m1, r1)` and `c2 = enc(m2, r2)` we compute `c1 * c2 == (g^m1 * r1^n) * (g^m2 * r2^n) == g^(m1 + m2) * (r1 * r2)^n == enc(m1 + m2, r1 * r2)`, leaving out the `mod n^2` to simplify notation.
+
+Likewise, given `c = enc(m, r)` and a `k` we compute `c^k = (g^m * r^n) ^ k == g^(m * k) * (r^k)^n == enc(m * k, r ^ k)`, again leaving out `mod n^2`.
+
+Note that the results do not exactly match the original form of encryptions: in the first case the resulting randomness is `r1 * r2` and in the latter it is `r^k`, whereas for fresh encryptions these values are uniformaly random. In some cases this may leak something about otherwise private values (see e.g. the voting application below TODO) and as a result we sometimes need a *re-randomize* operation that erases everything about how a ciphertext was created by making it look exactly as a fresh one. We do this by simply multiplying by a fresh encryption of zero: `enc(m, r) * enc(0, s) == enc(m, r*s) == enc(m, t)` for a uniformly random `t` if `s` is independent and uniformly random.
+
+As we will see in more detail below this opens up for some powerful applications, including electronic voting, private machine learning, and general purpose secure computation. But first it's interesting to go into more details about how decryption works and why the scheme is secure.
+
+
+# Reconstructing the scheme
+
+In order to better understand the scheme, including its security, it's instructive to start with a fool-proof scheme and see how it compares.
+
+Concretely, say you want to encrypt a value `x` from `Zn^2*`. One way of doing this is to pick a uniformly random value `s` also from `Zn2*` and multiply these together: `c = x * s mod n^2`. Since this is in fact the one-time pad (over a multiplicative group) **TODO TODO TODO really?** we get perfect secrecy, i.e. a theoretical guarantee that nothing whatsoever is leaked about `x` by `c` as long as the mask `s` remains unknown.
+
+The problem with this scheme is when we want to decrypt `c` without knowing `s` (which would otherwise have to be communicated somehow). One might try to get rid of `s` by raising `c` to the order of `s`, which by TODO gives us `c ^ ord(s) == (x * s) ^ ord(s) == x^ord(s) * 1 == x^ord(s)`. This indeed removed `s`, but it is not clear how to extract `x` from `x^ord(s)`. In fact, in the case where `ord(s)` is `phi(n^2)` this is impossible.
+
+So what if we 
+
+let's see an example. say our modulus is `n^2` as in the Paillier scheme. these numbers we can convenient put into an `n` by `n` grid as follows.
+
+(TODO)
+
+if we then filter out those values that don't have multiplicative inverses we get the following grid
+
+(TODO)
+
+which shows that the remaining values are exactly those that do not share any factors with `n`. this means that an easy way to characterize these numbers is by 
+`[x for x in range(NN) if gcd(x, N) == 1]`. moreover, multiplying any two values with multiplicative inverses implies that their product also has an multiplicative inverse; in other words, as long as we multiply numbers from `Zn*` we are guaranteeded to stay within `Zn*`.
+
+To understand the scheme, not least in terms of security and how decryption works, it is useful to try to reconstruct the process of building it. moreover, some of the principles we'll see here are also used in more modern schemes, in particular around how security is argued. of course this likely involved much more back and forward originally, or perhaps even an entirely different line of thought -- short of asking Pascal Paillier himself we might never know. Nonetheless, let's go back to the late 1990s where RSA could very well have been a heavy inspiration.
+
+the reasons for switching from computing mod `n` as in RSA to computing mod `n^2` instead of something else will become clearer later, but for now let's just say that in order to get a probabilistic scheme we have to let room for some randomness `r` (in ElGamal, another probabilistic scheme from roughly the same period does this by letting ciphertexts be pairs of values instead; however in Paillier we simply double the modulus).
+
+
+
+# Algebraic interpretation
+
+`(Zn2*, *) ~ (Zn, +) x (Zn*, *)`
+
+HE
+- `c1 * c2 == (m1, r1) * (m2, r2) == (m1+m2, r1*r2)`
+
+- `c ^ k == (m, r) ^ k == (m * k, r^k)`
+
+- `inv(c) == inv((m, r)) == (-m, r^-1)`
+
+- `c * s^n == (m, r) * (0, s) == (m, r*s) == (m, t)`
+
+dec
+- `c^phi == (m*phi, r^phi) == (m*phi, 1) == g^(m*phi)`
+
+
+# DUMP
+
 
 
 
@@ -23,6 +91,8 @@ header-img: "img/post-bg-01.jpg"
 - `dec(e(m,r)) == m, r`
 - `add`: `e(m, r) + e(n, s) == e(m+n, r*s)`
 - `smul`: `n * e(m, r) == e(m*n, r^n)`
+
+Python object `Ciphertext` with two private field; use math to prevent access instead. impl eq, dec according to logic.
 
 ## A deterministic simplification
 

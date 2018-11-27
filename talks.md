@@ -9,6 +9,16 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
 
+## Upcoming
+
+<strong><em>TBD</em></strong>
+<br/><small><em>[AI & Trust at Applied Machine Learning Days](https://www.appliedmldays.org/tracks/16), January 2019</em></small>
+
+<strong>Private Machine Learning in TensorFlow using Secure Computation</strong>
+<br/><small><em>[NeurIPS workshop on Privacy Preserving Machine Learning](https://ppml-workshop.github.io/ppml/), December 2018</em></small>
+
+## Past
+
 <strong>Technologies for Private Machine Learning</strong>
 ([slides](https://github.com/mortendahl/talks/blob/master/IFIP18-slides.pdf))
 <br/><small><em>[IFIP Summer School on Privacy and Identity Management](https://www.ifip-summerschool.org/), August 2018</em></small>

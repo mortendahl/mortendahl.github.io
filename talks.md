@@ -14,7 +14,7 @@ email:       "mortendahlcs@gmail.com"
 <strong><em>Cryptography for Privacy-Preserving Machine Learning</em></strong>
 <br/><small><em>[AI & Trust at Applied Machine Learning Days](https://www.appliedmldays.org/tracks/16), January 2019</em></small>
 <br/><small><em>[Hacking Deep Learning](https://deep-learning.forms-wizard.co.il/), January 2019</em></small>
-<br/><small><em>[Zero Knowledge TLV](https://www.meetup.com/Zero-Knowledge-TLV/), January 2019</em></small>
+<br/><small><em>[Zero Knowledge TLV](https://www.meetup.com/Zero-Knowledge-TLV/events/257367262/), January 2019</em></small>
 
 ## Past
 

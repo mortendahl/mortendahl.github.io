@@ -19,6 +19,7 @@ linkedin:    "mortendahlcs"
         {% endif %}
     </a>
     <p class="post-meta">by {% if post.author %}{{ post.author }}{% else %}{{ site.title }}{% endif %} on {{ post.date | date: "%B %-d, %Y" }}</p>
+    <p class="post-summary">{% if post.summary %}{{ post.summary }}{% endif %}</p>
 </div>
 <hr>
 {% endfor %}

@@ -5,6 +5,7 @@ subtitle:   "Implementing the SPDZ Protocol using TensorFlow"
 date:       2018-03-01 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/tensorspdz/tensorflow.png"
+summary:    "Using TensorFlow as a distributed computation framework for dataflow programs we give a full implementation of a secure computation protocol with networking, in turn enabling optimised machine learning on encrypted data."
 ---
 
 <em><strong>TL;DR:</strong> using TensorFlow as a distributed computation framework for dataflow programs we give a full implementation of the SPDZ protocol with networking, in turn enabling optimised machine learning on encrypted data.</em> 

@@ -5,6 +5,7 @@ subtitle:   "Training CNNs on Sensitive Data"
 date:       2017-09-19 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-04.jpg"
+summary:    "We take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data using the SPDZ protocol."
 ---
 
 <em><strong>TL;DR:</strong> we take a typical CNN deep learning model and go through a series of steps that enable both training and prediction to instead be done on encrypted data.</em> 

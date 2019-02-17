@@ -5,6 +5,7 @@ subtitle:   "Distributing Trust and Work"
 date:       2017-06-04 12:00:00
 header-img: "img/post-bg-02.jpg"
 author:     "Morten Dahl"
+summary:    "First part in a series where we look at secret sharing schemes, including the lesser known packed variant of Shamir's scheme, and give full and efficient implementations. We start in this post by looking at the more typical textbook approaches."
 ---
 
 <em><strong>TL;DR:</strong> first part in a series where we look at secret sharing schemes, including the lesser known packed variant of Shamir's scheme, and give full and efficient implementations; here we start with the textbook approaches, with follow-up posts focusing on improvements from more advanced techniques for [sharing](/2017/06/24/secret-sharing-part2) and [reconstruction](/2017/08/13/secret-sharing-part3).</em>

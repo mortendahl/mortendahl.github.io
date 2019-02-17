@@ -5,6 +5,7 @@ subtitle:   "A Simple Tutorial from Scratch"
 date:       2017-04-17 12:00:00
 header-img: "img/post-bg-01.jpg"
 author:     "Morten Dahl"
+summary:    "We build a simple secure computation protocol from scratch and use it to train simple neural networks for basic boolean functions."
 ---
 
 Inspired by a recent blog post about mixing deep learning and homomorphic encryption (see [*Building Safe A.I.*](http://iamtrask.github.io/2017/03/17/safe-ai/)) I thought it'd be interesting do to the same using *secure multi-party computation* instead of homomorphic encryption.

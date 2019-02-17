@@ -5,6 +5,7 @@ subtitle:   "Robust Reconstruction via Reed-Solomon Codes"
 date:       2017-08-13 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-jupiter.gif"
+summary:    "We have previously seen that redundancy in secret sharing can be used to recover from lost shares. In this third part of the series we use Reed-Solomon decoding methods to see that it can also be used to detect when some shares have been manipulated."
 ---
 
 <em><strong>TL;DR:</strong> due to redundancy in the way shares are generated, we can compensate not only for some of them being lost but also for some being manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>

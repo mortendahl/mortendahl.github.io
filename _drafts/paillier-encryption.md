@@ -13,6 +13,23 @@ summary:    "The Paillier homomorphic encryption scheme is not only interesting 
 20 year anniversary (15 april)
 
 [`python-paillier`](https://github.com/n1analytics/python-paillier)
+[`rust-paillier`](https://github.com/mortendahl/rust-paillier)
+[Public-Key Cryptosystems Based on Composite Degree Residuosity Classes](https://link.springer.com/chapter/10.1007%2F3-540-48910-X_16)
+
+- The need for probabilistic encryption
+- full scheme with mapping `g^m * r^n` for `Zn x Zn*`
+- security from hidden structure
+- there are things we want from the mapping, besides being efficient to compute: 
+    - efficient to invert knowning decryption key
+    - provide security
+
+
+- Idea of mapping into algebraic structure to hide message
+- should be easy in one direction, hard in the opposite without secret key
+- in a HE scheme the mapping should preserve certain operations
+- PHE vs SHE vs FHE; benchmarks?
+- link to paper and [Introduction to Modern Cryptography](http://www.cs.umd.edu/~jkatz/imc.html).
+
 
 # Basics
 
@@ -97,6 +114,8 @@ could be done lazily
 
 # Algebraic Interpretation
 
+`(1 + n)**x == 1 + nx mod nn` and `(1 + n)**x == 1 + nx mod pp`
+
 `(Zn2*, *) ~ (Zn, +) x (Zn*, *)`
 
 HE
@@ -124,7 +143,7 @@ img {
 
 
 
-# Decryption
+## Decryption
 
 ## Opening
 
@@ -154,53 +173,195 @@ To understand the scheme, not least in terms of security and how decryption work
 the reasons for switching from computing mod `n` as in RSA to computing mod `n^2` instead of something else will become clearer later, but for now let's just say that in order to get a probabilistic scheme we have to let room for some randomness `r` (in ElGamal, another probabilistic scheme from roughly the same period does this by letting ciphertexts be pairs of values instead; however in Paillier we simply double the modulus).
 
 
+# Implementation
+
+- base on good library for arbitrary precision integer ops (framp, GMP)
+- side-channel challenges
+- refs:
+  - n1analytics (java-python)
+  - rust-paillier
+  - benchmark blog post
+
+https://github.com/n1analytics/cuda-fixnum for Paillier on GPU
+
+## Key generation
+
+```rust
+pub struct Keypair {
+    pub p: BigInt,
+    pub q: BigInt,
+}
+
+impl Keypair {
+    fn new_with_prime_size(bitlength: usize) -> Keypair {
+        let p = BigInt::sample_prime(bitlength);
+        let q = BigInt::sample_prime(bitlength);
+        Keypair { p, q }
+    }
+
+    fn new() -> Keypair {
+        new_with_prime_size(1024)
+    }
+}
+```
+
+### Derived values
+
+`pinv`, `pp`, `qq`
 
 
 
-# DUMP
+## The Chinese remainder theorem
+
+above we used algebra and isomorphisms to understand the encryption scheme and argue why decryption works. here we'll use it to speed up computations. the crt defines an isomorphism.
+
+before we had `Zn2* ~ Zn x Zn*` and for the same reasons we also have `Zp2* ~ Zp x Zp*` and `Zq2* ~ Zq x Zq*`. but from the general crt we also have `Zn2* ~ Zp2* x Zq2*`. and we can combine these so `Zn2* ~ Zp2* x Zq2* ~ (Zp x Zp*) x (Zq x Zq*)`.
+
+```rust
+fn crt_decompose(x: &BigInt, p: &BigInt, q: &BigInt) -> (BigInt, BigInt) {
+    (x % p, x % q)
+}
+```
+
+```rust
+fn crt_recombine(x1: &BigInt, x2: &BigInt, p: &BigInt, q: &BigInt) -> BigInt {
+    let mut diff = (x2 - x1) % q;
+    if diff < 0 {
+        diff += q;
+    }
+    let u = (diff * modinv(&p, &q)) % q;
+    x1 + (u * p)
+}
+```
 
 
+### Decryption
+
+```rust
+fn decrypt(dk: &DecryptionKey, c: &BigInt) -> BigInt {
+    let dn = modpow(&c, &dk.norder, &dk.nn);
+    let ln = l(&dn, &dk.n);
+    (ln * &dk.mu) % &dk.n
+}
+```
+
+```rust
+fn crt_decrypt(dk: &DecryptionKey, c: &BigInt) -> BigInt {
+    let (cp, cq) = crt_decompose(c, &dk.pp, &dk.qq);
+    let (mp, mq) = join(
+        || {
+            let dp = modpow(&cp, &dk.porder, &dk.pp);
+            let lp = l(&dp, &dk.p);
+            (&lp * &dk.hp) % &dk.p
+        },
+        || {
+            let dq = modpow(&cq, &dk.qorder, &dk.qq);
+            let lq = l(&dq, &dk.q);
+            (&lq * &dk.hq) % &dk.q
+        },
+    );
+    crt_recombine(mp, mq, &dk.p, &dk.q)
+}
+```
+
+```rust
+pub fn extract_nroot(dk: &DecryptionKey, z: &BigInt) -> BigInt {
+    let (zp, zq) = crt_decompose(z, &dk.p, &dk.q);
+    let (rp, rq) = join(
+        || { BigInt::modpow(&zp, &dk.dp, &dk.p) },
+        || { BigInt::modpow(&zq, &dk.dq, &dk.q) },
+    );
+    crt_recombine(rp, rq, &dk.p, &dk.q)
+}
+```
 
 
-# The Paillier Encryption Scheme
+### Encryption
 
-- Idea of mapping into algebraic structure to hide message
-- should be easy in one direction, hard in the opposite without secret key
-- in a HE scheme the mapping should preserve certain operations
-- PHE vs SHE vs FHE; benchmarks?
-- link to paper and [Introduction to Modern Cryptography](http://www.cs.umd.edu/~jkatz/imc.html).
+```rust
+fn encrypt(ek: &EncryptionKey, x: &BigInt, r: &BigInt) -> BigInt {
+    let rn = modpow(r, &ek.n, &ek.nn);
+    let gm = (1 + x * &ek.n) % &ek.nn;
+    (gm * rn) % &ek.nn
+}
+```
 
-## Abstract properties
+```rust
+fn crt_encrypt(dk: &DecryptionKey, m: &BigInt, r: &BigInt) -> BigInt {
+    let (mp, mq) = crt_decompose(m, &dk.pp, &dk.qq);
+    let (rp, rq) = crt_decompose(r, &dk.pp, &dk.qq);
+    let (cp, cq) = join(
+        || {
+            let rp = modpow(&rp, &dk.n, &dk.pp);
+            let gp = (1 + mp * &dk.p) % &dk.pp;
+            (gp * rp) % &dk.pp
+        },
+        || {
+            let rq = modpow(&rq, &dk.n, &dk.qq);
+            let gq = (1 + mq * &dk.q) % &dk.qq;
+            (gq * rq) % &dk.qq
+        },
+    );
+    crt_recombine(cp, cq, &dk.pp, &dk.qq)
+}
+```
 
-- `enc(m, r) == e(m, r)`
-- `dec(e(m,r)) == m, r`
-- `add`: `e(m, r) + e(n, s) == e(m+n, r*s)`
-- `smul`: `n * e(m, r) == e(m*n, r^n)`
 
-Python object `Ciphertext` with two private field; use math to prevent access instead. impl eq, dec according to logic.
+```rust
+fn encrypt(
+    x: &BigInt,
+    r: &BigInt,
+    m: &BigInt, mm: &BigInt,
+) -> BigInt
+{
+    let rm = modpow(r, m, mm);
+    let gx = (1 + x * m) % mm;
+    (gx * rm) % mm
+}
+```
 
-## A deterministic simplification
+```rust
+fn crt_encrypt(
+    x: &BigInt,
+    r: &BigInt,
+    p: &BigInt, pp: &BigInt,
+    q: &BigInt, qq: &BigInt,
+) -> BigInt
+{
+    let (xp, xq) = crt_decompose(x, pp, qq);
+    let (rp, rq) = crt_decompose(r, pp, qq);
+    let (cp, cq) = join(
+        || { encrypt(&xp, &rp, p, pp) },
+        || { encrypt(&xq, &rq, q, qq) },
+    );
+    crt_recombine(cp, cq, pp, qq)
+}
+```
 
-- No randomness component
-- mapping `g^m` for `Zn` and that it preserves some operations
-- security rests on ...
 
-## Paillier's probabilistic mapping
+precomputed randomness
 
-- The need for probabilistic encryption
-- full scheme with mapping `g^m * r^n` for `Zn x Zn*`
-- security from hidden structure
-- there are things we want from the mapping, besides being efficient to compute: 
-    - efficient to invert knowning decryption key
-    - provide security
+```rust
+fn precompute_randomness(ek: &EncryptionKey, r: &BigInt) -> BigInt {
+    modpow(r, &ek.n, &ek.nn)
+}
+
+fn encrypt_with_precomputed(dk: &DecryptionKey, m: &BigInt, rn: &BigInt) -> BigInt {
+    let gm = (1 + m * &dk.n) % &dk.nn;
+    (gm * rn) % &dk.nn
+}
+```
+
 
 
 # Applications
 
 
-## Tips and Tricks
+Voting comes up in a lot of papers but here we will look at other uses.
 
-Encodings
+
+## Encodings
+
 - 8bit, 16bit, 32bit int
 - signed
 - rational
@@ -230,8 +391,19 @@ for `B = 10^6`.
 ```
 
 
+### Fixedpoint
 
-### Multiplication
+## Privacy-preserving predictions
+
+Linear model
+
+see more examples in python-paillier and Andrew's blog post
+
+
+## Federated Learning
+
+
+## General secure computation
 
 **insecure; follow CDN'01 and DNT'12 instead (convert to additive sharing first)**
 
@@ -246,53 +418,8 @@ The protocol assumes that Alice starts out with inputs `E(x)` and `E(y)`, and in
 
 Two questions may come into mind. The first one is why this doesn't reveal anything to the oracle, the second whether Alice can always be sure to compute `t` (keeping in mind that not all values in `Zn` has a multiplicative inverse).
 
-
-
 Knowing `E(x * r)` and 
 `E(y * s)`
-
-## Linear prediction
-
-
-## Voting
-
-## Federated Learning
-
-## General MPC
-add for free, mult requires a bit more; see Carmit's book
-
-
-
-
-
-
-# Implementation
-
-- base on good library for arbitrary precision integer ops (framp, GMP)
-- encoding
-- keygen
-- those used in rust-paillier
-  - binary exp
-  - binary? gcd
-  - mult encryption
-  - CRT decryption
-  - CRT encryption
-  - etc
-- precompute randomness
-- side-channel challenges
-- refs:
-  - n1analytics (java-python)
-  - rust-paillier
-  - benchmark blog post
-- GPUs?
-
-## Key generation
-
-## Encryption
-
-## Decryption
-
-## Homomorphic operations
 
 
 # Extensions
@@ -306,3 +433,5 @@ add for free, mult requires a bit more; see Carmit's book
 - correct decryption
 - correct HE operations
 - knowledge of plaintext
+
+[`zk-paillier`](https://github.com/KZen-networks/zk-paillier)

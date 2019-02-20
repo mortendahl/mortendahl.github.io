@@ -5,7 +5,7 @@ subtitle:   "Slides from PMPML'16, TPMPC'17, and PSA'17"
 date:       2017-08-12 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-06.jpg"
-summary:    "Overview of recent work done at Snips on applying privacy-enhancing technologies as a start-up building privacy-aware machine learning systems for mobile devices. Mainly centered around secure aggregation for federated learning from user data but also some discussion around privacy from a broader perspective."
+summary:    "Overview of work done at Snips on applying privacy-enhancing technologies as a start-up building privacy-aware machine learning systems for mobile devices. Mainly centered around secure aggregation for federated learning from user data but also some discussion around privacy from a broader perspective."
 ---
 
 During winter and spring I was fortunate enough to have a few occasions to talk about some of the work done at [Snips](https://snips.ai) on applying [privacy-enhancing technologies](https://en.wikipedia.org/wiki/Privacy-enhancing_technologies) in a start-up building privacy-aware machine learning systems for mobile devices. 

@@ -9,13 +9,11 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
 
+# Talks
+
 <strong>Privacy-Preserving Machine Learning in TensorFlow with TF Encrypted</strong>
 <br/><small><em>[O'Reilly AI Conference New York](https://conferences.oreilly.com/artificial-intelligence/ai-ny), April 2019 (**upcoming**)</em></small>
 <br/><small><em>We focus on recent applications of privacy-preserving techniques to machine learning, in particular deep learning, and review how tools such as homomorphic encryption and multi-party computation can benefit the machine learning process. We then more in-depth with concrete examples of how the TF Encrypted open source library can be used to explore and experiment directly in TensorFlow, showing how predictions can be done without exposing the prediction input, and how a model can be fitted without ever exposing the training data.</em></small>
-
-<strong>Private Machine Learning in TensorFlow using Secure Computation</strong>
-<br/><small><em>[NeurIPS workshop on Privacy Preserving Machine Learning](https://ppml-workshop.github.io/ppml/), December 2018 (**[paper](https://arxiv.org/abs/1810.08130)**, [slides](https://github.com/mortendahl/talks/raw/master/PPML18-slides.pdf))</em></small>
-<br/><small><em>We present a framework for experimenting with secure multi-party computation directly in TensorFlow. By doing so we benefit from several properties valuable to both researchers and practitioners, including tight integration with ordinary machine learning processes, existing optimizations for distributed computation in TensorFlow, high-level abstractions for expressing complex algorithms and protocols, and an expanded set of familiar tooling. We give an open source implementation of a state-of-the-art protocol and report on concrete benchmarks using typical models from private machine learning.</em></small>
 
 <strong><em>Cryptography for Privacy-Preserving Machine Learning</em></strong>
 <br/><small><em>[AI & Trust at Applied Machine Learning Days](https://www.appliedmldays.org/tracks/16), January 2019 ([slides](https://github.com/mortendahl/talks/blob/master/AMLD19-slides.pdf))</em></small>
@@ -30,10 +28,16 @@ email:       "mortendahlcs@gmail.com"
 <br/><small><em>[Privacy in Statistical Analysis](http://wwwf.imperial.ac.uk/~nadams/events/ic-rss2017/ic-rss2017.html) (PSA), May 2017 ([slides](https://github.com/mortendahl/talks/raw/master/PSA17-slides.pdf))</em></small>
 <br/><small><em>Privacy has been a guiding component at Snips from its very beginning, partly motivated by a core belief but also by a business rationale. In this talk we will outline some of the arguments that have led to our decisions and illustrate some of the challenges we have faced. We will further discuss a few concrete techniques by which we have aimed to overcome these, tailored to the fact that Snips is primarily focused on mobile and IoT.</em></small>
 
+# Papers
+
+<strong>Private Machine Learning in TensorFlow using Secure Computation</strong>
+<br/><small><em>[NeurIPS workshop on Privacy Preserving Machine Learning](https://ppml-workshop.github.io/ppml/), December 2018 (**[paper](https://arxiv.org/abs/1810.08130)**, [slides](https://github.com/mortendahl/talks/raw/master/PPML18-slides.pdf))</em></small>
+<br/><small><em>We present a framework for experimenting with secure multi-party computation directly in TensorFlow. By doing so we benefit from several properties valuable to both researchers and practitioners, including tight integration with ordinary machine learning processes, existing optimizations for distributed computation in TensorFlow, high-level abstractions for expressing complex algorithms and protocols, and an expanded set of familiar tooling. We give an open source implementation of a state-of-the-art protocol and report on concrete benchmarks using typical models from private machine learning.</em></small>
+
 <strong>Private Data Aggregation on a Budget</strong>
 <br/><small><em>[Homomorphic Encryption Applications and Technology](https://heat-project.eu/finalworkshop/) (HEAT), November 2017 (**[slides](https://github.com/mortendahl/talks/raw/master/HEAT17-slides.pdf)**)</em></small>
 <br/><small><em>[Theory and Practice of Multi-Party Computation](http://www.multipartycomputation.com/tpmpc-2017) (TPMPC), April 2017 ([slides](https://github.com/mortendahl/talks/raw/master/TPMPC17-slides.pdf))</em></small>
-<br/><small><em>[Private Multi-Party Machine Learning](https://pmpml.github.io/PMPML16/) (PMPML), December 2016 (**[full paper](https://eprint.iacr.org/2017/643)**)</em></small>
+<br/><small><em>[NIPS workshop on Private Multi-Party Machine Learning](https://pmpml.github.io/PMPML16/) (PMPML), December 2016 (**[full paper](https://eprint.iacr.org/2017/643)**)</em></small>
 <br/><small><em>We provide a practical solution to performing cross-user machine learning through aggregation on a sensitive dataset distributed among privacy-concerned users. We focus on a scenario in which a single company wishes to obtain the distribution of aggregate features, while ensuring a high level of privacy for the users. We are interested in the case where users own devices that are not necessarily powerful or online at all times, like smartphones or web browsers. This premise makes general solutions, such as general multiparty computation (MPC), less applicable. We design an efficient special-purpose MPC protocol that outputs aggregate features to the company, while keeping online presence and computational complexity on the users’ side at a minimum. This basic protocol is secure against a majority of corrupt users, as long as they do not collude with the company. If they do, we still guarantee security, as long as the fraction of corrupt users is lower than a certain, tweakable, parameter. We propose different enhancements of this solution: one guaranteeing some degree of active security, and one that additionally ensures differential privacy. Finally, we report on the performance of our implementation on several realistic real-world use-cases across different devices.</em></small>
 
 <strong>Universally Composable Symbolic Analysis for Two-Party Protocols based on Homomorphic Encryption</strong>

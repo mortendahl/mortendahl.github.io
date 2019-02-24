@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "Talks & Papers"
+title: "Resources"
 description: "Slides and more from recent talks"
 header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
@@ -63,3 +63,30 @@ We show how any protocol in our class can be compiled to a symbolic representati
 <br/><small><em>Formal Methods and Cryptography (CryptoForma), 2010</em></small>
 <br/><small><em>[Foundations of Security and Privacy](http://www.floc-conference.org/FCS-PrivMod-home.html) (FCS-PrivMod), July 2010</em></small>
 <br/><small><em>Safety critical applications for recently proposed vehicle to vehicle ad-hoc networks (VANETs) rely on a beacon signal, which poses a threat to privacy since it could allow a vehicle to be tracked. Mix-zones, where vehicles encrypt their transmissions and then change their identifiers, have been proposed as a solution to this problem. In this work, we describe a formal analysis of mix-zones. We model a mix-zone and propose a formal definition of privacy for such a zone. We give a set of necessary conditions for any mix-zone protocol to preserve privacy. We analyse, using the tool ProVerif, a particular proposal for key distribution in mix-zones, the CMIX protocol. We show that in many scenarios it does not preserve privacy, and we propose a fix.</em></small>
+
+# Other
+
+<strong>Experimenting with TF Encrypted</strong>
+<br/><small><em>with Jason Mancuso ([blog post](https://medium.com/dropoutlabs/experimenting-with-tf-encrypted-fe37977ff03c))</em></small>
+
+<strong>Private Analytics with SDA</strong>
+<br/><small><em>with Mario Cornejo and Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/private-analytics-with-sda-d98a0251ab32), [code](https://github.com/snipsco/sda))</em></small>
+
+<strong>Benchmarking Paillier Encryption</strong>
+<br/><small><em>with Mario Cornejo and Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/benchmarking-paillier-encryption-15631a0b5ad8), [code](https://github.com/mortendahl/rust-paillier), [benchmarks](https://github.com/mortendahl/paillier-libraries-benchmarks))</em></small>
+
+<strong>Prime Number Generation in Rust</strong>
+<br/><small><em>with Mario Cornejo ([blog post](https://medium.com/snips-ai/prime-number-generation-2a02f28508ff))</em></small>
+
+<strong>Optimizing Threshold Secret Sharing</strong>
+<br/><small><em>with Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/optimizing-threshold-secret-sharing-c877901231e5))</em></small>
+
+<strong>High-Volume Secret Sharing</strong>
+<br/><small><em>with Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/high-volume-secret-sharing-2e7dc5b41e9a), [code](https://github.com/mortendahl/rust-threshold-secret-sharing))</em></small>
+
+<strong>How Practical is Somewhat Homomorphic Encryption Today?</strong>
+<br/><small><em>with Maeva Benoit ([blog post](https://medium.com/snips-ai/how-practical-is-somewhat-homomorphic-encryption-today-6818d1c6f7f6))</em></small>
+
+<strong>Differential Privacy for the Rest of Us</strong>
+<br/><small><em>with Joseph Dureau ([blog post](https://medium.com/snips-ai/differential-privacy-for-the-rest-of-us-665e053cec17))</em></small>
+

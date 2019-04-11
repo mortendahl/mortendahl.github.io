@@ -12,7 +12,8 @@ email:       "mortendahlcs@gmail.com"
 # Talks
 
 <strong>Privacy-Preserving Machine Learning in TensorFlow with TF Encrypted</strong>
-<br/><small><em>[O'Reilly AI Conference New York](https://conferences.oreilly.com/artificial-intelligence/ai-ny), April 2019 (**upcoming**)</em></small>
+<br/><small><em>[O'Reilly AI Conference New York](https://conferences.oreilly.com/artificial-intelligence/ai-ny/public/schedule/detail/76542), April 2019 (**upcoming**)</em></small>
+<br/><small><em>[RAAIS](https://raais.co/speakers-2019-morten-dahl-dropout-labs), June 2019 (**upcoming**)</em></small>
 <br/><small><em>We focus on recent applications of privacy-preserving techniques to machine learning, in particular deep learning, and review how tools such as homomorphic encryption and multi-party computation can benefit the machine learning process. We then more in-depth with concrete examples of how the TF Encrypted open source library can be used to explore and experiment directly in TensorFlow, showing how predictions can be done without exposing the prediction input, and how a model can be fitted without ever exposing the training data.</em></small>
 
 <strong><em>Cryptography for Privacy-Preserving Machine Learning</em></strong>

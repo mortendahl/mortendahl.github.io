@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Resources"
-description: "Slides and more from recent talks"
+description: "Talks, papers, and more"
 header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
 github:      "mortendahl"
@@ -77,7 +77,7 @@ We show how any protocol in our class can be compiled to a symbolic representati
 <br/><small><em>[Foundations of Security and Privacy](http://www.floc-conference.org/FCS-PrivMod-home.html) (FCS-PrivMod), July 2010</em></small>
 <br/><small><em>Safety critical applications for recently proposed vehicle to vehicle ad-hoc networks (VANETs) rely on a beacon signal, which poses a threat to privacy since it could allow a vehicle to be tracked. Mix-zones, where vehicles encrypt their transmissions and then change their identifiers, have been proposed as a solution to this problem. In this work, we describe a formal analysis of mix-zones. We model a mix-zone and propose a formal definition of privacy for such a zone. We give a set of necessary conditions for any mix-zone protocol to preserve privacy. We analyse, using the tool ProVerif, a particular proposal for key distribution in mix-zones, the CMIX protocol. We show that in many scenarios it does not preserve privacy, and we propose a fix.</em></small>
 
-# Other
+# More
 
 <strong>Experimenting with TF Encrypted</strong>
 <br/><small><em>with Jason Mancuso ([blog post](https://medium.com/dropoutlabs/experimenting-with-tf-encrypted-fe37977ff03c))</em></small>

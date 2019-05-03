@@ -2,7 +2,7 @@
 title: Cryptography and Machine Learning
 header-img: img/home-bg.jpg
 #copyright_name: Your/Project/Corporate Name
-description: "Mixing both for private data analysis"
+description: "Mixing both for privacy-preserving machine learning"
 baseurl: ""
 url: "https://mortendahl.github.io"
 email: mortendahlcs@gmail.com
@@ -18,7 +18,7 @@ google_tracking_id: UA-101935827-1
 markdown: kramdown
 highlighter: rouge
 permalink: pretty
-paginate: 25
+paginate: 50
 exclude: ["less","node_modules","Gruntfile.js","package.json"]
 
 gems: [jekyll-paginate, jekyll-feed]

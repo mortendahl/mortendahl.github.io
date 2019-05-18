@@ -2,7 +2,7 @@
 layout:     post
 title:      "The Chinese Remainder Theorem"
 subtitle:   "Decomposing Numbers for Efficiency"
-date:       2018-01-29 12:00:00
+date:       2018-08-19 12:00:00
 author:     "Morten Dahl"
 header-img: "img/post-bg-01.jpg"
 ---
@@ -11,7 +11,8 @@ header-img: "img/post-bg-01.jpg"
 
 Many operations in cryptography is done in finite algebraic structures such as [groups](https://en.wikipedia.org/wiki/Group_(mathematics)), [rings](https://en.wikipedia.org/wiki/Ring_(mathematics)), or [fields](https://en.wikipedia.org/wiki/Field_(mathematics)). Or more concretely, they involve [modular arithmetic](https://en.wikipedia.org/wiki/Modular_arithmetic) using the numbers `0, 1, 2, ..., M-1` for some given modulus `M`. As we will see in this blog post, how these numbers are represented can make a big difference, from speeding up computations to enabling the use of libraries not intended for computation with large numbers.
 
-
+Taschwer01
+DDV19
 
 # The Chinese Remainder Theorem
 
@@ -26,6 +27,9 @@ Knuth 2, page 289: positional notation vs modular form
 residue number systems
 
 ring arithmetic
+
+https://www.uow.edu.au/~thomaspl/pdf/talk04a.pdf
+https://www.ams.org/journals/mcom/1967-21-098/S0025-5718-1967-0224252-5/S0025-5718-1967-0224252-5.pdf
 
 For all examples in this section we'll use ring `Z_105`, i.e. numbers `0, ..., 104`, where the modulus breaks down as `105 == 3 * 5 * 7` and gives us our moduli `ms = (3, 5, 7)`. 
 
@@ -127,7 +131,9 @@ def crt_mod(x, k):
 
 ### Normalized
 
+## Bit extraction
 
+chunk by chunk
 
 # Benchmarks
 

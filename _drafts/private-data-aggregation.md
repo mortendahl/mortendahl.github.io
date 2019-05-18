@@ -4,7 +4,7 @@ title:      "Private Data Aggregation on a Budget"
 subtitle:   "Secure Federated Learning for Sporadic Devices"
 date:       2019-01-02 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-01.jpg"
+header-img: "assets/sda/constellation.png"
 summary:    "What happens when you want to do secure multiparty computation but you are the only party motivated in investing resources in it? In this blog post we walk through a simple protocol for secure aggregation for federated learning, explaining the how and why of several cryptographic techniques."
 ---
 
@@ -25,6 +25,8 @@ this came out at about the same time as Google's secure aggregation paper; where
 
 
 in this post i want to not only show how it works but also how we built it
+
+<em>Parts of this blog post are inspired from work done at [Snips](https://snips.ai) originally published on [their blog](https://medium.com/snips-ai/private-analytics-with-sda-d98a0251ab32).</em>
 
 # Motivation
 

@@ -2,11 +2,18 @@
 layout:     post
 title:      "An Illustrated Primer on Paillier"
 subtitle:   "Overview of a Homomorphic Encryption Scheme"
-date:       2019-01-15 12:00:00
+date:       2019-04-15 12:00:00
 author:     "Morten Dahl"
-header-img: "img/post-bg-01.jpg"
+header-img: "assets/paillier/autostereogram-space-shuttle.jpeg"
 summary:    "The Paillier homomorphic encryption scheme is not only interesting for allowing computation on encrypted values, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra."
 ---
+
+<style>
+img {
+    margin-left: auto;
+    margin-right: auto;
+}
+</style>
 
 <em><strong>TL;DR:</strong> the Paillier encryption scheme is not only interesting for allowing computation on encrypted values, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra.</em>
 
@@ -17,7 +24,7 @@ summary:    "The Paillier homomorphic encryption scheme is not only interesting 
 [Public-Key Cryptosystems Based on Composite Degree Residuosity Classes](https://link.springer.com/chapter/10.1007%2F3-540-48910-X_16)
 
 - The need for probabilistic encryption
-- full scheme with mapping `g^m * r^n` for `Zn x Zn*`
+- full scheme with mapping `g^x * r^n` for `Zn x Zn*`
 - security from hidden structure
 - there are things we want from the mapping, besides being efficient to compute: 
     - efficient to invert knowning decryption key
@@ -30,72 +37,150 @@ summary:    "The Paillier homomorphic encryption scheme is not only interesting 
 - PHE vs SHE vs FHE; benchmarks?
 - link to paper and [Introduction to Modern Cryptography](http://www.cs.umd.edu/~jkatz/imc.html).
 
+like [autostereograms](https://en.wikipedia.org/wiki/Autostereogram) there's a hidden pattern; unlike them, discovering the underlying pattern via starring will simply take too long
+
+<em>Parts of this blog post are inspired from work done at [Snips](https://snips.ai), some of it originally published in a two [blog](https://medium.com/snips-ai/prime-number-generation-2a02f28508ff) [posts](https://medium.com/snips-ai/benchmarking-paillier-encryption-15631a0b5ad8).</em>
+
 
 # Basics
 
-The Paillier encryption scheme is defined by a mapping `enc` that turns a message and randomness pair `(m, r)` into a ciphertext `c = enc(m, r)`. Here, `m` is the message we wish to encrypt while `r` is an independent random value that makes Paillier a [probabilistic encryption scheme](https://en.wikipedia.org/wiki/Probabilistic_encryption): even if we encrypt the same message `m` several times we end up different ciphertexts due to different randomness being used, in turn making it impossible to guess `m` by brute force even if it only takes on a few different values (as one would have to guess `r` as well, which can be picked large enough to make it impossible to guess, or at least only with negligable probability).
-
+The Paillier encryption scheme is defined by a function `enc` that maps a message `x` and randomness `r` to a ciphertext `c = enc(x, r)`. The effect of having both `x` and `r` is that we end up different ciphertexts even if we encrypt the same `x` several times: if `r1`, `r2`, and `r3` are different then so are `c1 = enc(x, r1)`, `c2 = enc(x, r2)`, and `c3 = enc(x, r3)`.
 
 <img src="/assets/paillier/probabilistic.png" style="width: 50%;"/>
 
-  This is done relative to a specific but here implicit public *encryption key* which 
+This means that even if an adversary who has obtained a ciphertext `c` knows that there are only a few options for `x`, say only either `0` or `1`, for them to figure out which one it is by simply comparing `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)`, they would also have to figure out what `r0` and `r1` should be. So, if there are sufficiently many options for these then this guessing game becomes impractical. In other words, we have removed the adversary's ability to check whether or not a guess was correctly; of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
 
-To fully define this mapping we note that `m` can be any value from `Zn = {0, 1, ..., n-1}` while `r` is limited to those numbers in `Zn` that have a multiplication inverse, i.e. `Zn*`; together this implies that `c` is a value in `Zn^2*`, ie. amoung the values in `{0, 1, ..., n^2 - 1}` that have multiplication inverses. Finally, `n = p * q` is a typical RSA modulus consisting of two primes `p` and `q`, and `g` is a fixed generator, typically picked as `g = 1 + n`.
+When `r` is chosen independently at random, Paillier encryption becomes what is known as a [probabilistic encryption scheme](https://en.wikipedia.org/wiki/Probabilistic_encryption), an often desirable property of encryption schemes per the discussion above.
 
-```python
-P = sample_prime(2048)
-Q = sample_prime(2048)
+  having enough  One motivation of including a randomness in the ciphertext is that it makes it impractical to guess `x` simply by trying to encrypt different values and check whether the ciphertexts match, as one would also have to guess `r` which is typically picked from a very large set: it is allowed to be any element from `Zn = {0, 1, ..., n-1}`, where `n` is a number with between 2000 and 4000 bits (we a lying a tiny bit here, but will return to that soon).
 
-N = P * Q
-NN = N * N
-G = 1 + N
-```
+
+ Formally this makes Paillier a [probabilistic encryption scheme](https://en.wikipedia.org/wiki/Probabilistic_encryption), which is often a desirable property of encryption schemes.
 
 ```python
-def enc(m, r):
-    Gm = pow(G, m, NN)
-    rN = pow(r, N, NN)
-    c = (Gm * rN) % NN
+def enc(ek, x, r):
+    gx = pow(ek.g, x, ek.nn)
+    rn = pow(r, ek.n, ek.nn)
+    c = (gx * rn) % ek.nn
     return c
 ```
 
-
-, as well as its inverse `dec` that recovers both `m` and `r` from a ciphertext. Here, `enc` is implicitly using a public encryption key `ek` that everyone can know while `dec` is using a private decryption key `dk` that only those allowed to decrypt should know.
-
-The `m` is typically the message we want to encrypt while `r` is a randomness picked uniformly at random for each new encryption; as such, we get a 
-
-## Homomorphic properties
-
-Besides being probabilistic, a highly attractive property of the Paillier is that it allows for computing on encrypted values through homomorphic properties. In particuar, we can combine encryptions of `m1` and `m2` to get an encryption of `m1 + m2`, and an encryption of `m` with a constant `k` to get an encryption of `m * k`, in both cases without decrypting anything (and hence without learning anything about `m1` and `m2`.
-
-### Addition
-
-To see how this works let's start with addition: given `c1 = enc(m1, r1)` and `c2 = enc(m2, r2)` we compute `c1 * c2 == (g^m1 * r1^n) * (g^m2 * r2^n) == g^(m1 + m2) * (r1 * r2)^n == enc(m1 + m2, r1 * r2)`, leaving out the `mod n^2` to simplify notation.
-
 ```python
-def add_encrypted(c, d):
-    e = (c * d) % NN
-    return e
+p = 5
+q = 7
+n = p * q
+ek = EncryptionKey(n)
+
+assert enc(ek, 5, 2) ==
+# from slides
 ```
 
 ```python
-def add_plain(c, k):
-    d = enc(k, 1)
-    e = (c * d) % NN
-    return e
+def sample_randomenss(ek):
+    return random.randrange(dk.n)
+```
+
+
+This means that `enc` is actually parameterized by `n` as seen below. In fact, it is also parameterized by a `g` and `nn` value that are however easily derived from `n`.
+
+
+Concretely, `n = p * q` is a [RSA modulus](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) consisting of two primes `p` and `q` that for security reasons are [recommended](https://www.keylength.com/en/compare/) to each be at least 1000 bits long.
+
+
+```python
+class EncryptionKey:
+    def __init__(self, n):
+        self.n = n
+        self.nn = n * n
+        self.g = n + 1
+
+class DecryptionKey:
+    def __init__(self, p, q):
+        self.n = p * q
+        self.nn = n * n
+        self.g = n + 1
+
+        self.d = (p - 1) * (q - 1)
+        self.h = pow(g, -self.d, self.nn inv(g)
+```
+
+```python
+def keygen(n_bitlength=2048):
+    p = sample_prime(n_bitlength // 2)
+    q = sample_prime(n_bitlength // 2)
+    n = p * q
+
+    return EncryptionKey(n), DecryptionKey(p, q)
+```
+
+
+
+Jointly we call `(n, g, nn)` the *public encryption key* and `(p, q, n)` the *private decryption key*.
+
+
+
+
+ , and `g` is a fixed generator, typically picked as `g = 1 + n`.
+
+ while `r` is limited to those numbers in `Zn` that have a [multiplication inverse](https://en.wikipedia.org/wiki/Modular_multiplicative_inverse), which we denote as `Zn*`.
+
+
+
+  This is done relative to a specific but here implicit public *encryption key* which 
+
+To fully define this mapping we note that `x` can be any value from `Zn = {0, 1, ..., n-1}` while `r` is limited to those numbers in `Zn` that have a multiplication inverse, i.e. `Zn*`; together this implies that `c` is a value in `Zn^2*`, ie. amoung the values in `{0, 1, ..., n^2 - 1}` that have multiplication inverses. Finally, `n = p * q` is a typical RSA modulus consisting of two primes `p` and `q`, and `g` is a fixed generator, typically picked as `g = 1 + n`.
+
+```python
+ek, dk = keygen()
+```
+
+```python
+def dec(dk, c):
+    gx = pow(c, dk.d, dk.nn)
+    x = (gx - 1) // dk.n
+    return x
+```
+
+
+
+
+, as well as its inverse `dec` that recovers both `x` and `r` from a ciphertext. Here, `enc` is implicitly using a public encryption key `ek` that everyone can know while `dec` is using a private decryption key `dk` that only those allowed to decrypt should know.
+
+The `x` is typically the message we want to encrypt while `r` is a randomness picked uniformly at random for each new encryption; as such, we get a 
+
+
+## Homomorphic properties
+
+Besides being probabilistic, a highly attractive property of the Paillier is that it allows for computing on data that remains encrypted throughout the entire process. through homomorphic properties. In particuar, we can combine encryptions of `x1` and `x2` to get an encryption of `x1 + x2`, and an encryption of `x` with a constant `k` to get an encryption of `x * k`, in both cases without decrypting anything (and hence without learning anything about `x1` and `x2`.
+
+### Addition
+
+To see how this works let's start with addition: given `c1 = enc(x1, r1)` and `c2 = enc(x2, r2)` we compute `c1 * c2 == (g^x1 * r1^n) * (g^x2 * r2^n) == g^(x1 + x2) * (r1 * r2)^n == enc(x1 + x2, r1 * r2)`, leaving out the `mod n^2` to simplify notation.
+
+```python
+def add_cipher(ek, c1, c2):
+    c = (c1 * c2) % ek.nn
+    return c
+```
+
+```python
+def add_plain(ek, c1, x2):
+    c2 = pow(ek.g, x2, ek.nn)
+    c = (c1 * c2) % ek.nn
+    return c
 ```
 
 ### Multiplication
 
-Likewise, given `c = enc(m, r)` and a `k` we compute `c^k = (g^m * r^n) ^ k == g^(m * k) * (r^k)^n == enc(m * k, r ^ k)`, again leaving out `mod n^2`.
+Likewise, given `c = enc(x, r)` and a `k` we compute `c^k = (g^x * r^n) ^ k == g^(x * k) * (r^k)^n == enc(x * k, r ^ k)`, again leaving out `mod n^2`.
 
 ```python
-def mul_plain(c, k):
-    d = pow(c, k, NN)
-    return d
+def mul_plain(ek, c1, x2):
+    c = pow(c1, x2, ek.nn)
+    return c
 ```
 
-Note that the results do not exactly match the original form of encryptions: in the first case the resulting randomness is `r1 * r2` and in the latter it is `r^k`, whereas for fresh encryptions these values are uniformaly random. In some cases this may leak something about otherwise private values (see e.g. the voting application below TODO) and as a result we sometimes need a *re-randomize* operation that erases everything about how a ciphertext was created by making it look exactly as a fresh one. We do this by simply multiplying by a fresh encryption of zero: `enc(m, r) * enc(0, s) == enc(m, r*s) == enc(m, t)` for a uniformly random `t` if `s` is independent and uniformly random.
+Note that the results do not exactly match the original form of encryptions: in the first case the resulting randomness is `r1 * r2` and in the latter it is `r^k`, whereas for fresh encryptions these values are uniformaly random. In some cases this may leak something about otherwise private values (see e.g. the voting application below TODO) and as a result we sometimes need a *re-randomize* operation that erases everything about how a ciphertext was created by making it look exactly as a fresh one. We do this by simply multiplying by a fresh encryption of zero: `enc(x, r) * enc(0, s) == enc(x, r*s) == enc(x, t)` for a uniformly random `t` if `s` is independent and uniformly random.
 
 As we will see in more detail below this opens up for some powerful applications, including electronic voting, private machine learning, and general purpose secure computation. But first it's interesting to go into more details about how decryption works and why the scheme is secure.
 
@@ -103,53 +188,41 @@ As we will see in more detail below this opens up for some powerful applications
 ### Re-randomization
 
 ```python
-def rerandomize(c):
-    s = random.randrange(N)
-    d = enc(0, s)
-    e = (c * d) % NN
-    return e
+def rerandomize(ek, c):
+    s = random.randrange(ek.n)
+    sn = pow(s, ek.n, ek.nn)
+    c_fresh = (c * sn) % nn
+    return c_fresh
 ```
 
 could be done lazily
 
-# Algebraic Interpretation
-
-`(1 + n)**x == 1 + nx mod nn` and `(1 + n)**x == 1 + nx mod pp`
-
-`(Zn2*, *) ~ (Zn, +) x (Zn*, *)`
-
-HE
-- `c1 * c2 == (m1, r1) * (m2, r2) == (m1+m2, r1*r2)`
-
-- `c ^ k == (m, r) ^ k == (m * k, r^k)`
-
-- `inv(c) == inv((m, r)) == (-m, r^-1)`
-
-- `c * s^n == (m, r) * (0, s) == (m, r*s) == (m, t)`
-
-dec
-- `c^phi == (m*phi, r^phi) == (m*phi, 1) == g^(m*phi)`
-
-<style>
-img {
-    margin-left: auto;
-    margin-right: auto;
-}
-</style>
-
-<img src="/assets/paillier/nn.png" style="width: 50%;"/>
-<img src="/assets/paillier/nninverse.png" style="width: 50%;"/>
-<img src="/assets/paillier/nnstar.png" style="width: 50%;"/>
-
-
-
 ## Decryption
+
+```python
+c^len(X) == (g^x * r^n)^len(X) == g^(x * len(X)) * r^(n * len(X)) == g^(x * len(X)) * r^(len(C)) == g^(x * len(X))
+pow(c, len(X), nn) == pow(pow(g, x, nn) * pow(r, n, nn), len(X), nn == g^(x * len(X)) * r^(n * len(X)) == g^(x * len(X)) * r^(len(C)) == g^(x * len(X))
+```
 
 ## Opening
 
+
 # Security
 
+<p style="align: center;">
+<a href="http://www.hidden-3d.com/index.php?id=gallery&pk=116"><img src="/assets/paillier/autostereogram-space-shuttle.jpeg" style="width: 85%;"/></a>
+<br/><em>From World of Hidden 3D</em>
+</p>
+
+<a href="http://www.hidden-3d.com/index.php?id=gallery&pk=116"><img src="/assets/paillier/autostereogram-mars-rover.jpeg" style="width: 85%;"/></a>
+
+If you are told [the secret](TODO-how-to-see-autosteoreograms) then you can see the pattern
+
 In order to better understand the scheme, including its security, it's instructive to start with a fool-proof scheme and see how it compares.
+
+<img src="/assets/paillier/nn.png" style="width: 45%"/>
+<img src="/assets/paillier/nninverse.png" style="width: 45%"/>
+<img src="/assets/paillier/nnstar.png" style="width: 45%"/>
 
 Concretely, say you want to encrypt a value `x` from `Zn^2*`. One way of doing this is to pick a uniformly random value `s` also from `Zn2*` and multiply these together: `c = x * s mod n^2`. Since this is in fact the one-time pad (over a multiplicative group) **TODO TODO TODO really?** we get perfect secrecy, i.e. a theoretical guarantee that nothing whatsoever is leaked about `x` by `c` as long as the mask `s` remains unknown.
 
@@ -173,7 +246,32 @@ To understand the scheme, not least in terms of security and how decryption work
 the reasons for switching from computing mod `n` as in RSA to computing mod `n^2` instead of something else will become clearer later, but for now let's just say that in order to get a probabilistic scheme we have to let room for some randomness `r` (in ElGamal, another probabilistic scheme from roughly the same period does this by letting ciphertexts be pairs of values instead; however in Paillier we simply double the modulus).
 
 
-# Implementation
+# Algebraic Insights
+
+`(1 + n)**x == 1 + nx mod nn` and `(1 + n)**x == 1 + nx mod pp`
+
+`(Zn2*, *) ~ (Zn, +) x (Zn*, *)`
+
+HE
+- `c1 * c2 == (x1, r1) * (x2, r2) == (x1+x2, r1*r2)`
+
+- `c ^ k == (x, r) ^ k == (x * k, r^k)`
+
+- `inv(c) == inv((x, r)) == (-x, r^-1)`
+
+- `c * s^n == (x, r) * (0, s) == (x, r*s) == (x, t)`
+
+dec
+- `c^phi == (x*phi, r^phi) == (x*phi, 1) == g^(x*phi)`
+
+
+
+
+
+
+# Efficiency
+
+The Chinese Remainder Theorem
 
 - base on good library for arbitrary precision integer ops (framp, GMP)
 - side-channel challenges
@@ -184,157 +282,201 @@ the reasons for switching from computing mod `n` as in RSA to computing mod `n^2
 
 https://github.com/n1analytics/cuda-fixnum for Paillier on GPU
 
-## Key generation
-
-```rust
-pub struct Keypair {
-    pub p: BigInt,
-    pub q: BigInt,
-}
-
-impl Keypair {
-    fn new_with_prime_size(bitlength: usize) -> Keypair {
-        let p = BigInt::sample_prime(bitlength);
-        let q = BigInt::sample_prime(bitlength);
-        Keypair { p, q }
-    }
-
-    fn new() -> Keypair {
-        new_with_prime_size(1024)
-    }
-}
+```
+test micro::bench_pow128          ... bench:      40,630 ns/iter (+/- 32,583)
+test micro::bench_pow256          ... bench:     282,069 ns/iter (+/- 325,362)
+test micro::bench_pow384          ... bench:     751,478 ns/iter (+/- 691,504)
+test micro::bench_pow512          ... bench:   1,673,984 ns/iter (+/- 3,096,919)
+test micro::bench_pow640          ... bench:   3,097,269 ns/iter (+/- 1,463,063)
+test micro::bench_pow768          ... bench:   5,101,171 ns/iter (+/- 722,831)
+test micro::bench_pow896          ... bench:   7,768,877 ns/iter (+/- 523,873)
+test micro::bench_pow1024         ... bench:  11,239,404 ns/iter (+/- 6,250,901)
 ```
 
-### Derived values
+<p style="align: center;"><img src="/assets/paillier/pow-complexity.png" style="width: 85%;"/></p>
 
-`pinv`, `pp`, `qq`
-
-
-
-## The Chinese remainder theorem
+with `Oh(n) = n^2.3` we have `Oh(2n) = 2^2.3 * n^2.3 = 2^2.3 * Oh(n)`, or roughly `Oh(2n) = 5 * Oh(n)`, meaning that doubling the length of numbers makes the computation roughly five times slower, or conversely, working on numbers half the length cuts running time down by a factor of roughly five. and on top of that, with CRT we can do things in parallel, cutting the running time by an additional factor of two if enough cores are available.
 
 above we used algebra and isomorphisms to understand the encryption scheme and argue why decryption works. here we'll use it to speed up computations. the crt defines an isomorphism.
 
 before we had `Zn2* ~ Zn x Zn*` and for the same reasons we also have `Zp2* ~ Zp x Zp*` and `Zq2* ~ Zq x Zq*`. but from the general crt we also have `Zn2* ~ Zp2* x Zq2*`. and we can combine these so `Zn2* ~ Zp2* x Zq2* ~ (Zp x Zp*) x (Zq x Zq*)`.
 
+[benchmarks](https://github.com/mortendahl/privateml/tree/master/paillier/benchmarks)
+
+`cargo bench`
+
+
+
+
 ```rust
-fn crt_decompose(x: &BigInt, p: &BigInt, q: &BigInt) -> (BigInt, BigInt) {
-    (x % p, x % q)
-}
+let (x1, x2) = (x % m1, x % m2);
 ```
 
 ```rust
-fn crt_recombine(x1: &BigInt, x2: &BigInt, p: &BigInt, q: &BigInt) -> BigInt {
-    let mut diff = (x2 - x1) % q;
-    if diff < 0 {
-        diff += q;
+fn crt(x1: &BigInt, x2: &BigInt, m1: &BigInt, m2: &BigInt, m1_inv: &BigInt) -> BigInt {
+    let mut diff = x2 - x1;
+    if diff.sign() == Sign::Negative {
+        diff = (diff % m2) + m2;
     }
-    let u = (diff * modinv(&p, &q)) % q;
-    x1 + (u * p)
+    let u = (diff * m1_inv) % m2;
+    x1 + (u * m1)
 }
 ```
 
 
 ### Decryption
 
+
+<strong>raising to `n_order_n_order_inv` adds a lot, don't do this; use h instead</strong>
+
+```
+test plain::bench_decrypt         ... bench:  21,451,726 ns/iter (+/- 1,606,939)
+test crt::bench_decrypt           ... bench:   3,269,054 ns/iter (+/- 511,768)
+test crt::parallel::bench_decrypt ... bench:   1,723,580 ns/iter (+/- 694,941)
+```
+
 ```rust
-fn decrypt(dk: &DecryptionKey, c: &BigInt) -> BigInt {
-    let dn = modpow(&c, &dk.norder, &dk.nn);
-    let ln = l(&dn, &dk.n);
-    (ln * &dk.mu) % &dk.n
+fn decrypt(c: &BigInt, dk: &DecryptionKey) -> BigInt {
+    let gx = pow(c, &dk.n_order_n_order_inv, &dk.nn);
+    l(&gx, &dk.n)
+}
+```
+
+`decrypt(c, n, nn, n_order)`
+
+```rust
+fn decrypt(c: &BigInt, dk: &DecryptionKey) -> BigInt {
+    let (cp, cq) = (c % &dk.pp, c % &dk.qq);
+    let mp = decrypt_component(&cp, &dk.p, &dk.pp, &dk.p_order, &dk.hp);
+    let mq = decrypt_component(&cq, &dk.q, &dk.qq, &dk.q_order, &dk.hq);
+    crt(&mp, &mq, &dk.p, &dk.q, &dk.p_inv)
+}
+
+fn decrypt_component(
+    c: &BigInt,
+    m: &BigInt,
+    mm: &BigInt,
+    m_order: &BigInt,
+    hm: &BigInt,
+) -> BigInt {
+    let dm = pow(c, m_order, mm);
+    let lm = l(&dm, m);
+    (lm * hm) % m
 }
 ```
 
 ```rust
-fn crt_decrypt(dk: &DecryptionKey, c: &BigInt) -> BigInt {
-    let (cp, cq) = crt_decompose(c, &dk.pp, &dk.qq);
+fn decrypt(c: &BigInt, dk: &DecryptionKey) -> BigInt {
     let (mp, mq) = join(
         || {
-            let dp = modpow(&cp, &dk.porder, &dk.pp);
-            let lp = l(&dp, &dk.p);
-            (&lp * &dk.hp) % &dk.p
+            let cp = c % &dk.pp;
+            decrypt_component(&cp, &dk.p, &dk.pp, &dk.p_order, &dk.hp)
         },
         || {
-            let dq = modpow(&cq, &dk.qorder, &dk.qq);
-            let lq = l(&dq, &dk.q);
-            (&lq * &dk.hq) % &dk.q
+            let cq = c % &dk.qq;
+            decrypt_component(&cq, &dk.q, &dk.qq, &dk.q_order, &dk.hq)
         },
     );
-    crt_recombine(mp, mq, &dk.p, &dk.q)
+    crt(&mp, &mq, &dk.p, &dk.q, &dk.p_inv)
 }
 ```
 
+### Opening
+
 ```rust
-pub fn extract_nroot(dk: &DecryptionKey, z: &BigInt) -> BigInt {
-    let (zp, zq) = crt_decompose(z, &dk.p, &dk.q);
-    let (rp, rq) = join(
-        || { BigInt::modpow(&zp, &dk.dp, &dk.p) },
-        || { BigInt::modpow(&zq, &dk.dq, &dk.q) },
+fn crt_open(
+    c: &BigInt,
+    p: &BigInt, pp: &BigInt, p_order: &BigInt,
+    q: &BigInt, qq: &BigInt, q_order: &BigInt,
+) -> BigInt
+{
+    let (cp, cq) = crt_decompose(c, pp, qq);
+    let (mp, mq) = join(
+        || { 
+            decrypt(&cp, p, pp, p_order) 
+            TODO
+        },
+        || { 
+            decrypt(&cq, q, qq, q_order) 
+            TODO
+        },
     );
-    crt_recombine(rp, rq, &dk.p, &dk.q)
+    crt(mp, mq, p, q)
+}
+
+
+fn extract_nroot(
+    z: &BigInt,
+    p: &BigInt, dp: &BigInt,
+    q: &BigInt, dq: &BigInt,
+) -> BigInt
+{
+    let (zp, zq) = crt_decompose(z, p, q);
+    let (rp, rq) = join(
+        || { modpow(&zp, dp, p) },
+        || { modpow(&zq, dq, q) },
+    );
+    crt(rp, rq, p, q)
 }
 ```
 
 
 ### Encryption
 
+
+```
+test plain::bench_encrypt         ... bench:  10,862,975 ns/iter (+/- 1,150,426)
+test crt::bench_encrypt           ... bench:   6,474,433 ns/iter (+/- 443,019)
+test crt::parallel::bench_encrypt ... bench:   3,315,413 ns/iter (+/- 667,753)
+```
+
 ```rust
-fn encrypt(ek: &EncryptionKey, x: &BigInt, r: &BigInt) -> BigInt {
-    let rn = modpow(r, &ek.n, &ek.nn);
-    let gm = (1 + x * &ek.n) % &ek.nn;
-    (gm * rn) % &ek.nn
+mod plain {
+    fn encrypt(x: &BigInt, r: &BigInt, ek: &EncryptionKey) -> BigInt {
+        let rm = pow(r, &ek.n, &ek.nn);
+        let gx = (1 + x * &ek.n) % &ek.nn;
+        (gx * rm) % &ek.nn
+    }
 }
 ```
 
 ```rust
-fn crt_encrypt(dk: &DecryptionKey, m: &BigInt, r: &BigInt) -> BigInt {
-    let (mp, mq) = crt_decompose(m, &dk.pp, &dk.qq);
-    let (rp, rq) = crt_decompose(r, &dk.pp, &dk.qq);
-    let (cp, cq) = join(
-        || {
-            let rp = modpow(&rp, &dk.n, &dk.pp);
-            let gp = (1 + mp * &dk.p) % &dk.pp;
-            (gp * rp) % &dk.pp
-        },
-        || {
-            let rq = modpow(&rq, &dk.n, &dk.qq);
-            let gq = (1 + mq * &dk.q) % &dk.qq;
-            (gq * rq) % &dk.qq
-        },
-    );
-    crt_recombine(cp, cq, &dk.pp, &dk.qq)
-}
-```
+mod crt {
+    fn encrypt(x: &BigInt, r: &BigInt, ek: &EncryptionKey) -> BigInt {
+        let (xp, xq) = (x % &ek.p, x % &ek.q);
+        let (rp, rq) = (r % &ek.p, r % &ek.q);
+        let cp = encrypt_component(&xp, &rp, &ek, &ek.pp);
+        let cq = encrypt_component(&xq, &rq, &ek, &ek.qq);
+        crt(&cp, &cq, &ek.pp, &ek.qq, &ek.pp_inv)
+    }
 
-
-```rust
-fn encrypt(
-    x: &BigInt,
-    r: &BigInt,
-    m: &BigInt, mm: &BigInt,
-) -> BigInt
-{
-    let rm = modpow(r, m, mm);
-    let gx = (1 + x * m) % mm;
-    (gx * rm) % mm
+    fn encrypt_component(x: &BigInt, r: &BigInt, ek: &EncryptionKey, mm: &BigInt) -> BigInt {
+        let rm = pow(r, &ek.n, mm);
+        let gx = (1 + x * &ek.n) % mm;
+        (gx * rm) % mm
+    }
 }
 ```
 
 ```rust
-fn crt_encrypt(
-    x: &BigInt,
-    r: &BigInt,
-    p: &BigInt, pp: &BigInt,
-    q: &BigInt, qq: &BigInt,
-) -> BigInt
-{
-    let (xp, xq) = crt_decompose(x, pp, qq);
-    let (rp, rq) = crt_decompose(r, pp, qq);
-    let (cp, cq) = join(
-        || { encrypt(&xp, &rp, p, pp) },
-        || { encrypt(&xq, &rq, q, qq) },
-    );
-    crt_recombine(cp, cq, pp, qq)
+mod crt {
+    mod parallel {
+        fn encrypt(x: &BigInt, r: &BigInt, ek: &EncryptionKey) -> BigInt {
+            let (cp, cq) = join(
+                || {
+                    let xp = x % &ek.pp;
+                    let rp = r % &ek.pp;
+                    encrypt_component(&xp, &rp, ek, &ek.pp)
+                },
+                || {
+                    let xq = x % &ek.qq;
+                    let rq = r % &ek.qq;
+                    encrypt_component(&xq, &rq, ek, &ek.qq)
+                },
+            );
+            crt(&cp, &cq, &ek.pp, &ek.qq, &ek.pp_inv)
+        }
+    }
 }
 ```
 

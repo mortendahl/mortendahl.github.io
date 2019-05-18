@@ -195,49 +195,6 @@ If we write out the equations we see that `alpha * beta == xy - xb - ay + ab`, `
 Finally, since `x` and `y` are [perfectly hidden](https://en.wikipedia.org/wiki/Information-theoretic_security) by `a` and `b`, neither server learns anything new as long as each triple is only used once. Moreover, the newly formed sharing of `z` is "fresh" in the sense that it contains no information about the sharings of `x` and `y` that were used in its construction, since the sharing of `c` was independent of the sharings of `a` and `b`.
 
 
-# Encoding Values
-
-## Signed integers
-
-```python
-def encode_integer(integer):
-    element = integer % Q
-    return element
-
-def decode_integer(element):
-    integer = element if element <= Q//2 else element - Q
-    return integer
-```
-
-## Fixedpoint numbers
-
-The last step is to provide a mapping between the rational numbers used by the CNNs and the field elements used by the SPDZ protocol. As typically done, we here take a fixed-point approach where rational numbers are scaled by a fixed amount and then rounded off to an integer less than the field size `Q`.
-
-```python
-def encode(rational, precision=6):
-    upscaled = int(rational * 10**precision)
-    field_element = upscaled % Q
-    return field_element
-
-def decode(field_element, precision=6):
-    upscaled = field_element if field_element <= Q/2 else field_element - Q
-    rational = upscaled / 10**precision
-    return rational
-```
-
-In doing this we have to be careful not to "wrap around" by letting any encoding exceed `Q`; if this happens our decoding procedure will give wrong results.
-
-To get around this we'll simply make sure to pick `Q` large enough relative to the chosen precision and maximum magnitude. One place where we have to be careful is when doing multiplications as these double the precision. As done earlier we must hence leave enough room for double precision, and additionally include a truncation step after each multiplication where we bring the precision back down. Unlike earlier though, in the two server setting the truncation step can be performed as a local operation as pointed out in [SecureML](https://eprint.iacr.org/2017/396).
-
-```python
-def truncate(x, amount=6):
-    y0 = x[0] // 10**amount
-    y1 = Q - ((Q - x[1]) // 10**amount)
-    return [y0, y1]
-```
-
-With this in place we are now (in theory) set to perform any desired computation on encrypted data.
-
 # Next Steps
 
 

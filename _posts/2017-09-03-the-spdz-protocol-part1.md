@@ -5,6 +5,7 @@ subtitle:   "Secure Computation using Precomputed Triples"
 date:       2017-09-03 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/spdz/bristol.jpg"
+summary:    "First part in our series on the SPDZ secure computation protocol."
 ---
 
 <em><strong>This post is still very much a work in progress.</strong></em>

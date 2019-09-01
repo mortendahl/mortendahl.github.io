@@ -5,6 +5,7 @@ subtitle:   "More Fun with Triples"
 date:       2017-09-10 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/spdz/aarhus.jpg"
+summary:    ""
 ---
 
 <em><strong>This post is still very much a work in progress.</strong></em>

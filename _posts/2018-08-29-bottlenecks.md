@@ -5,6 +5,8 @@ subtitle:   "And How It Mitigates Bottlenecks"
 date:       2018-08-29 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/bottlenecks/impact.jpg"
+summary:    "The need for privacy-enhancing techniques in machine learning can be understood in the light of bottlenecks that may otherwise exist. We here review some of those bottlenecks together with concrete technologies available to mitigate and create new opportunities.
+"
 ---
 
 <em><strong>TL;DR:</strong> TODO.</em> 

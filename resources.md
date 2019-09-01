@@ -1,7 +1,7 @@
 ---
 layout: page
-title: "Resources"
-description: "Talks, papers, and more"
+title:       "Talks and papers"
+description: "Research, work, and more"
 header-img: "img/about-bg.jpg"
 twitter:     "mortendahlcs"
 github:      "mortendahl"
@@ -13,12 +13,13 @@ email:       "mortendahlcs@gmail.com"
 
 <strong>Privacy-Preserving Machine Learning in TensorFlow with TF Encrypted</strong>
 <br/><small><em>[RAAIS](https://raais.co/speakers-2019-morten-dahl-dropout-labs), June 2019 (**upcoming**)</em></small>
+<br/><small><em>[Advanced Spark and TensorFlow Meetup](https://www.meetup.com/Advanced-Spark-and-TensorFlow-Meetup/events/255563631), May 2019</em></small>
 <br/><small><em>[O'Reilly AI Conference New York](https://conferences.oreilly.com/artificial-intelligence/ai-ny/public/schedule/detail/76542), April 2019 ([slides](https://github.com/mortendahl/talks/blob/master/OReillyAI19-slides.pdf))</em></small>
 <br/><small><em>We focus on recent applications of privacy-preserving techniques to machine learning, in particular deep learning, and review how tools such as homomorphic encryption and multi-party computation can benefit the machine learning process. We then more in-depth with concrete examples of how the TF Encrypted open source library can be used to explore and experiment directly in TensorFlow, showing how predictions can be done without exposing the prediction input, and how a model can be fitted without ever exposing the training data.</em></small>
 
 <strong><em>Cryptography for Privacy-Preserving Machine Learning</em></strong>
 <br/><small><em>[AI & Trust at Applied Machine Learning Days](https://www.appliedmldays.org/tracks/16), January 2019 ([slides](https://github.com/mortendahl/talks/blob/master/AMLD19-slides.pdf))</em></small>
-<br/><small><em>[Zero Knowledge TLV](https://www.meetup.com/Zero-Knowledge-TLV/events/257367262/), January 2019 ([slides](https://github.com/mortendahl/talks/blob/master/ZKTLV19-slides.pdf), [video](https://www.youtube.com/watch?v=kiB882Gphlc&index=6&list=PLPBfQd03L-pEQPAWAVgCNd1imztlg0HcA))</em></small>
+<br/><small><em>[Zero Knowledge TLV Meetup](https://www.meetup.com/Zero-Knowledge-TLV/events/257367262/), January 2019 ([slides](https://github.com/mortendahl/talks/blob/master/ZKTLV19-slides.pdf), [video](https://www.youtube.com/watch?v=kiB882Gphlc&index=6&list=PLPBfQd03L-pEQPAWAVgCNd1imztlg0HcA))</em></small>
 <br/><small><em>[Hacking Deep Learning](https://deep-learning.forms-wizard.co.il/), January 2019 (**[slides](https://github.com/mortendahl/talks/blob/master/HDL19-slides.pdf)**, [video](https://www.youtube.com/watch?v=KkJZgYPEkkA&list=PL8Vt-7cSFnw1dO9kc2_SQQRchzpQQDYXy&index=3))</em></small>
 <br/><small><em>[IFIP Summer School on Privacy and Identity Management](https://www.ifip-summerschool.org/), August 2018 ([slides](https://github.com/mortendahl/talks/blob/master/IFIP18-slides.pdf))</em></small>
 <br/><small><em>[(Cyber)Security for Software Engineers](https://www.meetup.com/Security-in-the-cloud/events/250842210/), June 2018 ([slides](https://github.com/mortendahl/talks/raw/master/ParisCybersecurity18-slides.pdf))</em></small>

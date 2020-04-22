@@ -1,10 +1,10 @@
 ---
 layout:     post
-title:      "Paillier Encryption, Part 2"
+title:      "Paillier Encryption, Part 4"
 subtitle:   "Applications in Machine Learning"
-date:       2019-04-16 12:00:00
+date:       2019-04-18 12:00:00
 author:     "Morten Dahl"
-header-img: "assets/paillier/autostereogram-mars-rover.jpeg"
+header-img: "assets/paillier/autostereogram-tornado.jpg"
 summary:    "In the second part of the series on Paillier encryption we focus on it's use in privacy-preserving machine learning, including private predictions and secure aggregation for federated learning, and we go through how a bit of interaction allows us to support more operations and build general two-party secure computation."
 ---
 
@@ -60,7 +60,9 @@ see more examples in python-paillier and Andrew's blog post
 
 Secure Aggregation for Federated Learning
 
-## Packing
+TODO: how to do rotation? (or sum slots)
+
+## Packing as a sum
 
 Or *vector* encoding uses the fact that the modulus `N` allows us to operate on very large plaintexts, in fact often much larger than the values we typically need for an application: `N` is something like 2048 bits where most programs uses 32 or 64 bits numbers.
 
@@ -82,6 +84,8 @@ for `B = 10^6`.
 ==     (5*1) * B^3 + (5*2) * B^2 + (5*3) * B^1 + (5*4) * B^0
 == encode(scalar_mul([1,2,3,4], 5))
 ```
+
+## Packing using the CRT
 
 # General Two-Party Secure Computation
 

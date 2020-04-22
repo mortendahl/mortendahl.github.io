@@ -103,7 +103,7 @@ We show how any protocol in our class can be compiled to a symbolic representati
 # Other
 
 <strong>Symbolic Analysis of Cryptographic Protocols</strong>
-<br/><small><em>Ph.D. thesis, Aarhus University, 2013 ([thesis](https://github.com/mortendahl/talks/PhD-thesis.pdf))</em></small>
+<br/><small><em>Ph.D. thesis, Aarhus University, 2013 ([thesis](https://github.com/mortendahl/talks/raw/master/PhD-thesis.pdf))</em></small>
 
 <strong>Proving Security using Type Inference</strong>
-<br/><small><em>M.Sc. thesis, Aalborg University, 2008 ([thesis](https://github.com/mortendahl/talks/MSc-thesis.pdf))</em></small>
+<br/><small><em>M.Sc. thesis, Aalborg University, 2008 ([thesis](https://github.com/mortendahl/talks/raw/master/MSc-thesis.pdf))</em></small>

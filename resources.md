@@ -107,3 +107,6 @@ We show how any protocol in our class can be compiled to a symbolic representati
 
 <strong>Proving Security using Type Inference</strong>
 <br/><small><em>M.Sc. thesis, Aalborg University, 2008 ([thesis](https://github.com/mortendahl/talks/raw/master/MSc-thesis.pdf))</em></small>
+
+<strong>A Modal Logic for Mobile Resources</strong>
+<br/><small><em>B.Sc. thesis, Aalborg University, 2006 ([thesis](https://github.com/mortendahl/talks/raw/master/BSc-thesis.pdf))</em></small>

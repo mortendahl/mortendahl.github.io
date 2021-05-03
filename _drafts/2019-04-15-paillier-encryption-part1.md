@@ -25,15 +25,13 @@ As always, the full source code is available for experimentation, but inspired b
 
 # Overview
 
-Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Public-key_cryptography) (like [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem))), where a pair of keys is used to respectively encrypt a plaintext into a ciphertext, and decrypt a ciphertext back into a plaintext. We refer to the components of this *keypair* as the *public encryption key* and the *private decryption key* since the former is typically made publicly available for anyone to encrypt, while the latter is kept private by the *key owner* so that only it can decrypt. In the case of the Paillier scheme, the encryption key also doubles as a *public evaluation key* that allows anyone to compute on data while it remains encrypted (unlike RSA).
+Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Public-key_cryptography) (like [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem))), where a *keypair* consisting of a *public encryption key* `ek` and a *private decryption key* `dk` is used to respectively encrypt a plaintext into a ciphertext, and decrypt a ciphertext back into a plaintext. The former can be made publicly available to anyone, while the latter must be kept private by the *key owner* so that only they can decrypt. In the case of the Paillier scheme, the encryption key also doubles as a *public evaluation key* that allows anyone to compute on data while it remains encrypted.
 
-We define encryption under a given encryption key `ek` as a function `enc` that maps a plaintext `x` and randomness `r` into a ciphertext `c = enc(ek, x, r)`. The effect of having the randomness is that we end up with different ciphertexts even if we are encrypting the same plaintext: if `r1` and `r2` are different then so are `c1 = enc(ek, x, r1)` and `c2 = enc(ek, x, r2)`.
+We define encryption under a given encryption key as a function `enc` that maps a plaintext `x` and randomness `r` into a ciphertext `c = enc(ek, x, r)`. The effect of having the randomness is that we end up with different ciphertexts even if we are encrypting the same plaintext: if `r1` and `r2` are different then so are `c1 = enc(ek, x, r1)` and `c2 = enc(ek, x, r2)`.
 
 <img src="/assets/paillier/probabilistic.png" style="width: 50%;"/>
 
-This means that an adversary who has obtained a ciphertext `c` 
-
-knows that there are only a few possibilities for `x`, say `0` or `1`, cannot simply compare `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)` without first guessing `r0` and `r1`. If there are sufficiently many choices for these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
+This means that an adversary who has obtained a ciphertext `c` and knows that there are only a few possibilities for `x`, say `0` or `1`, cannot simply compare `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)` without first guessing `r0` and `r1`. If there are sufficiently many choices for these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
 
 an adversary who obtains a ciphertext `c`, and knows that , cannot simply compare `c` to known all possible encryptions of `0` or `1` as long as there are sufficiently many choices for the randomness. these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
 
@@ -62,11 +60,11 @@ As detailed below, `x`, `r`, and `c` are all large integers.
 
 # Basic Operations
 
-We first cover the basic operations than any public-key encryption scheme has: key generation, encryption, and decryption.
+We first cover the basic operations that any public-key encryption scheme has: key generation, encryption, and decryption.
 
 ## Key generation
 
-The first step of generating a fresh Paillier keypair is the same as in [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Key_generation): we pick two primes `p` and `q` of the same length. For security it is [recommended](https://www.keylength.com/en/compare/) that each are at least ~1000 bits.
+The first step of generating a fresh Paillier keypair is to pick two primes `p` and `q` of the same length (like in [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Key_generation)). For security reasons, each prime [must be](https://www.keylength.com/en/compare/) at least ~1000 bits so that their product is at least ~2000 bits.
 
 ```python
 class Keypair:
@@ -80,7 +78,7 @@ def generate_keypair(n_bitlength=2048):
     return Keypair(p, q)
 ```
 
-From this keypair, which must be kept private, we can then derive both the public encryption key and the private decryption key.
+From this keypair, which must be kept private, we can derive both the public encryption key and the private decryption key.
 
 ```python
 def derive_encryption_key(keypair):
@@ -96,7 +94,7 @@ Note that the encryption key is only based on `n` and not `p` nor `q`. The fact 
 
 ## Encryption
 
-While `n` fully characterizes the encryption key, for performance reasons it is useful to first cache a few additional values. In part 2 we explore this even further.
+While `n` fully defines the encryption key, for computational performance reasons it is useful to keep a few additional values available. Concretely, for the in-memory representation of encryption keys we store not only `n`, but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them for every operation we perform.
 
 ```python
 class EncryptionKey:
@@ -106,11 +104,11 @@ class EncryptionKey:
         self.g = 1 + n
 ```
 
-With this in place we can then express encryption. In mathematical terms this is done via the following equation
+With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
 <img src="/assets/paillier/enc.png" style="width: 50%;"/>
 
-that we can write in code as follows.
+that we can write in Python as follows:
 
 ```python
 def enc(ek, x, r):
@@ -120,7 +118,11 @@ def enc(ek, x, r):
     return c
 ```
 
-One question remains, namely how to generate the randomness `r`. This is done by sampling from the uniform distribution over numbers `0, ..., n - 1`, with the condition that the value is [co-prime](https://en.wikipedia.org/wiki/Coprime_integers) with `n`, i.e. that `gcd(r, n) == 1`. We can do this efficiently by first sampling a random number below `n` and then use the [Euclidean algorithm](https://en.wikipedia.org/wiki/Euclidean_algorithm#Algorithmic_efficiency) to verify that it is co-prime; if not we simply try again.
+Note that we are doing all computations modulus `nn = n * n`. As we shall see below, many of the operations are done modulus `nn`, meaning arithmetic is done . This is critical for security and we shall return to it later. 
+
+However, it is already clear at this point that our ciphertexts become relatively large: since `n` is at least ~2000 bits then every ciphertext is at least ~4000 bits, even if we're only encrypting a single bit! This blow-up is the main reason why Paillier encryption (and in fact, all known homomorphic encryption scheme) are computationally expensive since arithmetic on numbers this large is significantly more expensive than the native arithmetic on e.g. 64 bits numbers.
+
+Before we can test the code above we also need to known how to generate the randomness `r`. This is done by sampling from the uniform distribution over numbers `0, ..., n - 1`, with the condition that the value is [co-prime](https://en.wikipedia.org/wiki/Coprime_integers) with `n`, i.e. that `gcd(r, n) == 1`. We can do this efficiently by first sampling a random number below `n` and then use the [Euclidean algorithm](https://en.wikipedia.org/wiki/Euclidean_algorithm#Algorithmic_efficiency) to verify that it is co-prime; if not we simply try again.
 
 ```python
 def generate_randomness(ek):
@@ -147,11 +149,13 @@ class DecryptionKey:
 
         order_of_n = (p - 1) * (q - 1)
 
-        # for decryption
+        # for decryption 
+
         self.d1 = order_of_n
         self.d2 = inverse(order_of_n, n)
 
-        # for extraction
+        # for extraction 
+
         self.e = inverse(n, order_of_n)
 ```
 
@@ -178,19 +182,17 @@ When the scheme was first published this was mentioned as an interesting propert
 
 # Homomorphic Operations
 
-The most attractive feature of the Paillier scheme today is that it allows us to compute on data while it remains encrypted: given ciphertexts `c1` and `c2` encrypting respectively `x1` and `x2`, it is possible to compute a ciphertext `c` encrypting `x1 + x2` *without knowing the decryption key* or in other ways learn anything about `x1`, `x2`, and `x1 + x2`.
+The most attractive feature of the Paillier scheme is that it allows us to compute on data while it remains encrypted: given ciphertexts `c1` and `c2` encrypting respectively `x1` and `x2`, it is possible to compute a ciphertext `c` encrypting `x1 + x2` *without knowing the decryption key* or in other ways learn anything about `x1`, `x2`, and `x1 + x2`.
 
-This opens up for very powerful applications, including electronic voting, secure auctions, private-preserving machine learning, and even general purpose secure computation. We will go through some of these in part 4.
+This opens up for very powerful applications, including electronic voting, secure auctions, private-preserving machine learning, and even general purpose secure computation. We go through some of these in more detail in part 4.
 
 ## Addition
 
 Let us first see how one can do the above and compute the addition of two encrypted values, say `c1 = enc(ek, x1, r1)` and `c2 = enc(ek, x2, r2)`.
 
-To do this we multiply the two ciphertexts, letting `c = c1 * c2` (modulus `nn`). To see that this indeed gives what we want, we can expand our formula for encryption to get the following:
+To do this we multiply the two ciphertexts, letting `c = c1 * c2`. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
 <img src="/assets/paillier/add.png" style="width: 95%;"/>
-
-, leaving out the `mod n^2` to simplify notation.
 
 In other words, if we multiply ciphertext values `c1` and `c2` then we get exactly the same result as if we had encrypted `x1 + x2` using randomness `r1 * r2`!
 
@@ -204,7 +206,7 @@ Note that `add_cipher` can also be used to compute the addition of a ciphertext 
 
 ```python
 def add_plain(ek, c1, x2):
-    c2 = pow(ek.g, x2, ek.nn)
+    c2 = enc(ek, x2, 1)
     c = add_cipher(ek, c1, c2)
     return c
 ```
@@ -225,7 +227,7 @@ def neg_plain(ek, x):
     return ek.n - x
 ```
 
-The former computes the [multiplicative inverse](https://en.wikipedia.org/wiki/Multiplicative_inverse) and the latter the [additive inverse](https://en.wikipedia.org/wiki/Additive_inverse), which simply means that `c * neg_cipher(c) == 1` modulus `nn` and `x + neg_plain(x) == 0` modulus `n`. This basically allows us to turn `x1 - x2` into `x1 + (-x2)` and use the addition operations from earlier.
+The former computes the [multiplicative inverse](https://en.wikipedia.org/wiki/Multiplicative_inverse) and the latter the [additive inverse](https://en.wikipedia.org/wiki/Additive_inverse), which simply means that `c * neg_cipher(c) == 1` modulus `nn`, and `x + neg_plain(x) == 0` modulus `n`. This basically allows us to turn `x1 - x2` into `x1 + (-x2)` and use the addition operations from earlier.
 
 ```python
 def sub_cipher(ek, c1, c2):
@@ -243,9 +245,9 @@ Note that the resulting ciphertexts again have a slightly different form than fr
 
 ## Multiplication
 
-The final operation supported by Paillier encryption is multiplication between a ciphertext and a plaintext. The fact that it is not known how to compute the multiplication of two encrypted values is what makes it a *partially homomorphic* scheme, and is what sets it apart from more recent *fully homomorphic* schemes where this is possible.
+The final operation supported by Paillier encryption is multiplication between a ciphertext and a plaintext. The fact that it is not known how to compute the multiplication of two encrypted values is what makes it a *partially homomorphic* scheme, and is what sets it apart from more recent *somewhat homomorphic* and *fully homomorphic* schemes where this is indeed possible.
 
-Likewise, given `c = enc(x, r)` and a `k` we compute `c^k = (g^x * r^n) ^ k == g^(x * k) * (r^k)^n == enc(x * k, r ^ k)`, again leaving out `mod n^2`.
+Given `c = enc(x, r)` and a `k` we compute `c^k = (g^x * r^n) ^ k == g^(x * k) * (r^k)^n == enc(x * k, r ^ k)`.
 
 <img src="/assets/paillier/mul-plain.png" style="width: 75%;"/>
 

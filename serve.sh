@@ -1,3 +1,6 @@
 #!/bin/sh
 
-bundle exec jekyll serve --drafts
+bundle exec jekyll serve \
+    --host 0.0.0.0 \
+    --drafts \
+    --trace

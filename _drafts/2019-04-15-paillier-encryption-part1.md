@@ -17,46 +17,44 @@ img {
 
 <em><strong>TL;DR:</strong> the Paillier encryption scheme not only allows us to compute on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra; in this first post we dig into the basics.</em>
 
-In this series of blog post we walk through and explain [Paillier encryption](https://en.wikipedia.org/wiki/Paillier_cryptosystem), a so called *partially homomorphic scheme* [first described](https://link.springer.com/chapter/10.1007%2F3-540-48910-X_16) by [Pascal Paillier](https://twitter.com/pascal_paillier) exactly 20 years ago. [More advanced schemes](https://en.wikipedia.org/wiki/Homomorphic_encryption) have since been developed, allowing more operations to be performed on encrypted data, yet Paillier encryption remains relevant not only for understanding modern cryptography but also from a practical point of view, as illustrated recently by for instance Google's [Private Join and Compute](https://eprint.iacr.org/2019/723) or Snips' [Secure Distributed Aggregator](https://eprint.iacr.org/2017/643).
+In this blog post series we walk through and explain [Paillier encryption](https://en.wikipedia.org/wiki/Paillier_cryptosystem), a so called *partially homomorphic encryption scheme* [first described](https://link.springer.com/chapter/10.1007%2F3-540-48910-X_16) by [Pascal Paillier](https://twitter.com/pascal_paillier) exactly 20 years ago. [More advanced schemes](https://en.wikipedia.org/wiki/Homomorphic_encryption) have since been developed, allowing more operations to be performed on encrypted data, yet Paillier encryption remains relevant not only for understanding modern cryptography but also from a practical point of view, as illustrated recently by for instance Google's [Private Join and Compute](https://eprint.iacr.org/2019/723) or Snips' [Secure Distributed Aggregator](https://eprint.iacr.org/2017/643).
 
-We go through the basics of the scheme (part 1), how to implement it efficiently (part 2), its underlying security assumption (part 3), and applications in privacy-preserving machine learning (part 4).
+We go through the basics of the scheme (part 1), how to implement it efficiently (part 2), its underlying security assumption (part 3), and applications in privacy-preserving machine learning (part 4). We introduce the needed abstract algebra along the way instead of dumping everything upfront.
 
 As always, the full source code is available for experimentation, but inspired by the excellent [A Homomorphic Encryption Illustrated Primer](https://blog.n1analytics.com/homomorphic-encryption-illustrated-primer/) by [Stephen Hardy](https://twitter.com/proximation) and [Differential Privacy: An illustrated Primer](https://github.com/frankmcsherry/blog/blob/master/posts/2016-02-06.md) by [Frank McSherry](https://twitter.com/frankmcsherry), we also try to give a more visual presentation of material that is [typically](https://www.cs.umd.edu/~jkatz/imc.html) offered mostly in the form of equations.
 
 # Overview
 
-Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Public-key_cryptography) (like [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem))), where a *keypair* consisting of a *public encryption key* `ek` and a *private decryption key* `dk` is used to respectively encrypt a plaintext into a ciphertext, and decrypt a ciphertext back into a plaintext. The former can be made publicly available to anyone, while the latter must be kept private by the *key owner* so that only they can decrypt. In the case of the Paillier scheme, the encryption key also doubles as a *public evaluation key* that allows anyone to compute on data while it remains encrypted.
+Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Public-key_cryptography) similar to [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)), where a keypair consisting of an encryption key `ek` and a decryption key `dk` is used to respectively encrypt a plaintext `x` into a ciphertext `c`, and decrypt a ciphertext `c` back into a plaintext `x`. The former is typically made publicly available to anyone, while the latter must be kept private by the key owner so that only they can decrypt. As we shall see, the encryption key also doubles as an evaluation key that allows anyone to compute on data while it remains encrypted.
 
-We define encryption under a given encryption key as a function `enc` that maps a plaintext `x` and randomness `r` into a ciphertext `c = enc(ek, x, r)`. The effect of having the randomness is that we end up with different ciphertexts even if we are encrypting the same plaintext: if `r1` and `r2` are different then so are `c1 = enc(ek, x, r1)` and `c2 = enc(ek, x, r2)`.
+The encryption function `enc` maps a plaintext `x` and randomness `r` into a ciphertext `c = enc(ek, x, r)`, which we often write simply as `enc(x, r)` for brevity. Having the randomness means that we end up with different ciphertexts even if we encrypt the same plaintext several times: if `r1` and `r2` are different then so are `c1 = enc(x, r1)` and `c2 = enc(x, r2)` despite both of them being encryptions of `x` under the same encryption key.
 
 <img src="/assets/paillier/probabilistic.png" style="width: 50%;"/>
 
-This means that an adversary who has obtained a ciphertext `c` and knows that there are only a few possibilities for `x`, say `0` or `1`, cannot simply compare `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)` without first guessing `r0` and `r1`. If there are sufficiently many choices for these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
+<!-- This means that an adversary who obtains a ciphertext `c`, and even knows that there are only a few possibilities for the underlying `x`, cannot simply encrypt all plaintexts and compare the results to `c` without also taking a guess at the underlying randomness `r`. So as long as `r` has a sufficiently high [min-entropy](https://crypto.stackexchange.com/questions/63786/relation-between-entropy-and-min-entropy) from the adversary's perspective, this strategy becomes impractical. Concretely, for typical keypairs there are roughly 10<sup>600</sup> choices of `r`, meaning that every single plaintext `x` can be encrypted into roughly 10<sup>600</sup> different ciphertexts. -->
 
-an adversary who obtains a ciphertext `c`, and knows that , cannot simply compare `c` to known all possible encryptions of `0` or `1` as long as there are sufficiently many choices for the randomness. these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
+This means that an adversary who obtains a ciphertext `c` cannot simply encrypt a plaintext and compare the result to `c` since this only works if they use the same randomness `r`. So as long as `r` remains unknown to the adversary, i.e. has a sufficiently high [min-entropy](https://crypto.stackexchange.com/questions/63786/relation-between-entropy-and-min-entropy) from their perspective, then this strategy becomes impractical. Concretely, as we shall see below, for typical keypairs there are roughly 2<sup>2048</sup> (or approximately 10<sup>616</sup>) choices of `r`, meaning that every single plaintext `x` can be encrypted into that number of different ciphertexts.
 
-This means that an adversary who has obtained a ciphertext `c` knows that there are only a few possibilities for `x`, say `0` or `1`, cannot simply compare `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)` without first guessing `r0` and `r1`. If there are sufficiently many choices for these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
+To ensure high min-entropy of `r`, the Paillier scheme dictates that a fresh `r` is sampled uniformly and independently of `x` during every encryption and not used for anything else afterwards. More on this later, including the specific distribution used.
 
-This means that an adversary who tries to learn `x` from `c` by simply encrypting a guess and checking whether the resulting ciphertext matches `c`, will also have to "guess" `r`. So if guessing `r` is impractical (due to too many possibility) then it also because impractical to guess `x`, even in the case where there are only a few possibilities for it, say `x = 0` or `x = 1`.
-
-This means that it becomes impractical for an adversary to "guess" the `x` embedded into a ciphertext `c` by simply encrypting a guess and checking whether the resulting ciphertext matches `c`: to do so it would also have to "guess" `r`, so as long as that is impractical (due to too many possibility) then it also because impractical to guess `x` (even for there are only a few possibilities for it, say `x = 0` or `x = 1`).
-
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
-
-This means that even if an adversary who has obtained a ciphertext `c` knows that there are only a few possibilities for `x`, say only `0` or `1`, they cannot simply compare `c` to `c0 = enc(0, r0)` and `c1 = enc(1, r1)` without first guessing `r0` and `r1`. If there are sufficiently many choices for these then this becomes impractical, and we have effectively removed the adversary's ability to guess `x` by removing its ability of check whether or not a guess was correct. Of course, there may be other ways for them to check a guess or learn something about `x` from `c` in general, and we shall return to security of the scheme in much more detail later.
-
-Let us take a closer look at that, and plot where encryptions of zero lies.
-
-Below we will see concrete examples
 
 When `r` is chosen independently at random, Paillier encryption becomes what is known as a [probabilistic encryption scheme](https://en.wikipedia.org/wiki/Probabilistic_encryption), an often desirable property of encryption schemes per the discussion above.
 
-As detailed below, `x`, `r`, and `c` are all large integers.
-
-  having enough  One motivation of including a randomness in the ciphertext is that it makes it impractical to guess `x` simply by trying to encrypt different values and check whether the ciphertexts match, as one would also have to guess `r` which is typically picked from a very large set: it is allowed to be any element from `Zn = {0, 1, ..., n-1}`, where `n` is a number with between 2000 and 4000 bits (we a lying a tiny bit here, but will return to that soon).
-
 
  Formally this makes Paillier a [probabilistic encryption scheme](https://en.wikipedia.org/wiki/Probabilistic_encryption), which is often a desirable property of encryption schemes.
+
+
+
+As we shall see later, the underlying security assumptions also imply that it is impractical for an adversary to learn `r` given a ciphertext `c`.
+
+
+In summary, the randomness prevents adversaries from performing brute-force attacks since they cannot efficiently check whether each "guess" was correct, even in situations where `x` is known to be from a very small set of possibilities, say `x = 0` or `x = 1`. Of course, there may also be other ways for an adversary to check a guess, or more generally learn something about `x` or `r` from `c`, and we shall return to security of the scheme in much more detail later.
+
+
+<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+
+
+Below we will see concrete examples
 
 # Basic Operations
 
@@ -319,3 +317,5 @@ To fully define this mapping we note that `x` can be any value from `Zn = {0, 1,
 
 
 , as well as its inverse `dec` that recovers both `x` and `r` from a ciphertext. Here, `enc` is implicitly using a public encryption key `ek` that everyone can know while `dec` is using a private decryption key `dk` that only those allowed to decrypt should know.
+
+Let us take a closer look at that (the use of randomness), and plot where encryptions of zero lies.

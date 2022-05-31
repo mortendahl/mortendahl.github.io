@@ -70,7 +70,7 @@ TODO: talk and show profiling, arguing that exp is much more costly than multipl
 
 # Specialization
 
-Paillier'99 shows that we are free to choose any suitable `g`: from a security perspective they are all equal in that an adversary who can break one can break all without much more work. As a result, we can fix `g = 1 + n` as done in e.g. DJ'01.
+Paillier'99 shows that we are free to choose any suitable `g`: from a security perspective they are all equal in that an adversary who can break one can break all without doing much more work. As a result, we can fix `g = 1 + n` as done in e.g. DJ'01.
 
 To see the benefits of this from a performance perspective, notice that `g^x == (1 + n)^x == 1 + x*n` when computing modulo `n^2` because of the [Binomial theorem](https://en.wikipedia.org/wiki/Binomial_theorem), and `g^x == (1 + n)^x == 1` when computing modulo `n`. The former means that we can replace one of the exponentiations in encryption with a multiplication, and the latter that in extraction we can obtain `r^n` from a ciphertext simply by computing a modulus reduction!
 

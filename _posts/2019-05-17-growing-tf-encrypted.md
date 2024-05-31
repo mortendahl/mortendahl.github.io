@@ -35,14 +35,17 @@ def receive_output(logits): return tf.print(tf.argmax(logits))
 w0, b0, w1, b1, w2, b2 = provide_weights()
 
 # run provide_input locally on the client and encrypt
+
 x = tfe.define_private_input("prediction-client", provide_input)
 
 # compute prediction on the encrypted input
+
 layer0 = tfe.relu(tfe.matmul(x, w0) + b0)
 layer1 = tfe.relu(tfe.matmul(layer0, w1) + b1)
 logits = tfe.matmul(layer1, w2) + b2
 
 # send results back to client, decrypt, and run receive_output locally
+
 prediction_op = tfe.define_output("prediction-client", receive_output, logits)
 
 with tfe.Session() as sess:
@@ -53,6 +56,7 @@ Below we can see that TF Encrypted is also a natural fit for [secure aggregation
 
 ```python
 # compute and collect all model gradients as private inputs
+
 model_grads = zip(*[
     tfe.define_private_input(
         data_owner.player_name,
@@ -61,12 +65,14 @@ model_grads = zip(*[
 ])
 
 # compute mean gradient securely
+
 aggregated_model_grads = [
     tfe.add_n(grads) / len(grads)
     for grads in model_grads
 ]
 
 # reveal only aggregated gradients to model owner
+
 iteration_op = tfe.define_output(
     model_owner.player_name,
     model_owner.update_model,

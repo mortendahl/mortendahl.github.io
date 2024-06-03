@@ -10,7 +10,7 @@ summary:    "We have previously seen that redundancy in secret sharing can be us
 
 <em><strong>TL;DR:</strong> due to redundancy in the way shares are generated, we can compensate not only for some of them being lost but also for some being manipulated; here we look at how to do this using decoding methods for Reed-Solomon codes.</em>
 
-Returning to our motivation in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the generated shares are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back. 
+Returning to our motivation in [part one](/2017/06/04/secret-sharing-part1/) for using secret sharing, namely to distribute trust, we recall that the generated shares are given to shareholders that we may not trust individually. As such, if we later ask for the shares back in order to reconstruct the secret then it is natural to consider how reasonable it is to assume that we will receive the original shares back.
 
 Specifically, what if some shares are *lost*, or what if some shares are *manipulated* to differ from the initially ones? Both may happen due to simple systems failure, but may also be the result of malicious behaviour on the part of shareholders. Should we in these two cases still expect to be able to recover the secret?
 
@@ -30,24 +30,29 @@ To solve this issue we will use techniques from error-correction codes, specific
 The robust reconstruct method for Shamir's scheme we end up with is as follows, with a straight forward generalisation to the packed scheme. The input is a complete list of length `N` of received shares, where missing shares are represented by `None` and manipulated shares by their new value. And if reconstruction goes well then the output is not only the secret, but also the indices of the shares that were manipulated.
 
 ```python
-def shamir_robust_reconstruct(shares):
-  
+def shamir_robust_reconstruct(shares):  
     # filter missing shares
+
     points_values = [ (p,v) for p,v in zip(POINTS, shares) if v is not None ]
     
     # decode remaining faulty
+
     points, values = zip(*points_values)
     polynomial, error_locator = gao_decoding(points, values, R, MAX_MANIPULATED)
     
     # check if recovery was possible
+
     if polynomial is None:
         # there were more errors than assumed by `MAX_ERRORS`
+
         raise Exception("Too many errors, cannot reconstruct")
     else:
         # recover secret
+
         secret = poly_eval(polynomial, 0)
     
         # find roots of error locator polynomial
+
         error_indices = [ i 
             for i,v in enumerate( poly_eval(error_locator, p) for p in POINTS ) 
             if v == 0 
@@ -254,17 +259,19 @@ With this in place we have our decoding algorithm!
 
 ```python
 def gao_decoding(points, values, max_degree, max_error_count):
-
     # interpolate faulty polynomial
+
     H = lagrange_interpolation(points, values)
     
     # compute f
+
     F = [1]
     for xi in points:
         Fi = [base_sub(0, xi), 1]
         F = poly_mul(F, Fi)
     
     # run EEA-like algorithm on (F,H) to find EEA triple
+
     R0, R1 = F, H
     S0, S1 = [1], []
     T0, T1 = [], [1]
@@ -300,4 +307,3 @@ However, there are also other fast interpolation algorithms without these constr
 # Next Steps
 
 The first three posts have been a lot of theory and it's now time to turn to applications.
-

@@ -61,20 +61,29 @@ Moreover, a triple for e.g. cubing `x` can also simultaneously be used for squar
 ```python
 def pows(x, triple):
     # local masking
+
     a = triple[0]
     v = sub(x, a)
+
     # communication: the players simultanously send their share to the other
+
     epsilon = reconstruct(v)
+
     # local combination to compute all powers
+
     x_powers = []
     for exponent in range(1, len(triple)+1):
         # prepare all term values
+
         a_powers = [ONE] + triple[:exponent]
         e_powers = [ pow(epsilon, e, Q) for e in range(exponent+1) ]
         coeffs   = [ binom(exponent, k) for k in range(exponent+1) ]
+
         # compute and sum terms
+
         terms = ( mul_public(a,e*c) for a,e,c in zip(a_powers,reversed(e_powers),coeffs) )
         x_powers.append(reduce(lambda x,y: add(x, y), terms))
+
     return x_powers
 ```
 
@@ -96,18 +105,28 @@ def generate_zero_triple(field):
 
 def convert(x, from_field, to_field, zero_triple):
     # local mapping to positive representation
+
     x = add_public(x, BOUND, from_field)
+
     # local masking and conversion by player 0
+
     r = generate_statistical_mask()
     y0 = (zero_triple[0] - r) % to_field
+
     # exchange of masked share: one round of communication
+
     e = (x[0] + r) % from_field
+
     # local conversion by player 1
+
     xr = (e + x[1]) % from_field
     y1 = (zero_triple[1] + xr) % to_field
+
     # local mapping back from positive representation
+
     y = [y0, y1]
     y = sub_public(y, BOUND, to_field)
+    
     return y
 
 def upshare(x, large_zero_triple):

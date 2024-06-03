@@ -28,23 +28,28 @@ Concretely, we consider the classic [MNIST digit classification task](http://yan
 import tensorflow as tf
 
 # generic functions for loading model weights and input data
+
 def provide_weights(): """Load model weights as TensorFlow objects."""
 def provide_input(): """Load input data as TensorFlow objects."""
 def receive_output(logits): return tf.print(tf.argmax(logits))
 
 # get model weights/input data (both unencrypted)
+
 w0, b0, w1, b1, w2, b2 = provide_weights()
 x = provide_input()
 
 # compute prediction
+
 layer0 = tf.nn.relu((tf.matmul(x, w0) + b0))
 layer1 = tf.nn.relu((tf.matmul(layer0, w1) + b1))
 logits = tf.matmul(layer2, w2) + b2
 
 # get result of prediction and print
+
 prediction_op = receive_output(logits)
 
 # run graph execution in a tf.Session
+
 with tf.Session() as sess:
     sess.run(prediction_op)
 ```
@@ -64,23 +69,28 @@ import tensorflow as tf
 import tf_encrypted as tfe
 
 # generic functions for loading model weights and input data on each party
+
 def provide_weights(): """Loads the model weights on the model-owner party."""
 def provide_input(): """Loads the input data on the prediction-client party."""
 def receive_output(): return tf.print(tf.argmax(logits))
 
 # get model weights/input data as private tensors from each party
+
 w0, b0, w1, b1, w2, b2 = tfe.define_private_input("model-owner", provide_weights)
 x = tfe.define_private_input("prediction-client", provide_input)
 
 # compute secure prediction
+
 layer0 = tfe.relu((tfe.matmul(x, w0) + b0))
 layer1 = tfe.relu((tfe.matmul(layer0, w1) + b1))
 logits = tfe.matmul(layer1, w2) + b2
 
 # send prediction output back to client
+
 prediction_op = tfe.define_output("prediction-client", receive_output, logits)
 
 # run secure graph execution in a tfe.Session
+
 with tfe.Session() as sess:
     sess.run(prediction_op)
 ```

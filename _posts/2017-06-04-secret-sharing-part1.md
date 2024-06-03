@@ -47,11 +47,16 @@ That the secret remains hidden as long as at most `T = N - 1` shareholders colla
 ```python
 def explain(seen_shares, guess):
     # compute the unseen share that justifies the seen shares and the guess
+
     simulated_unseen_share = (guess - sum(seen_shares)) % Q
+
     # and the would-be sharing by combining seen and unseen shares
+
     simulated_shares = seen_shares + [simulated_unseen_share]
+
     if additive_reconstruct(simulated_shares) == guess:
         # found an explanation
+        
         return simulated_unseen_share
 
 seen_shares = shares[:N-1]

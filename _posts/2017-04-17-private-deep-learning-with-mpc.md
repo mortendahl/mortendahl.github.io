@@ -104,14 +104,20 @@ However, our invariant of each party having two shares is not satisfied, and it 
 ```python
 def mul(x, y):
     # local computation
+
     z0 = (x[0]*y[0] + x[0]*y[1] + x[1]*y[0]) % Q
     z1 = (x[1]*y[1] + x[1]*y[2] + x[2]*y[1]) % Q
     z2 = (x[2]*y[2] + x[2]*y[0] + x[0]*y[2]) % Q
+
     # reshare and distribute; this requires communication
+
     Z = [ share(z0), share(z1), share(z2) ]
     w = [ sum(row) % Q for row in zip(*Z) ]
+
     # bring precision back down from double to single
+
     v = truncate(w)
+
     return v
 ```
 
@@ -126,18 +132,28 @@ The question of course is how to securely get `u` so we may compute `w'`. The de
 ```python
 def truncate(a):
     # map to the positive range
+
     b = add(a, share(10**(6+6-1)))
+
     # apply mask known only by P0, and reconstruct masked b to P1 or P2
+
     mask = random.randrange(Q) % 10**(6+6+KAPPA)
     mask_low = mask % 10**6
     b_masked = reconstruct(add(b, share(mask)))
+
     # extract lower digits
+
     b_masked_low = b_masked % 10**6
     b_low = sub(share(b_masked_low), share(mask_low))
+
     # remove lower digits
+
     c = sub(a, b_low)
+
     # division
+
     d = imul(c, INVERSE)
+
     return d
 ```
 
@@ -228,22 +244,26 @@ class TwoLayerNetwork:
         self.sigmoid = sigmoid
 
     def train(self, X, y, iterations=1000):
-
         # initial weights
+
         self.synapse0 = secure(2 * np.random.random((3,1)) - 1)
 
         # training
+
         for i in range(iterations):
 
             # forward propagation
+
             layer0 = X
             layer1 = self.sigmoid.evaluate(np.dot(layer0, self.synapse0))
 
             # back propagation
+
             layer1_error = y - layer1
             layer1_delta = layer1_error * self.sigmoid.derive(layer1)
 
             # update
+
             self.synapse0 += np.dot(layer0.T, layer1_delta)
 
     def predict(self, X):
@@ -277,17 +297,21 @@ With this in place we can train and evaluate the network (see [the notebook](htt
 
 ```python
 # reseed to get reproducible results
+
 random.seed(1)
 np.random.seed(1)
 
 # pick approximation
+
 sigmoid = SigmoidMaclaurin5()
 
 # train
+
 network = TwoLayerNetwork(sigmoid)
 network.train(secure(X), secure(y), 10000)
 
 # evaluate predictions
+
 evaluate(network)
 ```
 
@@ -379,24 +403,29 @@ class ThreeLayerNetwork:
     def train(self, X, y, iterations=1000):
 
         # initial weights
+
         self.synapse0 = secure(2 * np.random.random((3,4)) - 1)
         self.synapse1 = secure(2 * np.random.random((4,1)) - 1)
 
         # training
+
         for i in range(iterations):
 
             # forward propagation
+
             layer0 = X
             layer1 = self.sigmoid.evaluate(np.dot(layer0, self.synapse0))
             layer2 = self.sigmoid.evaluate(np.dot(layer1, self.synapse1))
 
             # back propagation
+
             layer2_error = y - layer2
             layer2_delta = layer2_error * self.sigmoid.derive(layer2)
             layer1_error = np.dot(layer2_delta, self.synapse1.T)
             layer1_delta = layer1_error * self.sigmoid.derive(layer1)
 
             # update
+
             self.synapse1 += np.dot(layer1.T, layer2_delta)
             self.synapse0 += np.dot(layer0.T, layer1_delta)
 
@@ -520,20 +549,25 @@ An alternative approach is to drop the standard approximation polynomial and ins
 
 ```python
 # function we wish to approximate
+
 f_real = lambda x: 1/(1+np.exp(-x))
 
 # interval over which we wish to optimize
+
 interval = np.linspace(-10, 10, 100)
 
 # interpolate polynomial of given max degree
+
 degree = 10
 coefs = np.polyfit(interval, f_real(interval), degree)
 
 # reduce precision of interpolated coefficients
+
 precision = 10
 coefs = [ int(x * 10**precision) / 10**precision for x in coefs ]
 
 # approximation function
+
 f_interpolated = np.poly1d(coefs)
 ```
 
@@ -573,17 +607,21 @@ class SigmoidInterpolated10:
 
 ```python
 # reseed to get reproducible results
+
 random.seed(1)
 np.random.seed(1)
 
 # pick approximation
+
 sigmoid = SigmoidInterpolated10()
 
 # train
+
 network = ThreeLayerNetwork(sigmoid)
 network.train(secure(X), secure(y), 10000)
 
 # evaluate predictions
+
 evaluate(network)
 ```
 

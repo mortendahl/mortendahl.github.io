@@ -77,10 +77,7 @@ We show how any protocol in our class can be compiled to a symbolic representati
 <br/><small><em>[Foundations of Security and Privacy](http://www.floc-conference.org/FCS-PrivMod-home.html) (FCS-PrivMod), July 2010</em></small>
 <br/><small><em>Safety critical applications for recently proposed vehicle to vehicle ad-hoc networks (VANETs) rely on a beacon signal, which poses a threat to privacy since it could allow a vehicle to be tracked. Mix-zones, where vehicles encrypt their transmissions and then change their identifiers, have been proposed as a solution to this problem. In this work, we describe a formal analysis of mix-zones. We model a mix-zone and propose a formal definition of privacy for such a zone. We give a set of necessary conditions for any mix-zone protocol to preserve privacy. We analyse, using the tool ProVerif, a particular proposal for key distribution in mix-zones, the CMIX protocol. We show that in many scenarios it does not preserve privacy, and we propose a fix.</em></small>
 
-# More
-
-<strong>Experimenting with TF Encrypted</strong>
-<br/><small><em>with Jason Mancuso ([blog post](https://medium.com/dropoutlabs/experimenting-with-tf-encrypted-fe37977ff03c))</em></small>
+# Blog posts
 
 <strong>Private Analytics with SDA</strong>
 <br/><small><em>with Mario Cornejo and Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/private-analytics-with-sda-d98a0251ab32), [code](https://github.com/snipsco/sda))</em></small>
@@ -103,3 +100,13 @@ We show how any protocol in our class can be compiled to a symbolic representati
 <strong>Differential Privacy for the Rest of Us</strong>
 <br/><small><em>with Joseph Dureau ([blog post](https://medium.com/snips-ai/differential-privacy-for-the-rest-of-us-665e053cec17))</em></small>
 
+# Other
+
+<strong>Symbolic Analysis of Cryptographic Protocols</strong>
+<br/><small><em>Ph.D. thesis, Aarhus University, 2013 ([thesis](https://github.com/mortendahl/talks/raw/master/PhD-thesis.pdf))</em></small>
+
+<strong>Proving Security using Type Inference</strong>
+<br/><small><em>M.Sc. thesis, Aalborg University, 2008 ([thesis](https://github.com/mortendahl/talks/raw/master/MSc-thesis.pdf))</em></small>
+
+<strong>A Modal Logic for Mobile Resources</strong>
+<br/><small><em>B.Sc. thesis, Aalborg University, 2006 ([thesis](https://github.com/mortendahl/talks/raw/master/BSc-thesis.pdf))</em></small>

@@ -84,18 +84,23 @@ This means that if we know values of `B(y)` and `C(y)` at the *squares* `v` of t
 
 ```python
 # split A into B and C
+
 B_coeffs = A_coeffs[0::2] # == [ 1,    3,   ]
+
 C_coeffs = A_coeffs[1::2] # == [    2,    4 ]
 
+
 # square the w points
+
 v = [ wi * wi % Q for wi in w ]
 
 # somehow compute the values of B and C at the v points
-# ...
+
 assert( B_values == [ B(vi) for vi in v ] )
 assert( C_values == [ C(vi) for vi in v ] )
 
 # combine results into values of A at the w points
+
 A_values = [ ( B_values[i] + w[i] * C_values[i] ) % Q for i,_ in enumerate(w) ]
 
 assert( A_values == [ A(wi) for wi in w ] )
@@ -107,6 +112,7 @@ Such subgroups are typically characterized by a generator, i.e. an element of th
 
 ```python
 # generator of subgroup of order 4
+
 omega4 = 179
 
 w = [ pow(omega4, e, Q) for e in range(4) ]
@@ -117,6 +123,7 @@ We shall return to how to find such generator below, but note that once we know 
 
 ```python
 # generator of subgroup of order 2
+
 omega2 = omega4 * omega4 % Q
 
 v = [ pow(omega2, e, Q) for e in range(2) ]
@@ -145,15 +152,18 @@ def fft2_forward(A_coeffs, omega):
         return A_coeffs
 
     # split A into B and C such that A(x) = B(x^2) + x * C(x^2)
+
     B_coeffs = A_coeffs[0::2]
     C_coeffs = A_coeffs[1::2]
     
     # apply recursively
+
     omega_squared = pow(omega, 2, Q)
     B_values = fft2_forward(B_coeffs, omega_squared)
     C_values = fft2_forward(C_coeffs, omega_squared)
         
     # combine subresults
+
     A_values = [0] * len(A_coeffs)
     L_half = len(A_coeffs) // 2
     for i in range(L_half):
@@ -197,17 +207,20 @@ def fft3_forward(A_coeffs, omega):
         return A_coeffs
 
     # split A into B, C, and D such that A(x) = B(x^3) + x * C(x^3) + x^2 * D(x^3)
+
     B_coeffs = A_coeffs[0::3]
     B_coeffs = A_coeffs[1::3]
     B_coeffs = A_coeffs[2::3]
     
     # apply recursively
+
     omega_cubed = pow(omega, 3, Q)
     B_values = fft3_forward(B_coeffs, omega_cubed)
     C_values = fft3_forward(B_coeffs, omega_cubed)
     D_values = fft3_forward(B_coeffs, omega_cubed)
         
     # combine subresults
+
     A_values = [0] * len(A_coeffs)
     L_third = len(A_coeffs) // 3
     for i in range(L_third):
@@ -312,11 +325,15 @@ plt.figure(figsize=(20,10))
 
 shares    = [   2,   8,   26,    80 ] #,    242 ]
 
+
 n2_fft    = [ 214, 402, 1012,  2944 ] #,  10525 ]
+
 n2_horner = [  51, 289, 2365, 22278 ] #, 203630 ]
 
 n4_fft    = [ 227, 409, 1038,  3105 ] #,  10470 ]
+
 n4_horner = [  54, 180, 1380, 11631 ] #, 104388 ]
+
 
 plt.plot(shares, n2_fft,    'ro--', color='b', label='T = N/2: FFT')
 plt.plot(shares, n2_horner, 'rs--', color='r', label='T = N/2: Horner')

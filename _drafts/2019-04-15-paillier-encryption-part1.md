@@ -76,7 +76,9 @@ def generate_keypair(n_bitlength=2048):
     return Keypair(p, q)
 ```
 
-From this keypair, which must be kept private, we can derive both the public encryption key and the private decryption key.
+From this keypair, which must be kept private, we can derive both the private decryption key and the public encrypted key. The former is simply the two primes while the latter is essentially the product of them: `n = p * q`. One of the underlying security assumption is hence that while computing `n` from `p` and `q` is easy, computing `p` or `q` from `n` is hard.
+
+Note that the encryption key is only based on `n` and not `p` nor `q`. The fact that it is easy to compute `n` from `p` and `q`, but believed hard to compute `p` or `q` from `n`, is the primary assumption underlying the security of the Paillier scheme (and of RSA).
 
 ```python
 def derive_encryption_key(keypair):
@@ -88,11 +90,11 @@ def derive_decryption_key(keypair):
     return DecryptionKey(p, q)
 ```
 
-Note that the encryption key is only based on `n` and not `p` nor `q`. The fact that it is easy to compute `n` from `p` and `q`, but believed hard to compute `p` or `q` from `n`, is the primary assumption underlying the security of the Paillier scheme (and of RSA). We explore this further in part 3.
+We further explore the scheme's security in part 3.
 
 ## Encryption
 
-While `n` fully defines the encryption key, for computational performance reasons it is useful to keep a few additional values available. Concretely, for the in-memory representation of encryption keys we store not only `n`, but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them for every operation we perform.
+While `n` fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only `n` but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them every time they're needed.
 
 ```python
 class EncryptionKey:
@@ -106,7 +108,7 @@ With this in place we can then express encryption. In mathematical terms this is
 
 <img src="/assets/paillier/enc.png" style="width: 50%;"/>
 
-that we can write in Python as follows:
+that we can express in Python as follows:
 
 ```python
 def enc(ek, x, r):
@@ -118,7 +120,7 @@ def enc(ek, x, r):
 
 Note that we are doing all computations modulus `nn = n * n`. As we shall see below, many of the operations are done modulus `nn`, meaning arithmetic is done . This is critical for security and we shall return to it later. 
 
-However, it is already clear at this point that our ciphertexts become relatively large: since `n` is at least ~2000 bits then every ciphertext is at least ~4000 bits, even if we're only encrypting a single bit! This blow-up is the main reason why Paillier encryption (and in fact, all known homomorphic encryption scheme) are computationally expensive since arithmetic on numbers this large is significantly more expensive than the native arithmetic on e.g. 64 bits numbers.
+However, it is already clear at this point that our ciphertexts become relatively large: since `n` is at least ~2000 bits then every ciphertext is at least ~4000 bits, even if we're only encrypting a single bit! This blow-up is the main reason why Paillier encryption is computationally expensive since arithmetic on numbers this large is significantly more expensive than the native arithmetic on e.g. 64 bits numbers.
 
 Before we can test the code above we also need to known how to generate the randomness `r`. This is done by sampling from the uniform distribution over numbers `0, ..., n - 1`, with the condition that the value is [co-prime](https://en.wikipedia.org/wiki/Coprime_integers) with `n`, i.e. that `gcd(r, n) == 1`. We can do this efficiently by first sampling a random number below `n` and then use the [Euclidean algorithm](https://en.wikipedia.org/wiki/Euclidean_algorithm#Algorithmic_efficiency) to verify that it is co-prime; if not we simply try again.
 
@@ -130,7 +132,7 @@ def generate_randomness(ek):
             return r
 ```
 
-As it turns out, one loop iteration is *almost always* enough, to the point where we can realistically skip the co-prime check altogether.
+As it turns out, one loop iteration is *almost always* enough, to the point where we can realistically skip the co-prime check altogether. More on this in part 2.
 
 ## Decryption
 

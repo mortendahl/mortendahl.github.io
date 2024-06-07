@@ -77,7 +77,18 @@ We show how any protocol in our class can be compiled to a symbolic representati
 <br/><small><em>[Foundations of Security and Privacy](http://www.floc-conference.org/FCS-PrivMod-home.html) (FCS-PrivMod), July 2010</em></small>
 <br/><small><em>Safety critical applications for recently proposed vehicle to vehicle ad-hoc networks (VANETs) rely on a beacon signal, which poses a threat to privacy since it could allow a vehicle to be tracked. Mix-zones, where vehicles encrypt their transmissions and then change their identifiers, have been proposed as a solution to this problem. In this work, we describe a formal analysis of mix-zones. We model a mix-zone and propose a formal definition of privacy for such a zone. We give a set of necessary conditions for any mix-zone protocol to preserve privacy. We analyse, using the tool ProVerif, a particular proposal for key distribution in mix-zones, the CMIX protocol. We show that in many scenarios it does not preserve privacy, and we propose a fix.</em></small>
 
-# Blog posts
+# Podcasts
+
+[Hashing It Out](https://podcasts.apple.com/us/podcast/hashing-it-out/id1631179152?i=1000654175651)
+
+<strong>The state of privacy-preserving machine learning</strong>
+<br/><small><em>[on The Data Exchange with Ben Lorica](https://thedataexchange.media/the-state-of-privacy-preserving-machine-learning)</em></small>
+<br/><small><em>In this episode of the Data Exchange I speak with Morten Dahl, research scientist at Dropout Labs, a startup building a platform and tools for privacy-preserving machine learning. He is also behind TF Encrypted, an open source framework for encrypted machine learning in TensorFlow.  The rise of privacy regulations like CCPA and GDPR combined with the growing importance of ML has led to a strong interest in tools and techniques for privacy-preserving machine learning among researchers and practitioners. Morten brings the unique perspective of someone who understands both security and machine learning: he is a longtime security researcher who also happens to have worked as a data scientist in industry.</em></small>
+
+# More
+
+<strong>Experimenting with TF Encrypted</strong>
+<br/><small><em>with Jason Mancuso ([blog post](https://medium.com/dropoutlabs/experimenting-with-tf-encrypted-fe37977ff03c))</em></small>
 
 <strong>Private Analytics with SDA</strong>
 <br/><small><em>with Mario Cornejo and Mathieu Poumeyrol ([blog post](https://medium.com/snips-ai/private-analytics-with-sda-d98a0251ab32), [code](https://github.com/snipsco/sda))</em></small>

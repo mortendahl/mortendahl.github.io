@@ -9,9 +9,9 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
 
-With a background in cryptography and privacy, Morten has spent recent years applying and adapting techniques from these fields to machine learning, focusing on practical tools and concrete applications with the aim of making privacy-preserving machine learning more accessible to practitioners.
+With a background in cryptography and privacy, Morten has spent most of the past decade applying and adapting techniques from these fields to machine learning and blockchain. He is typically focusing on practical tools and concrete applications, with the aim of making privacy enhancing technologies more accessible to practitioners.
 
-His work has primarily been on encrypted deep learning and secure federated learning. This includes [TF Encrypted](https://github.com/tf-encrypted/tf-encrypted), an open source project for encrypted deep learning in TensorFlow, and [SDA](https://github.com/snipsco/sda), an open source project for secure federated learning on sporadic devices.
+His work has primarily been on secure multiparty computation. Most recently, on the [fhEVM](https://github.com/zama-ai/fhevm) for confidential smart contracts. And before that on [TF Encrypted](https://github.com/tf-encrypted/tf-encrypted) for encrypted deep learning in TensorFlow, and on [SDA](https://github.com/snipsco/sda) for secure federated learning on sporadic devices.
 
 <!-- <img src="/assets/morten.jpg" style="display: block; margin-left: auto; margin-right: auto; margin-bottom: 40px; width: 250px;"/> -->
 
@@ -19,14 +19,11 @@ His work has primarily been on encrypted deep learning and secure federated lear
 
 <img src="/assets/raais19.jpg" style="margin-left: auto; margin-right: auto; border: 1px solid black;" width="75%"/>
 
-Morten holds a MSc in theoretical computer science and a PhD in cryptography. He currently works as a research scientist at [Dropout Labs](https://dropoutlabs.com/), a startup focused on taking privacy-preserving machine learning to production. Previously, he lead the cryptography team at [Snips](https://snips.ai/), a startup focused on building private-by-design machine learning systems for mobile devices. He is a member of [OpenMined](https://www.openmined.org/), an online community building a platform for secure federated learning.
-
+Morten holds a MSc in theoretical computer science and a PhD in cryptography. He currently works as a senior director for blockchain at [Zama](https://zama.ai), with a focus on making fully homomorphic encryption accessible. Previously, he worked as chief scientist at [Cape Privacy](https://capeprivacy.com/), with a focus on taking privacy-preserving machine learning to production, and he lead the cryptography team at [Snips](https://snips.ai/), with a focus on building private-by-design machine learning systems for mobile devices. He was an early member of [OpenMined](https://www.openmined.org/), an online community building a platform for secure federated learning.
 
 <i>
 Visit me on
-<a href="https://www.twitter.com/mortendahlcs">Twitter</a>,
+<a href="https://twitter.com/mortendahlcs">Twitter</a>,
 <a href="https://github.com/mortendahl">GitHub</a>,
-<a href="https://medium.com/@mortendahl">Medium</a>,
-<a href="https://keybase.io/mortendahl">Keybase</a>,
-and <a href="https://www.linkedin.com/in/mortendahlcs">LinkedIn</a>!
+and <a href="https://linkedin.com/in/mortendahlcs">LinkedIn</a>!
 </i>

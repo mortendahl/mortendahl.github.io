@@ -9,7 +9,7 @@ linkedin:    "mortendahlcs"
 email:       "mortendahlcs@gmail.com"
 ---
 
-With a background in cryptography and privacy, Morten has spent most of the past decade applying and adapting techniques from these fields to machine learning and blockchain. He is typically focusing on practical tools and concrete applications, with the aim of making privacy enhancing technologies more accessible to practitioners.
+With a background in cryptography and computer science, Morten has spent most of the past decade applying and adapting techniques from these fields to privacy-preserving machine learning and confidential blockchain. He is typically focusing on practical tools and concrete applications, with the aim of making privacy enhancing technologies more accessible to practitioners.
 
 His work has primarily been on secure multiparty computation. Most recently, on the [fhEVM](https://github.com/zama-ai/fhevm) for confidential smart contracts. And before that on [TF Encrypted](https://github.com/tf-encrypted/tf-encrypted) for encrypted deep learning in TensorFlow, and on [SDA](https://github.com/snipsco/sda) for secure federated learning on sporadic devices.
 

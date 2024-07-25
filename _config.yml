@@ -1,8 +1,8 @@
 # Site settings
-title: Cryptography and Machine Learning
+title: Cryptography and Computer Science
 header-img: img/home-bg.jpg
-#copyright_name: Your/Project/Corporate Name
-description: "Mixing both for privacy-preserving machine learning"
+copyright_name: Morten Dahl
+description: "Applications in machine learning and blockchain"
 baseurl: ""
 url: "https://mortendahl.github.io"
 email: mortendahlcs@gmail.com

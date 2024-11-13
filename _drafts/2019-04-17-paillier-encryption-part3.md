@@ -1,7 +1,7 @@
 ---
 layout:     post
 title:      "Paillier Encryption, Part 3"
-subtitle:   "Security and Algebraic Interpretation"
+subtitle:   "Algebraic Interpretation and Security"
 date:       2019-04-17 12:00:00
 author:     "Morten Dahl"
 header-img: "assets/paillier/autostereogram-hidden-treasures.jpg"

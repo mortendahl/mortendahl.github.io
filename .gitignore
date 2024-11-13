@@ -3,3 +3,5 @@ _site/
 .jekyll-metadata
 Gemfile.lock
 .DS_Store
+node_modules/
+package-lock.json

@@ -1,10 +1,19 @@
 <script>
     MathJax = {
         tex: {
-            inlineMath: [['$', '$'], ['\\(', '\\)']]
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            macros: {
+                navy: ["{\\color{navy} #1}", 1],
+                red: ["{\\color{red} #1}", 1],
+                green: ["{\\color{green} #1}", 1],
+                brown: ["{\\color{brown} #1}", 1],
+                orange: ["{\\color{orange} #1}", 1],
+                purple: ["{\\color{purple} #1}", 1],
+            }
         },
         svg: {
-            fontCache: 'global'
+            fontCache: 'global',
+            scale: 1.1,
         }
     };
 </script>

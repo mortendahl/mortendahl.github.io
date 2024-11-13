@@ -27,7 +27,9 @@ As always, the full source code is available for experimentation, but inspired b
 
 Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Public-key_cryptography) similar to [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)), where a keypair consisting of an encryption key `ek` and a decryption key `dk` is used to respectively encrypt a plaintext `x` into a ciphertext `c`, and decrypt a ciphertext `c` back into a plaintext `x`. The former is typically made publicly available to anyone, while the latter must be kept private by the key owner so that only they can decrypt. As we shall see, the encryption key also doubles as an evaluation key that allows anyone to compute on data while it remains encrypted.
 
-The encryption function `enc` maps a plaintext `x` and randomness `r` into a ciphertext `c = enc(ek, x, r)`, which we often write simply as `enc(x, r)` for brevity. Having the randomness means that we end up with different ciphertexts even if we encrypt the same plaintext several times: if `r1` and `r2` are different then so are `c1 = enc(x, r1)` and `c2 = enc(x, r2)` despite both of them being encryptions of `x` under the same encryption key.
+For a given encryption key $ek$, the encryption function $\mathit{enc}$ maps a plaintext $x$ and randomness $r$ into a ciphertext $c = \mathit{enc}(ek, x, r)$. For brevity we often simply write $\mathit{enc}(x, r)$ and let the encryption key be implicit.
+
+Having the randomness means that we end up with different ciphertexts even if we encrypt the same plaintext several times: if `r1` and `r2` are different then so are `c1 = enc(x, r1)` and `c2 = enc(x, r2)` despite both of them being encryptions of `x` under the same encryption key.
 
 <img src="/assets/paillier/probabilistic.png" style="width: 50%;"/>
 
@@ -50,10 +52,6 @@ As we shall see later, the underlying security assumptions also imply that it is
 
 In summary, the randomness prevents adversaries from performing brute-force attacks since they cannot efficiently check whether each "guess" was correct, even in situations where `x` is known to be from a very small set of possibilities, say `x = 0` or `x = 1`. Of course, there may also be other ways for an adversary to check a guess, or more generally learn something about `x` or `r` from `c`, and we shall return to security of the scheme in much more detail later.
 
-
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
-
-
 Below we will see concrete examples
 
 # Basic Operations
@@ -62,7 +60,7 @@ We first cover the basic operations that any public-key encryption scheme has: k
 
 ## Key generation
 
-The first step of generating a fresh Paillier keypair is to pick two primes `p` and `q` of the same length (like in [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Key_generation)). For security reasons, each prime [must be](https://www.keylength.com/en/compare/) at least ~1000 bits so that their product is at least ~2000 bits.
+The first step of generating a fresh Paillier keypair is to pick two primes $p$ and $q$ of the same length (like in [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)#Key_generation)). For security reasons, each prime [must be](https://www.keylength.com/en/compare/) at least ~1000 bits so that their product is at least ~2000 bits.
 
 ```python
 class Keypair:
@@ -76,7 +74,7 @@ def generate_keypair(n_bitlength=2048):
     return Keypair(p, q)
 ```
 
-From this keypair, which must be kept private, we can derive both the private decryption key and the public encrypted key. The former is simply the two primes while the latter is essentially the product of them: `n = p * q`. One of the underlying security assumption is hence that while computing `n` from `p` and `q` is easy, computing `p` or `q` from `n` is hard.
+From this keypair, which must be kept private, we can derive both the private decryption key and the public encrypted key. The former is simply the two primes while the latter is essentially the product of them: $n = p \cdot q$. One of the underlying security assumption is hence that while computing `n` from `p` and `q` is easy, computing `p` or `q` from `n` is hard.
 
 Note that the encryption key is only based on `n` and not `p` nor `q`. The fact that it is easy to compute `n` from `p` and `q`, but believed hard to compute `p` or `q` from `n`, is the primary assumption underlying the security of the Paillier scheme (and of RSA).
 
@@ -92,6 +90,8 @@ def derive_decryption_key(keypair):
 
 We further explore the scheme's security in part 3.
 
+TODO Every value mod nn can be represented as gx * rn.
+
 ## Encryption
 
 While `n` fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only `n` but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them every time they're needed.
@@ -106,7 +106,10 @@ class EncryptionKey:
 
 With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+$$
+\color{grey}
+\mathit{enc}(\green{x}, \red{r}) = \navy{g}^\green{x} \cdot \red{r}^\navy{n}
+$$
 
 that we can express in Python as follows:
 
@@ -188,13 +191,24 @@ This opens up for very powerful applications, including electronic voting, secur
 
 ## Addition
 
-Let us first see how one can do the above and compute the addition of two encrypted values, say `c1 = enc(ek, x1, r1)` and `c2 = enc(ek, x2, r2)`.
+Let us first see how one can do the above and compute the addition of two encrypted values, say $c_1 = \mathit{enc}(x_1, r_1)$ and $c_2 = \mathit{enc}(x_2, r_2)$.
 
-To do this we multiply the two ciphertexts, letting `c = c1 * c2`. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
+To do this we simply multiply the two ciphertexts, letting $c = c_1 \cdot c_2$. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
-<img src="/assets/paillier/add.png" style="width: 95%;"/>
+$$
+\color{grey}
+\begin{align}
+\mathit{enc}(\green{x_1}, \red{r_1}) \cdot \mathit{enc}(\brown{x_2}, \orange{r_2})
+&= ( \navy{g}^\green{x_1} \cdot \red{r_1}^\navy{n} ) \cdot ( \navy{g}^\brown{x_2} \cdot \orange{r_2}^\navy{n} ) \\
+% &= \navy{g}^\green{x_1} \cdot \red{r_1}^\navy{n} \cdot \navy{g}^\brown{x_2} \cdot \orange{r_2}^\navy{n} \\
+&= \navy{g}^\green{x_1} \cdot \navy{g}^\brown{x_2} \cdot \red{r_1}^\navy{n} \cdot \orange{r_2}^\navy{n} \\
+% &= ( \navy{g}^\green{x_1} \cdot \navy{g}^\brown{x_2} ) \cdot ( \red{r_1}^\navy{n} \cdot \orange{r_2}^\navy{n} ) \\
+&= \navy{g}^{(\green{x_1} + \brown{x_2})} \cdot (\red{r_1} \cdot \orange{r_2})^\navy{n}
+= \mathit{enc}(\green{x_1 + \brown{x_2}}, \red{r_1} \cdot \orange{r_2})
+\end{align}
+$$
 
-In other words, if we multiply ciphertext values `c1` and `c2` then we get exactly the same result as if we had encrypted `x1 + x2` using randomness `r1 * r2`!
+In other words, if we multiply ciphertext values $c_1$ and $c_2$ then we get exactly the same result as if we had encrypted $x_1 + x_2$ using randomness $r_1 \cdot r_2$!
 
 ```python
 def add_cipher(ek, c1, c2):
@@ -211,7 +225,16 @@ def add_plain(ek, c1, x2):
     return c
 ```
 
-<img src="/assets/paillier/add-plain.png" style="width: 85%;"/>
+$$
+\color{grey}
+\begin{align}
+\mathit{enc}(\green{x_1}, \red{r}) \cdot \navy{g}^\brown{x_2}
+&= ( \navy{g}^\green{x_1} \cdot \red{r}^\navy{n} ) \cdot \navy{g}^\brown{x_2} \\
+&= \navy{g}^\green{x_1} \cdot \navy{g}^\brown{x_2} \cdot \red{r}^\navy{n} \\
+&= \navy{g}^{\green{x_1} + \brown{x_2}} \cdot \red{r}^\navy{n}
+= \mathit{enc}(\green{x_1} + \brown{x_2}, \red{r})
+\end{align}
+$$
 
 We now know how to add encrypted values together without decrypting anything! Note however, that the resulting ciphertexts have a slightly different form than freshly generated ones, with a randomness that is no longer a uniformly random value but rather a composite such as `r1 * r2`. This does not affect correctness nor the ability to decrypt, but in some applications it may leak extra information to an adversary and hence have consequences for security. We return to this issue below after having introduced more operations.
 
@@ -245,11 +268,20 @@ Note that the resulting ciphertexts again have a slightly different form than fr
 
 ## Multiplication
 
-The final operation supported by Paillier encryption is multiplication between a ciphertext and a plaintext. The fact that it is not known how to compute the multiplication of two encrypted values is what makes it a *partially homomorphic* scheme, and is what sets it apart from more recent *somewhat homomorphic* and *fully homomorphic* schemes where this is indeed possible.
+The final operation supported by Paillier encryption is multiplication between a ciphertext and a plaintext. The fact that it is not known how to compute a multiplication between two ciphertexts is what makes it a *partially homomorphic* scheme, and is what sets it apart from more recent *somewhat homomorphic* and *fully homomorphic* schemes where this is indeed possible.
 
-Given `c = enc(x, r)` and a `k` we compute `c^k = (g^x * r^n) ^ k == g^(x * k) * (r^k)^n == enc(x * k, r ^ k)`.
+Given a ciphertext $c_1 = \mathit{enc}(x_1, r)$ and a plaintext $x_2$, we compute:
 
-<img src="/assets/paillier/mul-plain.png" style="width: 75%;"/>
+$$
+\color{grey}
+\begin{align}
+\mathit{enc}(\green{x_1}, \red{r})^\brown{x_2}
+&= ( \navy{g}^\green{x_1} \cdot \red{r}^\navy{n} )^\brown{x_2} \\
+&= (\navy{g}^\green{x_1})^\brown{x_2} \cdot (\red{r}^\navy{n})^\brown{x_2} \\
+&= \navy{g}^{\green{x_1} \cdot \brown{x_2}} \cdot (\red{r}^\brown{x_2})^\navy{n}
+= \mathit{enc}(\green{x_1} \cdot \brown{x_2}, \red{r}^\brown{x_2})
+\end{align}
+$$
 
 ```python
 def mul_plain(ek, c1, x2):
@@ -295,7 +327,16 @@ TODO: good examples of the above?
 
 Fortunately, we can easily define a *re-randomize* operation that makes any ciphertext look exactly like a freshly generated one, effectively erasing everything about how it was created. To do this we have to make sure the randomness component looks uniformly random given anything that the adversary may know. To do this we simply add a fresh encryption of zero `enc(0, s)`, which for `enc(x, r)` will give us an encryption `enc(x, r*s)`; however, if `s` is independent and uniformly random then so is `r*s`. We are essentially 
 
-<img src="/assets/paillier/re-randomize.png" style="width: 75%;"/>
+$$
+\color{grey}
+\begin{align}
+\mathit{enc}(\green{x}, \red{r}) \cdot \orange{s}^\navy{n}
+&= ( \navy{g}^\green{x} \cdot \red{r}^\navy{n} ) \cdot \orange{s}^\navy{n} \\
+&= \navy{g}^\green{x} \cdot ( \red{r} \cdot \orange{s} )^\navy{n} \\
+&= \navy{g}^\green{x} \cdot \purple{t}^\navy{n}
+= \mathit{enc}(\green{x}, \purple{t})
+\end{align}
+$$
 
 ```python
 def rerandomize(ek, c, s):

@@ -19,12 +19,13 @@ markdown: kramdown
 highlighter: rouge
 permalink: pretty
 paginate: 50
-exclude: ["less","node_modules","Gruntfile.js","package.json"]
+exclude: ["less","node_modules","Gruntfile.js","package.json","package-lock.json"]
 
 gems: [jekyll-paginate, jekyll-feed]
 
 gist:
   noscript: false
+
 kramdown:
   input: GFM
   math_engine: mathjax

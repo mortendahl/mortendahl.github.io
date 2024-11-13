@@ -1,6 +1,6 @@
 ---
 layout:     post
-title:      "The SPDZ Protocol, Part 1"
+title:      "The SPDZ Protocol"
 subtitle:   "Secure Computation using Precomputed Triples"
 date:       2017-09-03 12:00:00
 author:     "Morten Dahl"

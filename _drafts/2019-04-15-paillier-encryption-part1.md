@@ -19,9 +19,13 @@ img {
 
 In this blog post series we walk through and explain [Paillier encryption](https://en.wikipedia.org/wiki/Paillier_cryptosystem), a so called *partially homomorphic encryption scheme* [first described](https://link.springer.com/chapter/10.1007%2F3-540-48910-X_16) by [Pascal Paillier](https://twitter.com/pascal_paillier) exactly 20 years ago. [More advanced schemes](https://en.wikipedia.org/wiki/Homomorphic_encryption) have since been developed, allowing more operations to be performed on encrypted data, yet Paillier encryption remains relevant not only for understanding modern cryptography but also from a practical point of view, as illustrated recently by for instance Google's [Private Join and Compute](https://eprint.iacr.org/2019/723) or Snips' [Secure Distributed Aggregator](https://eprint.iacr.org/2017/643).
 
+<!--
+
 We go through the basics of the scheme (part 1), how to implement it efficiently (part 2), its underlying security assumption (part 3), and applications in privacy-preserving machine learning (part 4). We introduce the needed abstract algebra along the way instead of dumping everything upfront.
 
 As always, the full source code is available for experimentation, but inspired by the excellent [A Homomorphic Encryption Illustrated Primer](https://blog.n1analytics.com/homomorphic-encryption-illustrated-primer/) by [Stephen Hardy](https://twitter.com/proximation) and [Differential Privacy: An illustrated Primer](https://github.com/frankmcsherry/blog/blob/master/posts/2016-02-06.md) by [Frank McSherry](https://twitter.com/frankmcsherry), we also try to give a more visual presentation of material that is [typically](https://www.cs.umd.edu/~jkatz/imc.html) offered mostly in the form of equations.
+
+-->
 
 # Overview
 

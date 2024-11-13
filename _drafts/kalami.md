@@ -32,7 +32,7 @@ TODO pure language so we can reevaluate
 
 This could of course be expressed similarly in e.g. [Prolog](http://en.wikipedia.org/wiki/Prolog), but the aim was also for the project to have a touch of finding suitable evaluation strategies and using static analysis, as well as to illustrate the power of working with languages in OCaml.
 
-To illustrate some of the issues consider programme
+To illustrate some of the issues consider program
 
 ```ocaml
 guess x in
@@ -42,14 +42,14 @@ if x == y+1 then accept else reject
 
 which have solution x=1 and y=0. Yet if the evaluation strategy simply starts with x=0 and tries all values for y then it will never find it; in other words, the evaluation strategy must eventually enumerate all tuples of values.
 
-For some programmes we may also benefit from first employing static analysis. Consider for instance programme
+For some programs we may also benefit from first employing static analysis. Consider for instance program
 
 ```ocaml
 guess x in
 if x == x+1 then accept else reject
 ```
 
-that is easily seen to not have any solutions — yet the interpreter might not realise this without some kind of static analyse. Likewise, for programmes such as
+that is easily seen to not have any solutions — yet the interpreter might not realise this without some kind of static analyse. Likewise, for programs such as
 
 ```ocaml
 guess n in
@@ -66,7 +66,7 @@ So, parsing is basically about how to turn a input text string into an in-memory
 
 The files needed can be found in the ZIP file kalami-parsing.zip; out of these the most important are structure.ml, lexer.mll, and parser.mly.
 
-Starting with structure.ml we first have a piece of OCaml code defining what we would like the abstract syntax tree of a Kalami programme to look like:
+Starting with structure.ml we first have a piece of OCaml code defining what we would like the abstract syntax tree of a Kalami program to look like:
 
 ```ocaml
 type identifier = string
@@ -101,7 +101,7 @@ type statement =
     | StmtGuessLowerUpperBound of identifier * expression * expression * statement
 ```
 
-Essentially, the above code defines expressions, conditions, and statements as labelled tuples, such that when we for instance write “4*5” in Kalami then this can be represented in memory as expression `ExprProduct(ExprNumber(4), ExprNumber(5))`. We shall later see that in the end a Kalami programme is simply a statement.
+Essentially, the above code defines expressions, conditions, and statements as labelled tuples, such that when we for instance write “4*5” in Kalami then this can be represented in memory as expression `ExprProduct(ExprNumber(4), ExprNumber(5))`. We shall later see that in the end a Kalami program is simply a statement.
 
 By the way, note the elegance with which we can express an abstract syntax tree in Caml: were we to express the same in Java it would look a lot less intuitive, at least in my experience. This is one of the great strengths of Caml, of which there are plenty more when we start evaluating and analysing the abstract syntax tree in later posts.
 
@@ -128,7 +128,7 @@ to the slightly more advanced regular expressions, that also includes a native O
 
 Besides this abstraction of strings as tokens not much happens in the lexer, perhaps apart from the little extra code needed for allowing nested comments, and the insistence that STRs, and in turn identifiers, start with a digit (an easy way to distinguish them from INTs).
 
-However, in parser.mly we may use these tokens to put together a [grammar](http://en.wikipedia.org/wiki/Formal_grammar). In particular we see from rule main that an input (now a string of tokens) is a Kalami programme if it can be parsed according to rule “stmt” and its sub-rules as given by:
+However, in parser.mly we may use these tokens to put together a [grammar](http://en.wikipedia.org/wiki/Formal_grammar). In particular we see from rule main that an input (now a string of tokens) is a Kalami program if it can be parsed according to rule “stmt” and its sub-rules as given by:
 
 ```
 id:
@@ -190,21 +190,21 @@ let _ =
             exit 1
 ```
 
-The only thing missing now is how to compile everything. This is not completely straight-forward since the lexer and the parser are referencing each other, and as a result we must execute the compilation commands in the specific order as seen in file compile.sh. Doing so will produce the kalamiparsing binary which we can tell to either load a programme from a file through
+The only thing missing now is how to compile everything. This is not completely straight-forward since the lexer and the parser are referencing each other, and as a result we must execute the compilation commands in the specific order as seen in file compile.sh. Doing so will produce the kalamiparsing binary which we can tell to either load a program from a file through
 
 ./kalamiparsing < "inputfile"
 or run “interactively” by simply executing
 
 ./kalamiparsing
-and typing a programme directly into it (ending with an EOF signal by pressing control + d).
+and typing a program directly into it (ending with an EOF signal by pressing control + d).
 
-In the next post we’ll look at how we may evaluate an in-memory Kalami programme in order to find a satisfying guess; as mentioned previously this requires something slightly more involved than a trivial brute-force.
+In the next post we’ll look at how we may evaluate an in-memory Kalami program in order to find a satisfying guess; as mentioned previously this requires something slightly more involved than a trivial brute-force.
 
 # Working with the Syntax Tree
 
-While the grammar from the previous post on parsing puts some restrictions on the form of a valid Kalami programme, it doesn’t reject all invalid programmes. In particular, it doesn’t ensure that all variables are bound (declared) before use. Defining a simple type system to check for this is straight forward, but will also serve to illustrate how easy it is to work with an abstract syntax tree in Caml.
+While the grammar from the previous post on parsing puts some restrictions on the form of a valid Kalami program, it doesn’t reject all invalid programs. In particular, it doesn’t ensure that all variables are bound (declared) before use. Defining a simple type system to check for this is straight forward, but will also serve to illustrate how easy it is to work with an abstract syntax tree in Caml.
 
-To quickly illustrate the problem, consider programmes such as:
+To quickly illustrate the problem, consider programs such as:
 
 ```
 if x == 5 then accept else reject
@@ -312,7 +312,7 @@ let rec wellformed_stmt definedvars stmt =
             (wellformed_stmt (id::definedvars) stmt)
 ```
 
-The above functions are all that is needed to perform our validation check: simply invoke `wellformed_stmt` on the main programme statement with an empty list, and check that it returns true. We may wrap this in order to hide some of the implementation details:
+The above functions are all that is needed to perform our validation check: simply invoke `wellformed_stmt` on the main program statement with an empty list, and check that it returns true. We may wrap this in order to hide some of the implementation details:
 
 ```ocaml
 let wellformed stmt =
@@ -321,7 +321,7 @@ let wellformed stmt =
 
 # Evaluation
 
-It’s been a while now since the last post in my little series on Kalami, but I’ve finally polished the code for evaluating programmes as I wanted to. Overall, it’s not that different from the wellformed code of the previous post; in fact, the most challenging aspect is how to enumerate all guesses.
+It’s been a while now since the last post in my little series on Kalami, but I’ve finally polished the code for evaluating programs as I wanted to. Overall, it’s not that different from the wellformed code of the previous post; in fact, the most challenging aspect is how to enumerate all guesses.
 
 As earlier, we’re dealing with statements, conditions, and expressions. The first one is the tricky one, so to start off simple I’ll first look at the other two. The full source code is available in the evalwoa branch on GitHub.
 
@@ -408,7 +408,7 @@ let rec eval_cnd env cnd =
             (&&) val1 val2
 ```
 
-For statement stmt it finally gets a bit more interesting. Cases `StmtLet` and `StmtIf` are straight-forward, as are `StmtAccept` and `StmtReject` which respectively return the current environment and `None`. However, for a guessing statement it’s a bit more involved. If the guess has an upper bound then we may just try all possibilities as in case `StmtGuessLowerUpperBound` below. But this will of course not work when no upper bound is specified since an inner guess will prevent outer guesses from ever increasing. As an example, consider programme:
+For statement stmt it finally gets a bit more interesting. Cases `StmtLet` and `StmtIf` are straight-forward, as are `StmtAccept` and `StmtReject` which respectively return the current environment and `None`. However, for a guessing statement it’s a bit more involved. If the guess has an upper bound then we may just try all possibilities as in case `StmtGuessLowerUpperBound` below. But this will of course not work when no upper bound is specified since an inner guess will prevent outer guesses from ever increasing. As an example, consider program:
 
 ```
 guess x in
@@ -419,7 +419,7 @@ otherwise reject
 
 which has solution [ ("x", 1); ("y", 0) ], yet if we first let x=0 and then use the strategy of enumerating all values for y then we’ll never make it back to incrementing x.
 
-Instead, for a programme with n (unbounded) guesses, i.e. guesses without an upper bound, the simple strategy used here is to enumerate all n-arity integer tuples in an outer loop, and for each evaluate the main statement with a second environment guesses linking the tuples with the identifiers of the (unbounded) guesses. Statements may then be evaluated as follows, using an initial empty environment:
+Instead, for a program with n (unbounded) guesses, i.e. guesses without an upper bound, the simple strategy used here is to enumerate all n-arity integer tuples in an outer loop, and for each evaluate the main statement with a second environment guesses linking the tuples with the identifiers of the (unbounded) guesses. Statements may then be evaluated as follows, using an initial empty environment:
 
 ```ocaml
 let rec eval_stmt env guesses stmt =
@@ -537,15 +537,19 @@ let eval stmt =
         eval_stmt [] [] stmt
 ```
 
-that will indeed find a solution to the example programme from above!
+that will indeed find a solution to the example program from above!
 
-While this is now a working interpreter, it does have its shortcomings when used without any kind of static analysis thrown in. For example, on programme:
+While this is now a working interpreter, it does have its shortcomings when used without any kind of static analysis thrown in. For example, on program:
 
 ```
 guess x in
 reject
 ```
 
-the interpreter will enter an infinite loop, despite the fact that the programme obviously doesn’t have any solutions. Fixing this will be the topic of the next post.
+<!--
+
+the interpreter will enter an infinite loop, despite the fact that the program obviously doesn’t have any solutions. Fixing this will be the topic of the next post.
 
 Oh, and by the way, the name _Kalami_ came from _The Meaning of Liff_ by Douglas Adams and John Lloyd, which I was reading at the time.
+
+-->

@@ -31,6 +31,8 @@ Rough content (on no particular order):
 - This was heavily inspired by my previous research in academia on computational soundness: "The exact abstraction paradigm he researched during his PhD—shielding upper-level protocol logic from lower-level cryptographic complexity using a formal mapping—is precisely how the fhEVM functions today. By packaging homomorphic ciphertexts into secure, high-level bytes32 handles, his team has successfully implemented the exact type of universally composable symbolic framework he mathematically proved over a decade ago"
 - While the blockchain provides consensus on the computational graph, the coprocessor must provide consensus on the mapping from symbolic values )handles) to concrete values (ciphertexts); we can do multiple things here, including running multiple coprocessor nodes that must reach consensus, or do sampling to catch a cheating coprocessor with high probability (how high?)
 - The benefit of this separate of light and heavy computation, is that the heavy computation can be added as a layer on top of any blockchain without impacting performance, and without having to change the blockchain software
+- Argue that the coprocessor can be either FHE, PHE, MPC, or even enclave based -- the KMS and trusted contracts stay the same; however, the KMS is only relevant in the FHE+PHE setting, and not eg in the MPC setting. In fact, one could run several concrete computations against the same symbolic computations at once (for eg seamless fall back in case one is broken)
+- Onchain commitments allow fraud proofs, and take away need for consensus to exist for older ciphertexts (and shares in case of MpcCoprocessor)
 
 Audience is as you discovered: "hackers" (software engineers) instead of cryptographers.
 

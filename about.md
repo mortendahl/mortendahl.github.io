@@ -3,10 +3,7 @@ layout:      page
 title:       "About"
 description: "For hackers with a focus on real-world applications"
 header-img:  "img/about-bg.jpg"
-twitter:     "mortendahlcs"
 github:      "mortendahl"
-linkedin:    "mortendahlcs"
-email:       "mortendahlcs@gmail.com"
 ---
 
 I am currently VP of Blockchain Technology at [Zama](https://www.zama.org), where I lead protocol architecture for the [Zama Protocol](https://docs.zama.org/protocol/zama-protocol-litepaper) and the underlying [fhEVM](https://github.com/zama-ai/fhevm). The protocol brings confidential smart contracts to existing public blockchains using fully homomorphic encryption and threshold MPC. It has been live on Ethereum mainnet since the end of 2025 and now powers Zama's [financial products](https://app.zama.org/), including confidential tokens, vaults, and swapping.

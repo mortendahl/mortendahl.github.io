@@ -5,14 +5,7 @@ copyright_name: Morten Dahl
 description: "Applications in machine learning and blockchain"
 baseurl: ""
 url: "https://mortendahl.github.io"
-email: mortendahlcs@gmail.com
 github: mortendahl
-twitter: mortendahlcs
-linkedin: "mortendahlcs"
-
-# Google Analytics
-# To enable google analytics, uncomment below line with a valid Google Tracking ID
-# google_tracking_id: UA-101935827-1
 
 # Build settings
 markdown: kramdown

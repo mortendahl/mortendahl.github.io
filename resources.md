@@ -3,10 +3,7 @@ layout: page
 title:       "Talks and papers"
 description: "Research, work, and more"
 header-img: "img/about-bg.jpg"
-twitter:     "mortendahlcs"
 github:      "mortendahl"
-linkedin:    "mortendahlcs"
-email:       "mortendahlcs@gmail.com"
 ---
 
 # Talks

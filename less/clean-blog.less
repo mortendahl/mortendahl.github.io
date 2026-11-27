@@ -12,11 +12,15 @@ body {
 // -- Typography
 
 p {
-	line-height: 1.5;
+	line-height: 1.7;
 	margin: 30px 0;
 	a {
 		text-decoration: underline;
 	}
+}
+
+ol li {
+	line-height: 1.7;
 }
 
 h1,
@@ -254,6 +258,7 @@ hr.small {
 		font-size: 18px;
 		font-style: italic;
 		margin-top: 0;
+		margin-bottom: 15px;
 		> a {
 			text-decoration: none;
 			color: @gray-dark;
@@ -263,6 +268,10 @@ hr.small {
 				text-decoration: underline;
 			}
 		}
+	}
+	> .post-summary {
+		font-size: 18px;
+		margin-top: 0;
 	}
 	@media only screen and (min-width: 768px) {
 		> a {

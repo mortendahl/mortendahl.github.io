@@ -346,7 +346,7 @@ plt.show()
 
 Note that the numbers for `N = 242` are omitted in the graph to avoid hiding the results for the smaller values.
 
-<center><img src="{{ site.url }}/assets/secret-sharing/share-performance-shamir.png" /></center>
+<center><img src="/assets/secret-sharing/share-performance-shamir.png" /></center>
 
 
 For the packed scheme we keep `T = N/4` and `K = N/2` fixed (meaning `R = 3N/4`) and let `N` vary as above. We then compare three different approaches for generating shares, all starting out with sampling a polynomial in point-value representation:
@@ -376,7 +376,7 @@ plt.show()
 
 We note that the Lagrange approach remains superior up to the setting with 26 shares, after which it's interesting to use the two step FFT.
 
-<center><img src="{{ site.url }}/assets/secret-sharing/share-performance-packed.png" /></center>
+<center><img src="/assets/secret-sharing/share-performance-packed.png" /></center>
 
 
 From this small amount of empirical data the FFT seems like the obvious choice as soon as the number of shares is sufficiently high. Question of course, is in which applications this is the case. We will explore this further in a future blog post (or see e.g. [our paper](https://eprint.iacr.org/2017/643)).

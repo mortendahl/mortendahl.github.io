@@ -111,7 +111,7 @@ We further explore the scheme's security in part 3.
 
 ## Encryption
 
-While `n` fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only `n` but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them every time they're needed.
+While $$\n$$ fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only $$\n$$ but also the derived values $$\n^2$$ and $$\g = 1 + \n$$, saving us from having to re-compute them every time they're needed.
 
 ```python
 class EncryptionKey:
@@ -153,7 +153,7 @@ As it turns out, one loop iteration is *almost always* enough, to the point wher
 
 ## Decryption
 
-Turning next to decryption, again we start out by caching a few values derived from `p` and `q`. Note that we really only need the order of $$\n$$, i.e. $$(p - 1)(q - 1)$$ (`order_of_n` in the code), but in part 2 we will have additional uses of them.
+Turning next to decryption, again we start out by caching a few values derived from $$p$$ and $$q$$. Note that we really only need the order of $$\n$$, i.e. $$(p - 1)(q - 1)$$ (`order_of_n` in the code), but in part 2 we will have additional uses of them.
 
 ```python
 class DecryptionKey:
@@ -193,7 +193,7 @@ def extract(dk, c):
     return r
 ```
 
-When the scheme was first published this was mentioned as an interesting property on its own, but later literature have had less focus on this. As we see in part 4, one particular application that is still relevant is that it can serve as a simple proof that decryption was done correctly: if someone asks the key owner to decrypt a ciphertext $$c$$, and the key owner returns both plaintext $$\x$$ and randomness $$\r$$, then it is easy to verify that indeed `c == enc(ek, x, r)`.
+When the scheme was first published this was mentioned as an interesting property on its own, but later literature have had less focus on this. As we see in part 4, one particular application that is still relevant is that it can serve as a simple proof that decryption was done correctly: if someone asks the key owner to decrypt a ciphertext $$c$$, and the key owner returns both plaintext $$\x$$ and randomness $$\r$$, then it is easy to verify that indeed $$c = \mathsf{enc}(\x, \r)$$.
 
 # Homomorphic Operations
 

@@ -19,6 +19,10 @@ p a {
 ol li {
   line-height: 1.7;
 }
+code {
+  color: #404040;
+  background-color: #f3f3f3;
+}
 h1,
 h2,
 h3,

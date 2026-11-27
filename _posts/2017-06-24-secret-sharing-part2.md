@@ -81,7 +81,7 @@ But as we will see, the FFT allows us to do so more efficiently when the length 
 
 The first insight we need is that there is an alternative evaluation strategy that breaks $$A$$ into two smaller polynomials. In particular, if we define polynomials $$B(y) = 1 + 3y$$ and $$C(y) = 2 + 4y$$ by taking every other coefficient from $$A$$ then we have $$A(x) = B(x^2) + x \cdot C(x^2)$$, which is straight-forward to verify by simply writing out the right-hand side.
 
-This means that if we know values of $$B(y)$$ and $$C(y)$$ at the *squares* `v` of the `w` points, then we can use these to compute the values of $$A(x)$$ at the `w` points using table look-ups: `A_values[i] = B_values[i] + w[i] * C_values[i]`.
+This means that if we know the values of $$B$$ and $$C$$ at the *squares* $$v_i = w_i^2$$ of the points, then we can use these to compute the values of $$A$$ at the points using table look-ups: $$A(w_i) = B(v_i) + w_i \cdot C(v_i)$$.
 
 ```python
 # split A into B and C
@@ -103,9 +103,9 @@ A_values = [ ( B_values[i] + w[i] * C_values[i] ) % Q for i,_ in enumerate(w) ]
 assert( A_values == [ A(wi) for wi in w ] )
 ```
 
-So far we haven't saved much, but the second insight fixes that: by picking the points `w` to be the elements of a subgroup of order 4, the `v` points used for $$B$$ and $$C$$ will form a subgroup of order 2 due to the squaring; hence, we will have `v[0] == v[2]` and `v[1] == v[3]` and so only need the first halves of `B_values` and `C_values` -- as such we have cut the subproblems in half!
+So far we haven't saved much, but the second insight fixes that: by picking the points $$w_0, \ldots, w_3$$ to be the elements of a subgroup of order 4, the squares $$v_0, \ldots, v_3$$ used for $$B$$ and $$C$$ will form a subgroup of order 2 due to the squaring; hence, we will have $$v_0 = v_2$$ and $$v_1 = v_3$$ and so only need the values of $$B$$ and $$C$$ at the first two -- as such we have cut the subproblems in half!
 
-Such subgroups are typically characterized by a generator, i.e. an element of the field that when raised to powers will take on exactly the values of the subgroup elements. Historically such generators are denoted by the omega symbol so let's follow that convention here as well.
+Such subgroups are typically characterized by a generator, i.e. an element of the field that when raised to powers will take on exactly the values of the subgroup elements. Historically such generators are denoted by the omega symbol $$\omega$$ so let's follow that convention here as well (`omega` in the code).
 
 ```python
 # generator of subgroup of order 4
@@ -132,9 +132,9 @@ assert( [ pow(omega4, e, Q) for e in range(8) ] == [1, 179, 432, 254, 1, 179, 43
 assert( [ pow(omega2, e, Q) for e in range(8) ] == [1, 432,   1, 432, 1, 432,   1, 432] )
 ```
 
-Using generators we also see that there is no need to explicitly calculate the lists `w` and `v` anymore as they are now implicitly defined by the generator. So, with these change we come back to our mission of computing the values of $$A$$ at the points determined by the powers of `omega4`, which may then be done via `A_values[i] = B_values[i % 2] + pow(omega4, i, Q) * C_values[i % 2]`.
+Using generators we also see that there is no need to explicitly calculate the lists `w` and `v` anymore as they are now implicitly defined by the generator. So, with these change we come back to our mission of computing the values of $$A$$ at the points $$w_i = \omega_4^i$$. In the code this becomes `A_values[i] = B_values[i % 2] + pow(omega4, i, Q) * C_values[i % 2]`.
 
-The third and final insight we need is that we can of course continue this process of diving the polynomial in half: to compute e.g. `B_values` we break $$B$$ into two polynomials $$D$$ and $$E$$ and then follow the same procedure; in this case $$D$$ and $$E$$ will be simple constants but it works in the general case as well. The only requirement is that the length $$L$$ is a power of 2 and that we can find a generator $$\omega_L$$ of a subgroup of this size.
+The third and final insight we need is that we can of course continue this process of diving the polynomial in half: to compute e.g. the values of $$B$$ we break it into two polynomials $$D$$ and $$E$$ and then follow the same procedure; in this case $$D$$ and $$E$$ will be simple constants but it works in the general case as well. The only requirement is that the length $$L$$ is a power of 2 and that we can find a generator $$\omega_L$$ of a subgroup of this size.
 
 
 ## Algorithm for powers of 2
@@ -191,7 +191,7 @@ Here however we may feel a stronger impact of the constraints implied by the FFT
 
 Unsurprisingly there is nothing in the principles behind the FFT that means it will only work for powers of 2, and other bases can indeed be used as well. Luckily perhaps, since this plays a big part in our application to secret sharing as we will see below.
 
-To adapt the FFT algorithm to powers of 3 we instead assume that the list of coefficients of $$A$$ has such a length, and split it into three polynomials $$B$$, $$C$$, and $$D$$ such that $$A(x) = B(x^3) + x \cdot C(x^3) + x^2 \cdot D(x^3)$$, and we use the cube of `omega` in the recursive calls instead of the square. Here `omega` is again assumed be a generator of order `len(A_coeffs)`, but this time a power of 3.
+To adapt the FFT algorithm to powers of 3 we instead assume that the list of coefficients of $$A$$ has such a length, and split it into three polynomials $$B$$, $$C$$, and $$D$$ such that $$A(x) = B(x^3) + x \cdot C(x^3) + x^2 \cdot D(x^3)$$. In the recursive calls we then use the cube of `omega` instead of the square. Here `omega` is again assumed be a generator of order `len(A_coeffs)`, but this time a power of 3.
 
 ```python
 def fft3_forward(A_coeffs, omega):
@@ -237,7 +237,7 @@ And again we may go in the opposite direction and perform interpolation by simpl
 
 ## Optimizations
 
-For easy of presentation we have omitted some typical optimizations here, perhaps most typically the fact that for powers of 2 we have the property that $$\omega^i \equiv -\omega^{i + L/2} \pmod{Q}$$, meaning we can cut the number of exponentiations in `fft2` in half compared to what we did above.
+For easy of presentation we have omitted some typical optimizations here, perhaps most typically the fact that for powers of 2 we have the property that $$\omega^i \equiv -\omega^{i + L/2} \pmod{Q}$$. This means we can cut the number of exponentiations in `fft2_forward` in half compared to what we did above.
 
 More interestingly, the FFTs can be also run in-place and hence reusing the list in which the input is provided. This saves memory allocations and has a significant impact on performance. Likewise, we may gain improvements by switching to another number representation such as [Montgomery form](https://en.wikipedia.org/wiki/Montgomery_modular_multiplication). Both of these approaches are described in further detail [elsewhere](https://medium.com/snips-ai/optimizing-threshold-secret-sharing-c877901231e5).
 
@@ -261,7 +261,7 @@ def shamir_share(secret):
     return shares
 ```
 
-Besides the privacy threshold `T` and the number of shares `N`, the parameters needed for the scheme is hence a prime `Q` and a generator `OMEGA_LARGE` of order `ORDER_LARGE == N + 1`.
+Besides the privacy threshold $$T$$ and the number of shares $$N$$, the parameters needed for the scheme is hence a prime $$Q$$ and a generator of a subgroup of order $$N + 1$$. In the code these are `OMEGA_LARGE` and `ORDER_LARGE`.
 
 Note that we've used the FFT for powers of 3 here to be consistent with the next scheme; the FFT for powers of 2 would of course also have worked.
 
@@ -286,7 +286,7 @@ def packed_share(secrets):
     return shares
 ```
 
-For this scheme, besides `T`, `N`, and the number `K` of secrets packed together, the parameters for this scheme is hence the prime `Q` and the two generators `OMEGA_SMALL` and `OMEGA_LARGE` of order respectively `ORDER_SMALL == T + K + 1` and `ORDER_LARGE == N + 1`.
+For this scheme, besides $$T$$, $$N$$, and the number $$K$$ of secrets packed together, the parameters for this scheme is hence the prime $$Q$$ and two generators of order respectively $$T + K + 1$$ and $$N + 1$$. In the code these are `OMEGA_SMALL` and `OMEGA_LARGE`, with orders `ORDER_SMALL` and `ORDER_LARGE`.
 
 We will talk more about how to do efficient reconstruction in the next blog post, but note that if all the shares are known then the above sharing procedure can efficiently be run backwards by simply running the two FFTs in their opposite direction.
 
@@ -373,7 +373,7 @@ From this small amount of empirical data the FFT seems like the obvious choice a
 
 # Parameter Generation
 
-Since there are no security implications in re-using the same fixed set of parameters (i.e. `Q`, `OMEGA_SMALL`, and `OMEGA_LARGE`) across applications, parameter generation is perhaps less important compared to for instance key generation in encryption schemes. Nonetheless, one of the benefits of secret sharing schemes is their ability to avoid big expansion factors by using parameters tailored to the use case; concretely, to pick a field of just the right size. As such we shall now fill in this final piece of the puzzle and see how a set of parameters fitting with the FFTs used in the packed scheme can be generated.
+Since there are no security implications in re-using the same fixed set of parameters (i.e. $$Q$$ and the two generators) across applications, parameter generation is perhaps less important compared to for instance key generation in encryption schemes. Nonetheless, one of the benefits of secret sharing schemes is their ability to avoid big expansion factors by using parameters tailored to the use case; concretely, to pick a field of just the right size. As such we shall now fill in this final piece of the puzzle and see how a set of parameters fitting with the FFTs used in the packed scheme can be generated.
 
 Our main abstraction is the `generate_parameters` function which takes a desired minimum field size in bits, as well as the number of secrets `k` we which to packed together, the privacy threshold `t` we want, and the number `n` of shares to generate. Accounting for the value at point 1 that we are throwing away (see earlier), to be suitable for the two FFTs, we must then have that `k + t + 1` is a power of 2 and that `n + 1` is a power of 3.
 

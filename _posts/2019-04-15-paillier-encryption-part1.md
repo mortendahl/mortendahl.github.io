@@ -6,17 +6,17 @@ date:       2019-04-15 12:00:00
 author:     "Morten Dahl"
 math:       true
 math_macros:
-  x: '\textcolor{#60BA46}{x}'
-  xa: '\textcolor{#60BA46}{x_1}'
-  xb: '\textcolor{#946635}{x_2}'
-  k: '\textcolor{#946635}{k}'
-  r: '\textcolor{#ED3624}{r}'
-  ra: '\textcolor{#ED3624}{r_1}'
-  rb: '\textcolor{#FA9D00}{r_2}'
-  s: '\textcolor{#FA9D00}{s}'
-  t: '\textcolor{#A400C7}{t}'
-  g: '\textcolor{#1749B3}{g}'
-  n: '\textcolor{#1749B3}{n}'
+  x: '\class{math-green}{x}'
+  xa: '\class{math-green}{x}_{\class{math-green}{1}}'
+  xb: '\class{math-brown}{x}_{\class{math-brown}{2}}'
+  k: '\class{math-brown}{k}'
+  r: '\class{math-red}{r}'
+  ra: '\class{math-red}{r}_{\class{math-red}{1}}'
+  rb: '\class{math-orange}{r}_{\class{math-orange}{2}}'
+  s: '\class{math-orange}{s}'
+  t: '\class{math-purple}{t}'
+  g: '\class{math-blue}{g}'
+  n: '\class{math-blue}{n}'
 header-img: "assets/paillier/autostereogram-space-shuttle.jpeg"
 summary:    "The Paillier homomorphic encryption scheme is not only interesting for allowing computation on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra. In this first part of a series we cover the basics and the homomorphic operations it supports."
 ---

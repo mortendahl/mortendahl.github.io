@@ -44,7 +44,18 @@ Math is rendered in one of two ways, both using MathJax 3.2.2 with the same sett
 
 The TeX settings (delimiters and a post's `math_macros`) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. The RSS feed is not rendered and still contains the raw TeX.
 
-A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\textcolor{#60BA46}{x}'` lets the post write `\x` for a green x. See the Paillier part 1 post for an example.
+A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{3}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
+
+### Colors
+
+Math is colored with CSS classes, `\class{math-blue}{...}` and so on, so the shades are defined once in `less/clean-blog.less` and are the same in every post. They're the colors of the hand-drawn equation images, and are used by role:
+
+- `math-blue`: fixed public parameters, such as the modulus and generator ($$n$$ and $$g$$ in Paillier, $$Q$$ and $$\omega$$ in Secret Sharing).
+- `math-green` and `math-brown`: a first and a second value that the explanation keeps apart, such as plaintexts $$x_1$$ and $$x_2$$, or the even and odd halves $$B$$ and $$C$$ of a polynomial.
+- `math-red` and `math-orange`: a first and a second piece of randomness, such as $$r_1$$ and $$r_2$$.
+- `math-purple`: a third value, such as the third part $$D$$ of a polynomial.
+
+Color only what helps the explanation, and give a symbol the same color everywhere in a post.
 
 ### Code or math?
 
@@ -57,7 +68,7 @@ The blog is code-first: use backticks when pointing at the code, and MathJax whe
 5. A name mentioned on its own in the prose keeps the same form throughout the post. Math names use the same letter and case as the code, so a fixed constant `Q` is $$Q$$ while a function argument `q` that is still being searched for is $$q$$. A name with a meaning in the math (such as $$n$$, $$x$$ or $$T$$) is always math, and a name that only exists in the code (such as `ek.nn`, `A_values` or `omega4`) is always code. Code expressions can still contain math names, e.g. `pow(r, ek.n, ek.nn)`, and vice versa.
 6. Stick to one form per sentence where possible. If a sentence needs both, move the code part into its own sentence ("In the code this is `A_values[i]`."). A short parenthetical link as in rule 4 is fine.
 7. When in doubt, use backticks.
-8. Colors only appear in math, so they always mean "the same quantity as in the pictures". Code is never colored.
+8. Colors only appear in math, and follow the roles under "Colors" above. Code is never colored.
 
 The difference between the two forms is visible on its own: in code you call `enc(ek, x, r)`, while in math the key is dropped and it's $$\mathsf{enc}(x, r)$$; likewise `*` vs $$\cdot$$, `==` vs $$=$$, and `r1` vs $$r_1$$.
 

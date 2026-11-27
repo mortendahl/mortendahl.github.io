@@ -2,14 +2,14 @@
 Included only on pages with `math: true` in their front matter.
 
 The TeX settings live in the JSON block below so that both ways of rendering use the same ones:
-- in development (`make serve`) MathJax renders the math in the browser;
-- in production (`make build`) `_scripts/prerender-math.js` renders the math into the page as
-  SVG and removes this block, so readers don't load MathJax at all.
+- by default (`make serve`, and GitHub Pages' own build) MathJax renders the math in the browser;
+- with `make build`, which sets `prerender_math` via _config.prerender.yml, `_scripts/prerender-math.js`
+  renders the math into the page as SVG and removes this block, so readers don't load MathJax at all.
 {% endcomment %}
 <script type="application/json" id="mathjax-tex-config">
     {"inlineMath": [["$", "$"], ["\\(", "\\)"]]{% if page.math_macros %}, "macros": {{ page.math_macros | jsonify }}{% endif %}}
 </script>
-{% unless jekyll.environment == "production" %}
+{% unless site.prerender_math %}
 <script>
     MathJax = {
         tex: JSON.parse(document.getElementById('mathjax-tex-config').textContent),

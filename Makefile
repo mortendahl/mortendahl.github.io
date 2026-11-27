@@ -18,7 +18,7 @@ serve-drafts:
 .PHONY: build
 build:
 	@command -v node >/dev/null || { echo "make build needs Node.js (node) to render the math"; exit 1; }
-	JEKYLL_ENV=production bundle exec jekyll build
+	JEKYLL_ENV=production bundle exec jekyll build --config _config.yml,_config.prerender.yml
 	node _scripts/prerender-math.js _site
 
 # Serve the result of `make build` as is, without rebuilding

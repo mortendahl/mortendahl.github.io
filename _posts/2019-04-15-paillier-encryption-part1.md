@@ -8,11 +8,46 @@ header-img: "assets/paillier/autostereogram-space-shuttle.jpeg"
 summary:    "The Paillier homomorphic encryption scheme is not only interesting for allowing computation on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra. In this first part of a series we cover the basics and the homomorphic operations it supports."
 ---
 
+<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
 <style>
 img {
     margin-left: auto;
     margin-right: auto;
 }
+/* handwritten-style equations */
+.hw {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    width: max-content;
+    max-width: 100%;
+    align-items: baseline;
+    column-gap: 0.6em;
+    row-gap: 0.5em;
+    margin: 1.2em auto;
+    overflow-x: auto;
+    font-family: 'Indie Flower', cursive;
+    font-size: clamp(13px, 3.3vw, 25px);
+    letter-spacing: 0.05em;
+    word-spacing: 0.05em;
+    line-height: 1.6;
+    color: #8c8c8c;
+    -webkit-text-stroke: 0.03em currentColor;
+    white-space: nowrap;
+}
+.hw > :first-child, .hw > :nth-child(3n+1) { justify-self: end; }
+.hw sup { font-size: 70%; line-height: 0; vertical-align: 0.75em; margin-left: 0.05em; }
+.hw sub { font-size: 65%; line-height: 0; vertical-align: -0.3em; margin-right: 0.1em; }
+.hw .then { margin-left: 1.2em; }
+@media (max-width: 600px) {
+    .hw { font-size: 14px; }
+    .hw .then { display: block; margin: 0.3em 0 0; }
+}
+.hw .g  { color: #1d47b8; }
+.hw .x  { color: #5cc43b; }
+.hw .x2 { color: #8b5a2b; }
+.hw .r  { color: #ee3124; }
+.hw .r2 { color: #f7a400; }
+.hw .t  { color: #a21cc4; }
 </style>
 
 <em><strong>TL;DR:</strong> the Paillier encryption scheme not only allows us to compute on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra; in this first post we dig into the basics.</em>
@@ -55,7 +90,9 @@ As we shall see later, the underlying security assumptions also imply that it is
 In summary, the randomness prevents adversaries from performing brute-force attacks since they cannot efficiently check whether each "guess" was correct, even in situations where `x` is known to be from a very small set of possibilities, say `x = 0` or `x = 1`. Of course, there may also be other ways for an adversary to check a guess, or more generally learn something about `x` or `r` from `c`, and we shall return to security of the scheme in much more detail later.
 
 
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+<div class="hw">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+</div>
 
 
 Below we will see concrete examples
@@ -110,7 +147,9 @@ class EncryptionKey:
 
 With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+<div class="hw">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+</div>
 
 that we can express in Python as follows:
 
@@ -196,7 +235,11 @@ Let us first see how one can do the above and compute the addition of two encryp
 
 To do this we multiply the two ciphertexts, letting `c = c1 * c2`. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
-<img src="/assets/paillier/add.png" style="width: 95%;"/>
+<div class="hw">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r<sub>1</sub></span>) · enc(<span class="x2">x<sub>2</sub></span>, <span class="r2">r<sub>2</sub></span>)</span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup>) · (<span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup>)</span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)</span></span>
+</div>
 
 In other words, if we multiply ciphertext values `c1` and `c2` then we get exactly the same result as if we had encrypted `x1 + x2` using randomness `r1 * r2`!
 
@@ -215,7 +258,11 @@ def add_plain(ek, c1, x2):
     return c
 ```
 
-<img src="/assets/paillier/add-plain.png" style="width: 85%;"/>
+<div class="hw">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r</span>)</span></span>
+</div>
 
 We now know how to add encrypted values together without decrypting anything! Note however, that the resulting ciphertexts have a slightly different form than freshly generated ones, with a randomness that is no longer a uniformly random value but rather a composite such as `r1 * r2`. This does not affect correctness nor the ability to decrypt, but in some applications it may leak extra information to an adversary and hence have consequences for security. We return to this issue below after having introduced more operations.
 
@@ -253,7 +300,11 @@ The final operation supported by Paillier encryption is multiplication between a
 
 Given `c = enc(x, r)` and a `k` we compute `c^k = (g^x * r^n) ^ k == g^(x * k) * (r^k)^n == enc(x * k, r ^ k)`.
 
-<img src="/assets/paillier/mul-plain.png" style="width: 75%;"/>
+<div class="hw">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>)<sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup>)<sup><span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span>, <span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)</span></span>
+</div>
 
 ```python
 def mul_plain(ek, c1, x2):
@@ -299,7 +350,11 @@ TODO: good examples of the above?
 
 Fortunately, we can easily define a *re-randomize* operation that makes any ciphertext look exactly like a freshly generated one, effectively erasing everything about how it was created. To do this we have to make sure the randomness component looks uniformly random given anything that the adversary may know. To do this we simply add a fresh encryption of zero `enc(0, s)`, which for `enc(x, r)` will give us an encryption `enc(x, r*s)`; however, if `s` is independent and uniformly random then so is `r*s`. We are essentially 
 
-<img src="/assets/paillier/re-randomize.png" style="width: 75%;"/>
+<div class="hw">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>) · <span class="r2">s</span><sup class="g">n</sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="r2">s</span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · (<span class="r">r</span> · <span class="r2">s</span>)<sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="t">t</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x</span>, <span class="t">t</span>)</span></span>
+</div>
 
 ```python
 def rerandomize(ek, c, s):

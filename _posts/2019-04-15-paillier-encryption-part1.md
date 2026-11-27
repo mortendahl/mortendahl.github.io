@@ -38,6 +38,7 @@ img {
 .hw sup { font-size: 70%; line-height: 0; vertical-align: 0.75em; margin-left: 0.05em; }
 .hw sub { font-size: 65%; line-height: 0; vertical-align: -0.3em; margin-right: 0.1em; }
 .hw .then { margin-left: 1.2em; }
+.hw .note { font-size: 80%; padding-top: 0.3em; }
 @media (max-width: 600px) {
     .hw { font-size: 14px; }
     .hw .then { display: block; margin: 0.3em 0 0; }
@@ -354,6 +355,7 @@ Fortunately, we can easily define a *re-randomize* operation that makes any ciph
 <span>enc(<span class="x">x</span>, <span class="r">r</span>) · <span class="r2">s</span><sup class="g">n</sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="r2">s</span><sup class="g">n</sup></span>
 <span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · (<span class="r">r</span> · <span class="r2">s</span>)<sup class="g">n</sup></span>
 <span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="t">t</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x</span>, <span class="t">t</span>)</span></span>
+<span></span><span></span><span class="note">where <span class="t">t</span> = <span class="r">r</span> · <span class="r2">s</span></span>
 </div>
 
 ```python

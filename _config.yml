@@ -12,7 +12,20 @@ markdown: kramdown
 highlighter: rouge
 permalink: pretty
 paginate: 50
-exclude: ["less","node_modules","Gruntfile.js","package.json"]
+# Jekyll 3 (used by GitHub Pages) replaces its default exclude list with this one
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - node_modules
+  - package.json
+  - package-lock.json
+  - Gruntfile.js
+  - less
+  - Makefile
+  - docker.sh
+  - README.md
+  - LICENSE-THEME
 
 plugins: [jekyll-paginate, jekyll-feed]
 

@@ -220,7 +220,7 @@ To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To se
 \begin{aligned}
 \mathsf{enc}(\xa, \ra) \cdot \mathsf{enc}(\xb, \rb) &= (\g^{\xa} \cdot \ra^{\n}) \cdot (\g^{\xb} \cdot \rb^{\n}) \\
 &= \g^{\xa} \cdot \g^{\xb} \cdot \ra^{\n} \cdot \rb^{\n} \\
-&= \g^{\xa + \xb} \cdot (\ra \cdot \rb)^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \ra \cdot \rb)
+&= \g^{\xa + \xb} \cdot (\ra \cdot \rb)^{\n} \quad = \mathsf{enc}(\xa + \xb, \ra \cdot \rb)
 \end{aligned}
 \]
 </div>
@@ -247,7 +247,7 @@ def add_plain(ek, c1, x2):
 \begin{aligned}
 \mathsf{enc}(\xa, \r) \cdot \g^{\xb} &= (\g^{\xa} \cdot \r^{\n}) \cdot \g^{\xb} \\
 &= \g^{\xa} \cdot \g^{\xb} \cdot \r^{\n} \\
-&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \r)
+&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \mathsf{enc}(\xa + \xb, \r)
 \end{aligned}
 \]
 </div>
@@ -293,7 +293,7 @@ Given $$c_1 = \mathsf{enc}(\xa, \r)$$ and a plaintext $$\xb$$ we compute $$c_1^{
 \begin{aligned}
 \mathsf{enc}(\xa, \r)^{\xb} &= (\g^{\xa} \cdot \r^{\n})^{\xb} \\
 &= (\g^{\xa})^{\xb} \cdot (\r^{\n})^{\xb} \\
-&= \g^{\xa \cdot \xb} \cdot (\r^{\xb})^{\n} \quad = \quad \mathsf{enc}(\xa \cdot \xb, \r^{\xb})
+&= \g^{\xa \cdot \xb} \cdot (\r^{\xb})^{\n} \quad = \mathsf{enc}(\xa \cdot \xb, \r^{\xb})
 \end{aligned}
 \]
 </div>
@@ -347,7 +347,7 @@ Fortunately, we can easily define a *re-randomize* operation that makes any ciph
 \begin{aligned}
 \mathsf{enc}(\x, \r) \cdot \s^{\n} &= (\g^{\x} \cdot \r^{\n}) \cdot \s^{\n} \\
 &= \g^{\x} \cdot (\r \cdot \s)^{\n} \\
-&= \g^{\x} \cdot \t^{\n} \quad = \quad \mathsf{enc}(\x, \t) \\
+&= \g^{\x} \cdot \t^{\n} \quad = \mathsf{enc}(\x, \t) \\
 & \qquad \class{hw-note}{\text{where } \t = \r \cdot \s}
 \end{aligned}
 \]

@@ -9,7 +9,9 @@
 .hw {
     width: max-content;
     max-width: 100%;
-    margin: 1.2em auto;
+    margin: 0.8em auto;
+    /* room for superscripts and subscripts: the horizontal scroll box clips anything outside it */
+    padding: 0.4em 0 0.3em;
     overflow-x: auto;
     font-family: 'Indie Flower', cursive;
     font-size: clamp(13px, 2.9vw, 22px);
@@ -20,8 +22,9 @@
     -webkit-text-stroke: 0.03em currentColor;
     white-space: nowrap;
 }
-.hw sup { font-size: 70%; line-height: 0; vertical-align: 0.75em; margin-left: 0.05em; }
-.hw sub { font-size: 65%; line-height: 0; vertical-align: -0.3em; margin-right: 0.1em; }
+/* position/top/bottom undo Bootstrap's own sup/sub offsets, which would otherwise add to these */
+.hw sup { position: static; font-size: 70%; line-height: 0; vertical-align: 0.75em; margin-left: 0.05em; }
+.hw sub { position: static; font-size: 65%; line-height: 0; vertical-align: -0.3em; margin-right: 0.1em; }
 
 /* colours */
 .hw .c-blue   { color: #2443b0; }

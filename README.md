@@ -1,27 +1,20 @@
 # Blog
 
-The local build uses the `github-pages` gem, so it matches the live GitHub Pages build.
-
 ## Running locally
 
-```sh
-make install
-make serve
-```
-
-Then open http://localhost:4000. Use `make serve-drafts` to include drafts.
-
-## Running in Docker
-
-On host:
+Start a Jekyll container (on host):
 
 ```sh
 ./docker.sh
 ```
 
-Then in container:
+Then in the container:
 
 ```sh
 make install
 make serve
 ```
+
+The site is served at http://localhost:4000. Use `make serve-drafts` instead to include drafts.
+
+The Gemfile uses the `github-pages` gem, so the local build uses the same gem versions as the live GitHub Pages build.

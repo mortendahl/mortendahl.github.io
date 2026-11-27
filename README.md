@@ -103,7 +103,20 @@ The difference between the two forms is visible on its own: in code you call `en
 
 ### Self-hosting
 
-MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`): the browser script `tex-chtml-full.js`, which includes all TeX extensions, and its fonts in `js/mathjax/output/chtml/fonts/woff-v2/`, where the script expects them. The handwriting font is self-hosted too, so math pages don't depend on any external service. To update MathJax, copy both from the `es5` folder of the `mathjax-full` npm package, at the same version as in `package.json`.
+MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`): the browser script `tex-chtml-full.js`, which includes all TeX extensions, and its fonts in `js/mathjax/output/chtml/fonts/woff-v2/`, where the script expects them. The handwriting font is self-hosted too, so math pages don't depend on any external service.
+
+### Pinned MathJax version
+
+MathJax is pinned to 3.2.2, and must be the same version in both places:
+
+- `js/mathjax/`: the browser script and its fonts, used by `make serve` (the version is in `js/mathjax/VERSION`);
+- `mathjax-full` in `package.json`: an exact version, with no `^`, used by `make build`.
+
+The handwritten figures rely on MathJax internals that a new version may change. `js/handwritten-math.js` adds a TeX post-filter that rewrites the parsed formula, and overrides the font metrics MathJax measured. `_scripts/prerender-math.js` and `_includes/mathjax.html` remove text and table widths MathJax wrote into the page. So treat an upgrade, in particular to MathJax 4, as a small project rather than a file copy:
+
+1. Copy `tex-chtml-full.js` and `output/chtml/fonts/woff-v2/` from the `es5` folder of the `mathjax-full` npm package at the new version into `js/mathjax/`, and update `js/mathjax/VERSION` and `package.json`.
+2. Run `make build`: it fails on TeX errors, including errors from the filter.
+3. Look at the handwritten figures in Paillier part 1 and Secure Aggregation part 1 with both `make serve` and `make preview`: text in the handwriting font, brackets that cover their contents, and the same result in both.
 
 ## Third-party libraries
 

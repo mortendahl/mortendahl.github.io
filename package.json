@@ -11,7 +11,8 @@
         "grunt-contrib-watch": "^1.1.0",
         "grunt-banner": "^0.6.0",
         "grunt-contrib-uglify": "^5.2.2",
-        "less-plugin-clean-css": "^1.6.0"
+        "less-plugin-clean-css": "^1.6.0",
+        "mathjax-full": "3.2.2"
     },
     "repository": {
         "type": "git",

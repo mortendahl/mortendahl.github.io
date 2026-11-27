@@ -17,11 +17,30 @@ make serve
 
 The site is served at http://localhost:4000. Use `make serve-drafts` instead to include drafts.
 
+`make install` also runs `npm install`, which needs Node.js. Node is used to render math for publishing (see "Rendering" below) and to rebuild the theme's CSS.
+
+To check the site as it would be published, with math rendered into the pages, run:
+
+```sh
+make preview
+```
+
+This runs `make build` and serves the result at http://localhost:4000 without rebuilding, so rerun it after changes. Use `make build` alone to only build into `_site/`.
+
 The Gemfile uses the `github-pages` gem, so the local build uses the same gem versions as the live GitHub Pages build.
 
 ## Math
 
 MathJax is loaded only on pages that ask for it. Add `math: true` to a post's front matter, then write TeX between `$$ ... $$` (inline or as its own paragraph) or `$ ... $` (inline).
+
+### Rendering
+
+Math is rendered in one of two ways, both using MathJax 3.2.2 with the same settings:
+
+- `make serve` (development): MathJax renders the math in the browser, so changes show up as soon as you save.
+- `make build` and `make preview` (production): Jekyll builds with `JEKYLL_ENV=production`, then `_scripts/prerender-math.js` renders the math into each page as SVG, with hidden MathML for screen readers. Readers don't load or run MathJax, and math shows even with JavaScript off. A TeX error, including an undefined macro, fails the build instead of showing up in red on the page.
+
+The TeX settings (delimiters and a post's `math_macros`) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. The RSS feed is not rendered and still contains the raw TeX.
 
 A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\textcolor{#60BA46}{x}'` lets the post write `\x` for a green x. See the Paillier part 1 post for an example.
 

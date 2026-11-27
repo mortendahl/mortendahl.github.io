@@ -23,7 +23,7 @@ The Gemfile uses the `github-pages` gem, so the local build uses the same gem ve
 
 MathJax is loaded only on pages that ask for it. Add `math: true` to a post's front matter, then write TeX between `$$ ... $$` (inline or as its own paragraph) or `$ ... $` (inline).
 
-MathJax is self-hosted in `js/mathjax-3.2.2/` and includes all TeX extensions, so math pages don't depend on any external service.
+MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, so math pages don't depend on any external service.
 
 ## Third-party libraries
 

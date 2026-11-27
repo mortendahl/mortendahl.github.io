@@ -70,7 +70,7 @@ Write an equation, derivation, vector or matrix in TeX, as display math inside a
 \[
 \begin{aligned}
 \mathsf{enc}(\xa, \r) \cdot \g^{\xb} &= (\g^{\xa} \cdot \r^{\n}) \cdot \g^{\xb} \\
-&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \r)
+&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \mathsf{enc}(\xa + \xb, \r)
 \end{aligned}
 \]
 </div>

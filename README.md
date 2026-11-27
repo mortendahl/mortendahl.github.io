@@ -88,7 +88,7 @@ MathJax without handwriting is for math inside sentences. Don't also show a deri
 
 ### Turning off handwritten math
 
-To fall back to plain MathJax, set `handwritten_math: false` in `_config.yml`. Figures then render as ordinary MathJax display math, from the same TeX and in the same colors, and no code that relies on MathJax internals runs, in `make serve` or `make build`. Diagrams stay handwritten SVG, and nothing in the posts needs to change.
+To fall back to plain MathJax, set `handwritten_mathjax: false` in `_config.yml`. Figures then render as ordinary MathJax display math, from the same TeX and in the same colors, and no code that relies on MathJax internals runs, in `make serve` or `make build`. Diagrams stay handwritten SVG, and nothing in the posts needs to change.
 
 This works because the handwriting is a separate layer on top of standard TeX. To keep it that way, write figures in standard TeX with `\class{...}` for colors, as now; the only handwriting-specific markup is `\class{hw-note}{...}`, which in plain MathJax just shows at normal size.
 
@@ -126,7 +126,7 @@ The handwritten figures rely on MathJax internals that a new version may change.
 2. Run `make build`: it fails on TeX errors, including errors from the filter.
 3. Look at the handwritten figures in Paillier part 1 and Secure Aggregation part 1 with both `make serve` and `make preview`: text in the handwriting font, brackets that cover their contents, and the same result in both.
 
-If the handwritten figures don't work with the new version and fixing them can wait, set `handwritten_math: false` (see "Turning off handwritten math") and upgrade anyway.
+If the handwritten figures don't work with the new version and fixing them can wait, set `handwritten_mathjax: false` (see "Turning off handwritten math") and upgrade anyway.
 
 ## Third-party libraries
 

@@ -7,12 +7,12 @@ The MathJax settings live in the JSON block below so that both ways of rendering
   renders the math into the page as HTML and CSS and removes this block, so readers don't run MathJax.
 
 Both use MathJax's CHTML output. On posts with handwritten figures (`handwritten: true`), unless the site
-turns it off (`handwritten_math: false` in _config.yml), both also draw math in figures in the handwriting
+turns it off (`handwritten_mathjax: false` in _config.yml), both also draw math in figures in the handwriting
 font, with js/handwritten-math.js. That's the only part that relies on MathJax internals; without it, this
 is plain MathJax, configured with its documented options only.
 {% endcomment %}
 {% assign handwritten = false %}
-{% if page.handwritten %}{% unless site.handwritten_math == false %}{% assign handwritten = true %}{% endunless %}{% endif %}
+{% if page.handwritten %}{% unless site.handwritten_mathjax == false %}{% assign handwritten = true %}{% endunless %}{% endif %}
 <script type="application/json" id="mathjax-config">
     {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]]{% if page.math_macros %}, "macros": {{ page.math_macros | jsonify }}{% endif %}},
      "chtml": {"fontURL": "{{ "/js/mathjax/output/chtml/fonts/woff-v2" | prepend: site.baseurl }}"{% if handwritten %}, "mtextInheritFont": true{% endif %}},

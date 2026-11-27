@@ -11,7 +11,7 @@
 //
 // On pages whose settings turn on handwritten figures ("handwritten": true, see _includes/mathjax.html),
 // math in figures also goes through js/handwritten-math.js, as in the browser. That's the only part that
-// relies on MathJax internals; other pages, and all pages with `handwritten_math: false` in _config.yml,
+// relies on MathJax internals; other pages, and all pages with `handwritten_mathjax: false` in _config.yml,
 // are rendered with plain MathJax.
 
 const fs = require('fs');

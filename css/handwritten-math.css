@@ -2,7 +2,7 @@
  * Handwritten figures written in TeX: display math inside <div class="hw">, drawn in the handwriting font
  * by js/handwritten-math.js while MathJax does the layout.
  * Loaded on posts with `handwritten: true` (see _includes/head.html), unless _config.yml turns handwritten
- * math off (`handwritten_math: false`); without this file, such figures are plain MathJax display math.
+ * math off (`handwritten_mathjax: false`); without this file, such figures are plain MathJax display math.
  */
 
 /* the figure */

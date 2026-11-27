@@ -399,15 +399,44 @@ In the next section it will become obvious why one would do so, you could replac
 
 cd
 
-<img src="/assets/sda/basic-idea2.png" style="width: 60%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);">
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span></span>
+<span class="c-black">· 3</span>
+<span>+</span>
+<span></span>
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span></span>
+<span class="c-black">· 2</span>
+<span>+</span>
+<span></span>
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span></span>
+<span class="c-black">· 1</span>
+<span style="grid-column: 3; grid-row: 1 / span 5; display: flex; align-items: center; gap: 0.5em; margin-left: 0.6em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+</div>
 
 cdscd
 
-<img src="/assets/sda/basic-idea3.png" style="width: 70%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(6, auto);">
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
+<span>+</span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
+<span>+</span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
+<span style="display:flex;align-items:center;gap:0.5em;margin-left:0.3em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+</div>
 
 cdscds
 
-<img src="/assets/sda/basic-idea4.png" style="width: 70%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);column-gap: 1.5em;">
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
+<span class="veq">=</span>
+<span class="veq">=</span>
+<span class="veq">=</span>
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+</div>
 
 cdscds
 

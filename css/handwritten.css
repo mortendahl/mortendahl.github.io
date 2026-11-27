@@ -1,0 +1,53 @@
+/*
+ * The handwriting font, and handwritten diagrams drawn as inline SVG (<div class="hw-svg">).
+ * Loaded on posts with `handwritten: true` in their front matter (see _includes/head.html).
+ * Math in handwritten figures is styled by css/handwritten-math.css, which can be turned off.
+ * Colours use the shared math palette, e.g. class="math-green" (defined in less/clean-blog.less).
+ */
+
+/* Indie Flower, self-hosted (SIL Open Font License, see assets/fonts/indie-flower/OFL.txt).
+   In math, MathJax draws each piece of text in a box with line height 0 and expects the text's baseline
+   at the box's middle, which is where the browser puts it only for fonts with equal ascent and descent.
+   With Indie Flower's own values, text sat off its expected position and stacks of vectors grew taller
+   than the brackets MathJax had sized for them. This changes where text sits, not how it looks. */
+@font-face {
+    font-family: 'Indie Flower';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    /* equal ascent and descent: MathJax places text in math assuming this (see above) */
+    ascent-override: 50%;
+    descent-override: 50%;
+    src: url(../assets/fonts/indie-flower/indie-flower-latin-ext.woff2) format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+    font-family: 'Indie Flower';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    /* equal ascent and descent: MathJax places text in math assuming this (see above) */
+    ascent-override: 50%;
+    descent-override: 50%;
+    src: url(../assets/fonts/indie-flower/indie-flower-latin.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* inline SVG drawings (network diagrams) */
+.hw-svg {
+    margin: 0.8em auto;
+    padding: 0.4em 0 0.3em;
+    font-family: 'Indie Flower', cursive;
+    font-size: clamp(13px, 2.9vw, 22px);
+    letter-spacing: 0.05em;
+    color: #8c8c8c;
+}
+.hw-svg svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.hw-svg svg text { fill: currentColor; stroke: currentColor; stroke-width: 0.6; }
+.hw-svg svg .line { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.hw-svg svg .dashed { stroke-dasharray: 7 7; }
+
+/* narrow screens: smaller */
+@media (max-width: 600px) {
+    .hw-svg { font-size: 14px; }
+}

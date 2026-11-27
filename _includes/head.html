@@ -27,4 +27,7 @@
 
     {% if page.math %}{% include mathjax.html %}{% endif %}
 
+    {% if page.handwritten %}<link rel="stylesheet" href="{{ "/css/handwritten.css" | prepend: site.baseurl }}">
+    {% unless site.handwritten_mathjax == false %}<link rel="stylesheet" href="{{ "/css/handwritten-math.css" | prepend: site.baseurl }}">{% endunless %}{% endif %}
+
 </head>

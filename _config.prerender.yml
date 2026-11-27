@@ -1,0 +1,5 @@
+# Added on top of _config.yml by `make build` (see the Makefile and README).
+# The math is rendered into the pages at build time by _scripts/prerender-math.js, so pages
+# don't load MathJax. Builds without this file, such as `make serve` and GitHub Pages' own
+# build, keep rendering the math in the browser.
+prerender_math: true

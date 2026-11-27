@@ -19,6 +19,28 @@ p a {
 ol li {
   line-height: 1.7;
 }
+code {
+  color: #404040;
+  background-color: #f3f3f3;
+}
+.math-blue {
+  color: #1749B3;
+}
+.math-green {
+  color: #519E3B;
+}
+.math-brown {
+  color: #946635;
+}
+.math-red {
+  color: #ED3624;
+}
+.math-orange {
+  color: #C87E00;
+}
+.math-purple {
+  color: #A400C7;
+}
 h1,
 h2,
 h3,

@@ -14,9 +14,27 @@ serve-drafts:
 		--incremental \
 		--drafts
 
+# Build the site as it would be published: math is rendered into the pages (see README)
+.PHONY: build
+build:
+	@command -v node >/dev/null || { echo "make build needs Node.js (node) to render the math"; exit 1; }
+	@test -d node_modules/mathjax-full || { echo "make build needs the Node packages: run make install (which needs npm)"; exit 1; }
+	JEKYLL_ENV=production bundle exec jekyll build --config _config.yml,_config.prerender.yml
+	node _scripts/prerender-math.js _site
+
+# Serve the result of `make build` as is, without rebuilding
+.PHONY: preview
+preview: build
+	bundle exec jekyll serve \
+		--host 0.0.0.0 \
+		--skip-initial-build \
+		--no-watch
+
 .PHONY: install
 install:
 	bundle install
+	@if command -v npm >/dev/null; then npm install; \
+	else echo "npm not found: skipping the Node packages, which only make build and make preview need"; fi
 
 .PHONY: clean
 clean:

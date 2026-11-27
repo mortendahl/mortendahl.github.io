@@ -4,6 +4,38 @@ title:      "Secure Aggregation, Part 1"
 subtitle:   "Fully Decentralized for Stable Parties"
 date:       2019-01-02 12:00:00
 author:     "Morten Dahl"
+handwritten: true
+math:       true
+math_macros:
+  # helpers: \vect{color}{label}{entries} is a labeled column vector, \arr{color} a colored arrow,
+  # \wt{3} a weight, \w the weight vector, \ws{...} a matrix with one colored column per party
+  vect: ['\overset{#2}{\class{math-#1}{\begin{bmatrix}#3\end{bmatrix}}}', 3]
+  arr: ['\mathrel{\class{math-#1}{\longmapsto}}', 1]
+  wt: ['\cdot \class{c-black}{#1}', 1]
+  w: '\overset{w}{\class{c-black}{\begin{bmatrix}3\\2\\1\end{bmatrix}}}'
+  ws: ['\class{c-grey}{\begin{bmatrix} \class{math-blue}{#1} & \class{math-green}{#2} & \class{math-orange}{#3} \\ \class{math-blue}{#4} & \class{math-green}{#5} & \class{math-orange}{#6} \end{bmatrix}}', 6]
+  row: ['\left(\; #1 + #2 + #3 \;\right)', 3]
+  col: ['\left(\;\begin{array}{c} #1 \wt{3} \\ + \\ #2 \wt{2} \\ + \\ #3 \wt{1} \end{array}\;\right)', 3]
+  share: ['\class{math-#1}{\overset{\scriptsize\text{share}}{\longmapsto}}', 1]
+  wsum: ['\class{math-#1}{\Big\downarrow}\,{\scriptsize\begin{array}{l}\text{weighted}\\[-0.3em]\text{sum}\end{array}}', 1]
+  reconstruct: '\class{math-purple}{\overset{\scriptsize\text{reconstruct}}{\longmapsto}}'
+  # the example's values, defined once; macro names can only contain letters, so a, b, c stand for 0, 1, 2
+  xa: '\vect{blue}{x_0}{1\\2}'
+  xb: '\vect{green}{x_1}{10\\20}'
+  xc: '\vect{orange}{x_2}{100\\200}'
+  saa: '\vect{blue}{s_{00}}{465\\447}'
+  sab: '\vect{blue}{s_{01}}{644\\280}'
+  sac: '\vect{blue}{s_{02}}{894\\276}'
+  sba: '\vect{green}{s_{10}}{314\\679}'
+  sbb: '\vect{green}{s_{11}}{943\\883}'
+  sbc: '\vect{green}{s_{12}}{755\\460}'
+  sca: '\vect{orange}{s_{20}}{470\\455}'
+  scb: '\vect{orange}{s_{21}}{997\\496}'
+  scc: '\vect{orange}{s_{22}}{635\\250}'
+  ta: '\vect{purple}{t_0}{491\\151}'
+  tb: '\vect{purple}{t_1}{811\\99}'
+  tc: '\vect{purple}{t_2}{823\\997}'
+  'y': '\vect{purple}{y}{123\\246}'
 header-img: "assets/sda/constellation.png"
 summary:    "In this series of blog posts we go through how modern cryptography can be used to perform secure aggregation for private analytics and federated learning. As we will see, the right approach depends on the concrete scenario, and in this first part we start with the simpler case consisting of a network of stable parties."
 ---
@@ -105,7 +137,11 @@ For instance, secret `x0` may be shared into `[s00, s01, s02]`, where `s00` is t
 
 
 
-<img src="/assets/sda/simple-share.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\xa \arr{blue} \saa , \sab , \sac
+\]
+</div>
 <!-- <img src="/assets/sda/share.png" style="width: 40%"/> -->
 
 We also take advantage of the fact that the scheme allows us to compute on secret values by computing on the shares, i.e. while they remain encrypted. In particular, that we can compute a weighted sum of secret values by computing a weighted sum over each corresponding set of shares.
@@ -118,15 +154,44 @@ def weighted_sum(shares, weights):
 
 For instance, say we have shared three secrets `x0`, `x1`, and `x2`:
 
-<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & \arr{blue} & \saa & , & \sab & , & \sac \\[0.6em]
+\xb & \arr{green} & \sba & , & \sbb & , & \sbc \\[0.6em]
+\xc & \arr{orange} & \sca & , & \scb & , & \scc
+\end{array}
+\]
+</div>
 
 By computing a weighted sum over each set of shares:
 
-<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\saa & , & \sab & , & \sac \\[0.6em]
+\sba & , & \sbb & , & \sbc \\[0.6em]
+\sca & , & \scb & , & \scc
+\end{array}
+\]
+</div>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\ws{465}{314}{470}{447}{679}{455} & \cdot & \w & \arr{blue} & \ta \\[0.6em]
+\ws{644}{943}{997}{280}{883}{496} & \cdot & \w & \arr{green} & \tb \\[0.6em]
+\ws{894}{755}{635}{276}{460}{250} & \cdot & \w & \arr{orange} & \tc
+\end{array}
+\]
+</div>
 
 we then end up with shares `t0`, `t1`, and `t2` of the weighted sum `(x0 * w0) + (x1 * w1) + (x2 * w2)`:
 
-<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\ta + \tb + \tc \arr{purple} \y
+\]
+</div>
 
 
 For simplicity we here assume three data owners, but the same approach works for any number of owners.
@@ -135,7 +200,7 @@ For simplicity we here assume three data owners, but the same approach works for
 
 In the first step, each data owner secret shares its input and sends a share to each of the other owners (including keeping one for itself).
 
-<img src="/assets/sda/simple-step1.png" style="width: 40%"/>
+<div class="hw-svg" style="max-width: 400px"><svg viewBox="0 0 660 780" role="img" aria-label="Three data owners in a triangle, each sending a value to every other owner"><defs><marker id="hw-ah-b-a" class="math-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-g-a" class="math-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-o-a" class="math-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-p-a" class="math-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker></defs><text class="math-blue" x="320" y="205" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">0</tspan></text><text class="math-green" x="545" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">1</tspan></text><text class="math-orange" x="100" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">2</tspan></text><path class="line math-blue" d="M215 250 Q115 350 70 525" marker-end="url(#hw-ah-b-a)"/><text class="math-blue" x="55" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">02</tspan></text><path class="line math-orange" d="M155 530 Q265 430 300 255" marker-end="url(#hw-ah-o-a)"/><text class="math-orange" x="215" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">20</tspan></text><path class="line math-green" d="M490 530 Q380 430 350 255" marker-end="url(#hw-ah-g-a)"/><text class="math-green" x="450" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">10</tspan></text><path class="line math-blue" d="M430 250 Q530 350 570 525" marker-end="url(#hw-ah-b-a)"/><text class="math-blue" x="585" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">01</tspan></text><path class="line math-orange" d="M215 560 Q330 505 445 550" marker-end="url(#hw-ah-o-a)"/><text class="math-orange" x="335" y="505" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">21</tspan></text><path class="line math-green" d="M450 610 Q330 665 215 615" marker-end="url(#hw-ah-g-a)"/><text class="math-green" x="335" y="680" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">12</tspan></text><path class="line math-blue" d="M345 145 C 375 60, 255 60, 290 140" marker-end="url(#hw-ah-b-a)"/><text class="math-blue" x="315" y="62" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">00</tspan></text><path class="line math-green" d="M560 620 C 595 700, 505 705, 525 630" marker-end="url(#hw-ah-g-a)"/><text class="math-green" x="550" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">11</tspan></text><path class="line math-orange" d="M115 620 C 150 700, 60 705, 80 630" marker-end="url(#hw-ah-o-a)"/><text class="math-orange" x="105" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">22</tspan></text></svg></div>
 
 Once all shares have been distributed, i.e. every owner has a share from every other owner, they each compute a weighted sum. These sums are in fact shares of the output, which they send to the output receiver.
 
@@ -194,15 +259,44 @@ We can look at a concrete execution to better see how and why this works. Here, 
 
 In the first step, each data owner shares its input vector into three random vectors, resulting in an imaginary `(3, 3, 2)` tensor `s`. For instance, sharing `x0` results in `s00`, `s01`, and `s02` where `s00 + s01 + s02 == x0` (modulus `Q`).
 
-<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & \arr{blue} & \saa & , & \sab & , & \sac \\[0.6em]
+\xb & \arr{green} & \sba & , & \sbb & , & \sbc \\[0.6em]
+\xc & \arr{orange} & \sca & , & \scb & , & \scc
+\end{array}
+\]
+</div>
 
 In the next step, each owner then computes a weighted sum across one of the three columns, resulting in three new vectors `t0`, `t1`, and `t2`.
 
-<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\saa & , & \sab & , & \sac \\[0.6em]
+\sba & , & \sbb & , & \sbc \\[0.6em]
+\sca & , & \scb & , & \scc
+\end{array}
+\]
+</div>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\ws{465}{314}{470}{447}{679}{455} & \cdot & \w & \arr{blue} & \ta \\[0.6em]
+\ws{644}{943}{997}{280}{883}{496} & \cdot & \w & \arr{green} & \tb \\[0.6em]
+\ws{894}{755}{635}{276}{460}{250} & \cdot & \w & \arr{orange} & \tc
+\end{array}
+\]
+</div>
 
 In the final step these three vectors are added together by the output receiver.
 
-<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\ta + \tb + \tc \arr{purple} \y
+\]
+</div>
 
 While this protocol already offers good performance, it can also be significantly optimized if we are willing to make some assumptions about the scenario in which it is used and the reliability of the parties involved. In particular, in the following sections we shall see how communication can be reduced significantly if it is repeatedly executed by the same parties.
 
@@ -221,29 +315,67 @@ it unfortunately also has a serious problem if we were to use it across e.g. the
 
 Say our goal is to compute `y` as defined by following expression, i.e. as the weighted sum of vectors `x0`, `x1`, `x2` using weights `3`, `2`, `1` respectively:
 
-<img src="/assets/sda/basic-idea0.png" style="width: 60%;"/>
+<div class="hw">
+\[
+\xa \wt{3} + \xb \wt{2} + \xc \wt{1} = \y
+\]
+</div>
 
 This can be done  by the following
 
 In the next section it will become obvious why one would do so, you could replace 
 
-<img src="/assets/sda/basic-idea1.png" style="width: 50%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & = & \saa & + & \sab & + & \sac \\[0.6em]
+\xb & = & \sba & + & \sbb & + & \sbc \\[0.6em]
+\xc & = & \sca & + & \scb & + & \scc
+\end{array}
+\]
+</div>
 
 cd
 
-<img src="/assets/sda/basic-idea2.png" style="width: 60%;"/>
+<div class="hw">
+\[
+\begin{array}{cc}
+\row{\saa}{\sab}{\sac} \wt{3} & \\[0.3em]
++ & \\[0.3em]
+\row{\sba}{\sbb}{\sbc} \wt{2} & = \quad \y \\[0.3em]
++ & \\[0.3em]
+\row{\sca}{\scb}{\scc} \wt{1} &
+\end{array}
+\]
+</div>
 
 cdscd
 
-<img src="/assets/sda/basic-idea3.png" style="width: 70%;"/>
+<div class="hw">
+\[
+\col{\saa}{\sba}{\sca} + \col{\sab}{\sbb}{\scb} + \col{\sac}{\sbc}{\scc} = \y
+\]
+</div>
 
 cdscds
 
-<img src="/assets/sda/basic-idea4.png" style="width: 70%;"/>
+<div class="hw">
+\[
+\begin{array}{ccc}
+\col{\saa}{\sba}{\sca} & \col{\sab}{\sbb}{\scb} & \col{\sac}{\sbc}{\scc} \\[0.3em]
+\Vert & \Vert & \Vert \\[0.3em]
+\ta & \tb & \tc
+\end{array}
+\]
+</div>
 
 cdscds
 
-<img src="/assets/sda/basic-idea5.png" style="width: 55%;"/>
+<div class="hw">
+\[
+\ta + \tb + \tc = \y
+\]
+</div>
 
 
 # Optimizing For Server Setting
@@ -521,5 +653,15 @@ def weighted_sum(shares, weights):
     return np.dot(shares_as_matrix, weights) % Q
 ```
 
-<img src="/assets/sda/simple.png" style="width: 75%;"/>
+<div class="hw">
+\[
+\begin{array}{ccccccccc}
+\xa & \share{blue} & \saa & , & \sab & , & \sac & & \\[0.6em]
+\xb & \share{green} & \sba & , & \sbb & , & \sbc & & \\[0.6em]
+\xc & \share{orange} & \sca & , & \scb & , & \scc & & \\[0.6em]
+& & \wsum{blue} & & \wsum{green} & & \wsum{orange} & & \\[0.6em]
+& & \ta & , & \tb & , & \tc & \reconstruct & \y
+\end{array}
+\]
+</div>
 

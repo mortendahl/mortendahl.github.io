@@ -24,6 +24,7 @@ exclude:
   - less
   - Makefile
   - docker.sh
+  - Dockerfile
   - README.md
   - LICENSE-THEME
 
@@ -35,3 +36,7 @@ kramdown:
   input: GFM
   math_engine: mathjax
   syntax_highlighter: rouge
+
+# Draw math in figures (<div class="hw">) in the handwriting font. Set to false to fall back to
+# plain MathJax, without any of the code that relies on MathJax internals (see README, "Turning off handwritten math").
+handwritten_mathjax: true

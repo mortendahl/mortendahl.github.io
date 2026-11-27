@@ -8,6 +8,8 @@ Start a Jekyll container (on host):
 ./docker.sh
 ```
 
+This builds an image from `Dockerfile` (the `jekyll/jekyll` image plus npm) and starts it. Docker caches the image, so only the first run is slow.
+
 Then in the container:
 
 ```sh
@@ -17,7 +19,7 @@ make serve
 
 The site is served at http://localhost:4000. Use `make serve-drafts` instead to include drafts.
 
-`make install` also runs `npm install`, which needs Node.js. Node is used to render math for publishing (see "Rendering" below) and to rebuild the theme's CSS.
+`make install` also runs `npm install` when npm is available. Node is used to render math for publishing (see "Rendering" below) and to rebuild the theme's CSS. Without npm, `make serve` still works, but `make build` and `make preview` don't.
 
 To check the site as it would be published, with math rendered into the pages, run:
 

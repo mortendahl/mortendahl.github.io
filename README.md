@@ -44,7 +44,7 @@ Math is rendered in one of two ways, both using MathJax 3.2.2 with the same sett
 
 The TeX settings (delimiters and a post's `math_macros`) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. The RSS feed is not rendered and still contains the raw TeX.
 
-A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{3}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
+A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{2x}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
 
 ### Colors
 

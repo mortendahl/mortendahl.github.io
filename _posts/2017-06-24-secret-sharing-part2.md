@@ -70,7 +70,7 @@ With the two presentation of polynomials in mind we move on to how the [Fast Fou
 
 Recall that all our computations happen in a prime field determined by a fixed prime $$\Q$$, i.e. using the numbers $$0, 1, \ldots, \Q-1$$. In this example we will use $$\Q = 433$$, who's order $$\Q-1$$ is divisible by $$4$$: $$\Q-1 = 432 = 4 \cdot 108$$.
 
-Assume then that we have a polynomial $$A(x) = \even{1} + \odd{2}x + \even{3}x^2 + \odd{4}x^3$$ over this field of with $$L = 4$$ coefficients and degree $$L-1 = 3$$.
+Assume then that we have a polynomial $$A(x) = \even{1} + \odd{2x} + \even{3x^2} + \odd{4x^3}$$ over this field of with $$L = 4$$ coefficients and degree $$L-1 = 3$$.
 
 ```python
 A_coeffs = [ 1, 2, 3, 4 ]
@@ -89,7 +89,7 @@ assert([ A(wi) for wi in w ]
 
 But as we will see, the FFT allows us to do so more efficiently when the length is sufficiently large and the points are chosen with a certain structure; asymptotically we can compute the values in $$O(L \log L)$$ operations.
 
-The first insight we need is that there is an alternative evaluation strategy that breaks $$A$$ into two smaller polynomials. In particular, if we define polynomials $$\B(y) = \even{1} + \even{3}y$$ and $$\C(y) = \odd{2} + \odd{4}y$$ by taking every other coefficient from $$A$$ then we have $$A(x) = \B(x^2) + x \cdot \C(x^2)$$, which is straight-forward to verify by simply writing out the right-hand side.
+The first insight we need is that there is an alternative evaluation strategy that breaks $$A$$ into two smaller polynomials. In particular, if we define polynomials $$\B(y) = \even{1} + \even{3y}$$ and $$\C(y) = \odd{2} + \odd{4y}$$ by taking every other coefficient from $$A$$ then we have $$A(x) = \B(x^2) + x \cdot \C(x^2)$$, which is straight-forward to verify by simply writing out the right-hand side.
 
 This means that if we know the values of $$\B$$ and $$\C$$ at the *squares* $$v_i = w_i^2$$ of the points, then we can use these to compute the values of $$A$$ at the points using table look-ups: $$A(w_i) = \B(v_i) + w_i \cdot \C(v_i)$$.
 

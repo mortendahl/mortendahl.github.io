@@ -88,17 +88,22 @@
         linear-gradient(currentColor, currentColor) bottom right / 0.3em var(--bw) no-repeat;
 }
 
-/* large round parentheses around a group */
+/* large square brackets around a group (grey, to set them apart from the coloured vectors) */
 .hw .paren {
+    --bw: 0.09em;
     display: inline-grid;
     align-items: center;
     justify-items: center;
     column-gap: 0.45em;
     row-gap: 0.2em;
     padding: 0.2em 0.8em 0.5em;
-    border-left: 0.09em solid #8c8c8c;
-    border-right: 0.09em solid #8c8c8c;
-    border-radius: 1.6em / 50%;
+    border-left: var(--bw) solid #8c8c8c;
+    border-right: var(--bw) solid #8c8c8c;
+    background:
+        linear-gradient(#8c8c8c, #8c8c8c) top left / 0.45em var(--bw) no-repeat,
+        linear-gradient(#8c8c8c, #8c8c8c) bottom left / 0.45em var(--bw) no-repeat,
+        linear-gradient(#8c8c8c, #8c8c8c) top right / 0.45em var(--bw) no-repeat,
+        linear-gradient(#8c8c8c, #8c8c8c) bottom right / 0.45em var(--bw) no-repeat;
 }
 
 /* "maps to" arrows, optionally labelled */

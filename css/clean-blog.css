@@ -41,6 +41,12 @@ code {
 .math-purple {
   color: #A400C7;
 }
+body {
+  --math-text-font: 'Lora', 'Times New Roman', serif;
+}
+mjx-container[jax="CHTML"] mjx-utext {
+  font-family: var(--math-text-font) !important;
+}
 h1,
 h2,
 h3,

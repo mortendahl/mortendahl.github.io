@@ -31,6 +31,7 @@
     padding: 0.4em 0 0.3em;
     overflow-x: auto;
     font-family: 'Indie Flower', cursive;
+    --math-text-font: 'Indie Flower', cursive;  /* for figures written in TeX, see less/clean-blog.less */
     font-size: clamp(13px, 2.9vw, 22px);
     letter-spacing: 0.05em;
     word-spacing: 0.05em;
@@ -47,20 +48,20 @@
 .hw .c-black  { color: #222; }
 .hw .c-grey   { color: #8c8c8c; }
 
-/* multi-line derivations with aligned "=" signs: three cells per row */
-.hw-eq {
-    display: grid;
-    grid-template-columns: auto auto auto;
-    align-items: baseline;
-    column-gap: 0.6em;
-    row-gap: 0.5em;
+/* figures written in TeX: <div class="hw"> around display math. MathJax does the layout and
+   js/handwritten-math.js turns every symbol into handwritten text, with these classes on operators */
+.hw > mjx-container[jax="CHTML"][display="true"] {
+    margin: 0;
+    /* room for the handwriting font's long descenders, which reach below MathJax's estimate */
+    padding: 0.1em 0 0.35em;
 }
-.hw-eq > :nth-child(3n+1) { justify-self: end; }
-.hw-eq .then { margin-left: 1.2em; }
-.hw-eq .note { font-size: 80%; padding-top: 0.3em; }
-@media (max-width: 600px) {
-    .hw-eq .then { display: block; margin: 0.3em 0 0; }
-}
+.hw mjx-utext { letter-spacing: 0.05em; }
+.hw mjx-mtd { padding-top: 0.45em !important; padding-bottom: 0.45em !important; }
+.hw .hw-rel { margin: 0 0.5em; }
+.hw .hw-bin { margin: 0 0.35em; }
+.hw .hw-punct { margin-right: 0.4em; }
+.hw .hw-note { font-size: 80%; }
+
 
 /* free-form figures: column count is set inline per figure */
 .hw-grid {

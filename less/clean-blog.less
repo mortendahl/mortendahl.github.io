@@ -39,6 +39,12 @@ code {
 .math-orange { color: #C87E00; }
 .math-purple { color: #A400C7; }
 
+// Text in math (\text{...}) uses the text font around it: the body font in sentences, and the
+// handwriting font in handwritten figures (css/handwritten.css sets --math-text-font there).
+// MathJax can't tell the font when rendering at build time, so it's set here instead.
+body { --math-text-font: 'Lora', 'Times New Roman', serif; }
+mjx-container[jax="CHTML"] mjx-utext { font-family: var(--math-text-font) !important; }
+
 h1,
 h2,
 h3,

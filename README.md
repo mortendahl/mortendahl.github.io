@@ -37,12 +37,12 @@ MathJax is loaded only on pages that ask for it. Add `math: true` to a post's fr
 
 ### Rendering
 
-Math is rendered in one of two ways, both using MathJax 3.2.2 with the same settings:
+Math is rendered in one of two ways, both using MathJax 3.2.2's CHTML output (HTML and CSS, with MathJax's own web fonts) and the same settings:
 
 - `make serve` (development): MathJax renders the math in the browser, so changes show up as soon as you save. GitHub Pages' own build also works this way.
-- `make build` and `make preview` (production): Jekyll builds with `_config.prerender.yml` added, which leaves out the MathJax script, then `_scripts/prerender-math.js` renders the math into each page as SVG, with hidden MathML for screen readers. Readers don't load or run MathJax, and math shows even with JavaScript off. A TeX error, including an undefined macro, fails the build instead of showing up in red on the page.
+- `make build` and `make preview` (production): Jekyll builds with `_config.prerender.yml` added, which leaves out the MathJax script, then `_scripts/prerender-math.js` renders the math into each page, with hidden MathML for screen readers. Readers don't load or run MathJax, only its fonts, and math shows even with JavaScript off. A TeX error, including an undefined macro, fails the build instead of showing up in red on the page.
 
-The TeX settings (delimiters and a post's `math_macros`) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. The RSS feed is not rendered and still contains the raw TeX.
+The settings (TeX delimiters, a post's `math_macros`, and where MathJax's fonts are) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. Both also make the same two adjustments: text in math (`\text{...}`) gets the surrounding font and is sized by the browser, and math in handwritten figures goes through `js/handwritten-math.js` (see "Handwritten figures"). The RSS feed is not rendered and still contains the raw TeX.
 
 A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{2x}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
 
@@ -61,9 +61,26 @@ Color only what helps the explanation, and give a symbol the same color everywhe
 
 ### Handwritten figures
 
-Derivations and other math shown on its own line are drawn as handwritten figures: HTML and CSS (inline SVG for diagrams) in the Indie Flower font, styled like the original drawings. Add `handwritten: true` to the post's front matter, which loads `css/handwritten.css`, and see Paillier part 1 and Secure Aggregation part 1 for examples. The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
+Derivations and other math shown on its own line are drawn as handwritten figures, in the Indie Flower font and styled like the original drawings. Add `handwritten: true` to the post's front matter, which loads `css/handwritten.css`. The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
 
-MathJax is for math inside sentences. Don't also show a derivation as MathJax display math when a figure shows it.
+Write an equation or derivation in TeX, as display math inside a `<div class="hw">`, using the post's color macros like the rest of its math:
+
+```html
+<div class="hw">
+\[
+\begin{aligned}
+\mathsf{enc}(\xa, \r) \cdot \g^{\xb} &= (\g^{\xa} \cdot \r^{\n}) \cdot \g^{\xb} \\
+&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \r)
+\end{aligned}
+\]
+</div>
+```
+
+MathJax lays it out, and `js/handwritten-math.js` draws every symbol in the handwriting font instead of MathJax's fonts. Exponents stack over subscripts as in typeset math ($$r_1^n$$). Put a note such as "where t = r · s" in `\class{hw-note}{...}` to make it smaller. See Paillier part 1 for examples.
+
+Diagrams that aren't equations, such as vectors with arrows or networks, are drawn with the HTML and CSS classes in `css/handwritten.css` (inline SVG for networks). See Secure Aggregation part 1.
+
+MathJax without handwriting is for math inside sentences. Don't also show a derivation as MathJax display math when a figure shows it.
 
 ### Code or math?
 
@@ -82,7 +99,7 @@ The difference between the two forms is visible on its own: in code you call `en
 
 ### Self-hosting
 
-MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, and so is the handwriting font, so math pages don't depend on any external service.
+MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`): the browser script `tex-chtml-full.js`, which includes all TeX extensions, and its fonts in `js/mathjax/output/chtml/fonts/woff-v2/`, where the script expects them. The handwriting font is self-hosted too, so math pages don't depend on any external service. To update MathJax, copy both from the `es5` folder of the `mathjax-full` npm package, at the same version as in `package.json`.
 
 ## Third-party libraries
 

@@ -68,8 +68,10 @@ As we shall see later, the underlying security assumptions also imply that it is
 In summary, the randomness prevents adversaries from performing brute-force attacks since they cannot efficiently check whether each "guess" was correct, even in situations where $$\x$$ is known to be from a very small set of possibilities, say $$\x = 0$$ or $$\x = 1$$. Of course, there may also be other ways for an adversary to check a guess, or more generally learn something about $$\x$$ or $$\r$$ from $$c$$, and we shall return to security of the scheme in much more detail later.
 
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>)</span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
+<div class="hw">
+\[
+\mathsf{enc}(\x, \r) = \g^{\x} \cdot \r^{\n}
+\]
 </div>
 
 
@@ -125,8 +127,10 @@ class EncryptionKey:
 
 With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>)</span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
+<div class="hw">
+\[
+\mathsf{enc}(\x, \r) = \g^{\x} \cdot \r^{\n}
+\]
 </div>
 
 that we can express in Python as follows:
@@ -211,10 +215,14 @@ Let us first see how one can do the above and compute the addition of two encryp
 
 To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r<sub>1</sub></span>) · enc(<span class="math-brown">x<sub>2</sub></span>, <span class="math-orange">r<sub>2</sub></span>)</span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r<sub>1</sub></span><sup class="math-blue">n</sup>) · (<span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-orange">r<sub>2</sub></span><sup class="math-blue">n</sup>)</span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r<sub>1</sub></span><sup class="math-blue">n</sup> · <span class="math-orange">r<sub>2</sub></span><sup class="math-blue">n</sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r<sub>1</sub></span> · <span class="math-orange">r<sub>2</sub></span>)<sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r<sub>1</sub></span> · <span class="math-orange">r<sub>2</sub></span>)</span></span>
+<div class="hw">
+\[
+\begin{aligned}
+\mathsf{enc}(\xa, \ra) \cdot \mathsf{enc}(\xb, \rb) &= (\g^{\xa} \cdot \ra^{\n}) \cdot (\g^{\xb} \cdot \rb^{\n}) \\
+&= \g^{\xa} \cdot \g^{\xb} \cdot \ra^{\n} \cdot \rb^{\n} \\
+&= \g^{\xa + \xb} \cdot (\ra \cdot \rb)^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \ra \cdot \rb)
+\end{aligned}
+\]
 </div>
 
 In other words, if we multiply ciphertext values $$c_1$$ and $$c_2$$ then we get exactly the same result as if we had encrypted $$\xa + \xb$$ using randomness $$\ra \cdot \rb$$!
@@ -234,10 +242,14 @@ def add_plain(ek, c1, x2):
     return c
 ```
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r</span>) · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>) · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r</span>)</span></span>
+<div class="hw">
+\[
+\begin{aligned}
+\mathsf{enc}(\xa, \r) \cdot \g^{\xb} &= (\g^{\xa} \cdot \r^{\n}) \cdot \g^{\xb} \\
+&= \g^{\xa} \cdot \g^{\xb} \cdot \r^{\n} \\
+&= \g^{\xa + \xb} \cdot \r^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \r)
+\end{aligned}
+\]
 </div>
 
 We now know how to add encrypted values together without decrypting anything! Note however, that the resulting ciphertexts have a slightly different form than freshly generated ones, with a randomness that is no longer a uniformly random value but rather a composite such as $$\ra \cdot \rb$$. This does not affect correctness nor the ability to decrypt, but in some applications it may leak extra information to an adversary and hence have consequences for security. We return to this issue below after having introduced more operations.
@@ -276,10 +288,14 @@ The final operation supported by Paillier encryption is multiplication between a
 
 Given $$c_1 = \mathsf{enc}(\xa, \r)$$ and a plaintext $$\xb$$ we compute $$c_1^{\xb}$$ as follows:
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r</span>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r</span><sup class="math-blue">n</sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> · <span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r</span><sup><span class="math-brown">x<sub>2</sub></span></sup>)<sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> · <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r</span><sup><span class="math-brown">x<sub>2</sub></span></sup>)</span></span>
+<div class="hw">
+\[
+\begin{aligned}
+\mathsf{enc}(\xa, \r)^{\xb} &= (\g^{\xa} \cdot \r^{\n})^{\xb} \\
+&= (\g^{\xa})^{\xb} \cdot (\r^{\n})^{\xb} \\
+&= \g^{\xa \cdot \xb} \cdot (\r^{\xb})^{\n} \quad = \quad \mathsf{enc}(\xa \cdot \xb, \r^{\xb})
+\end{aligned}
+\]
 </div>
 
 ```python
@@ -326,11 +342,15 @@ TODO: good examples of the above?
 
 Fortunately, we can easily define a *re-randomize* operation that makes any ciphertext look exactly like a freshly generated one, effectively erasing everything about how it was created. To do this we have to make sure the randomness component looks uniformly random given anything that the adversary may know. To do this we simply add a fresh encryption of zero $$\mathsf{enc}(0, \s)$$, which for $$\mathsf{enc}(\x, \r)$$ will give us an encryption $$\mathsf{enc}(\x, \r \cdot \s)$$; however, if $$\s$$ is independent and uniformly random then so is $$\r \cdot \s$$. We are essentially 
 
-<div class="hw hw-eq">
-<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>) · <span class="math-orange">s</span><sup class="math-blue">n</sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>) · <span class="math-orange">s</span><sup class="math-blue">n</sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · (<span class="math-red">r</span> · <span class="math-orange">s</span>)<sup class="math-blue">n</sup></span>
-<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-purple">t</span><sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x</span>, <span class="math-purple">t</span>)</span></span>
-<span></span><span></span><span class="note">where <span class="math-purple">t</span> = <span class="math-red">r</span> · <span class="math-orange">s</span></span>
+<div class="hw">
+\[
+\begin{aligned}
+\mathsf{enc}(\x, \r) \cdot \s^{\n} &= (\g^{\x} \cdot \r^{\n}) \cdot \s^{\n} \\
+&= \g^{\x} \cdot (\r \cdot \s)^{\n} \\
+&= \g^{\x} \cdot \t^{\n} \quad = \quad \mathsf{enc}(\x, \t) \\
+& \qquad \class{hw-note}{\text{where } \t = \r \cdot \s}
+\end{aligned}
+\]
 </div>
 
 ```python

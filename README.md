@@ -42,7 +42,7 @@ Math is rendered in one of two ways, both using MathJax 3.2.2's CHTML output (HT
 - `make serve` (development): MathJax renders the math in the browser, so changes show up as soon as you save. GitHub Pages' own build also works this way.
 - `make build` and `make preview` (production): Jekyll builds with `_config.prerender.yml` added, which leaves out the MathJax script, then `_scripts/prerender-math.js` renders the math into each page, with hidden MathML for screen readers. Readers don't load or run MathJax, only its fonts, and math shows even with JavaScript off. A TeX error, including an undefined macro, fails the build instead of showing up in red on the page.
 
-The settings (TeX delimiters, a post's `math_macros`, and where MathJax's fonts are) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. Both also make the same two adjustments: text in math (`\text{...}`) gets the surrounding font and is sized by the browser, and math in handwritten figures goes through `js/handwritten-math.js` (see "Handwritten figures"). The RSS feed is not rendered and still contains the raw TeX.
+The settings (TeX delimiters, a post's `math_macros`, where MathJax's fonts are, and whether the page has handwritten math) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. On posts with handwritten figures, both also draw the math in those figures in the handwriting font (see "Handwritten figures"); everything else is plain MathJax. The RSS feed is not rendered and still contains the raw TeX.
 
 A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{2x}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
 
@@ -61,7 +61,7 @@ Color only what helps the explanation, and give a symbol the same color everywhe
 
 ### Handwritten figures
 
-Derivations and other math shown on its own line are drawn as handwritten figures, in the Indie Flower font and styled like the original drawings. Add `handwritten: true` to the post's front matter, which loads `css/handwritten.css`. The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
+Derivations and other math shown on its own line are drawn as handwritten figures, in the Indie Flower font and styled like the original drawings. Add `handwritten: true` to the post's front matter. That loads the handwriting font and the styles for diagrams (`css/handwritten.css`) and, unless handwritten math is turned off (see below), the styles and code that draw math in the handwriting font (`css/handwritten-math.css` and `js/handwritten-math.js`). The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
 
 Write an equation, derivation, vector or matrix in TeX, as display math inside a `<div class="hw">`, using the post's color macros like the rest of its math:
 
@@ -82,9 +82,17 @@ When a post shows the same values in many figures, define each once as a macro a
 
 Keep spacing out of CSS: MathJax sizes brackets from its own layout, so padding added with CSS makes contents stick out of them. Use TeX instead, such as `\\[0.6em]` for more room after a row. Derivations (`\begin{aligned}`) already get extra room between rows.
 
-Diagrams that aren't equations, such as networks, are drawn as inline SVG (`<div class="hw hw-svg">`). See Secure Aggregation part 1.
+Diagrams that aren't equations, such as networks, are drawn as inline SVG (`<div class="hw-svg">`). See Secure Aggregation part 1.
 
 MathJax without handwriting is for math inside sentences. Don't also show a derivation as MathJax display math when a figure shows it.
+
+### Turning off handwritten math
+
+To fall back to plain MathJax, set `handwritten_math: false` in `_config.yml`. Figures then render as ordinary MathJax display math, from the same TeX and in the same colors, and no code that relies on MathJax internals runs, in `make serve` or `make build`. Diagrams stay handwritten SVG, and nothing in the posts needs to change.
+
+This works because the handwriting is a separate layer on top of standard TeX. To keep it that way, write figures in standard TeX with `\class{...}` for colors, as now; the only handwriting-specific markup is `\class{hw-note}{...}`, which in plain MathJax just shows at normal size.
+
+Turn it off if a MathJax upgrade breaks the handwritten figures (see "Pinned MathJax version"). Plain MathJax is configured with documented options only, so for a newer 3.x version it keeps working as is. MathJax 4 is a bigger change even without handwriting: it packages its fonts differently, so the self-hosted files in `js/mathjax/` and the font location in `_includes/mathjax.html` need updating, and its Node package (`@mathjax/src` instead of `mathjax-full`) may need changes to `_scripts/prerender-math.js`.
 
 ### Code or math?
 
@@ -117,6 +125,8 @@ The handwritten figures rely on MathJax internals that a new version may change.
 1. Copy `tex-chtml-full.js` and `output/chtml/fonts/woff-v2/` from the `es5` folder of the `mathjax-full` npm package at the new version into `js/mathjax/`, and update `js/mathjax/VERSION` and `package.json`.
 2. Run `make build`: it fails on TeX errors, including errors from the filter.
 3. Look at the handwritten figures in Paillier part 1 and Secure Aggregation part 1 with both `make serve` and `make preview`: text in the handwriting font, brackets that cover their contents, and the same result in both.
+
+If the handwritten figures don't work with the new version and fixing them can wait, set `handwritten_math: false` (see "Turning off handwritten math") and upgrade anyway.
 
 ## Third-party libraries
 

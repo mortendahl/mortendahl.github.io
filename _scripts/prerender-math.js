@@ -7,8 +7,12 @@
 // settings are read from the page's #mathjax-config block, the same settings MathJax uses in the
 // browser during `make serve`. The math is rendered as HTML and CSS (MathJax's CHTML output, with
 // its fonts self-hosted in js/mathjax/), with hidden MathML for screen readers, and the config block
-// is removed. Math in handwritten figures goes through js/handwritten-math.js, as in the browser.
-// Any TeX error fails the build.
+// is removed. Any TeX error fails the build.
+//
+// On pages whose settings turn on handwritten figures ("handwritten": true, see _includes/mathjax.html),
+// math in figures also goes through js/handwritten-math.js, as in the browser. That's the only part that
+// relies on MathJax internals; other pages, and all pages with `handwritten_math: false` in _config.yml,
+// are rendered with plain MathJax.
 
 const fs = require('fs');
 const path = require('path');
@@ -20,7 +24,6 @@ const { liteAdaptor } = require('mathjax-full/js/adaptors/liteAdaptor.js');
 const { RegisterHTMLHandler } = require('mathjax-full/js/handlers/html.js');
 const { AssistiveMmlHandler } = require('mathjax-full/js/a11y/assistive-mml.js');
 require('mathjax-full/js/util/entities/all.js'); // HTML entities, so parsing pages needs no async loading
-const handwritten = require('../js/handwritten-math.js');
 
 const CONFIG_BLOCK = /<script type="application\/json" id="mathjax-config">([\s\S]*?)<\/script>\s*/;
 
@@ -41,30 +44,10 @@ function htmlFiles(dir) {
 function renderPage(html) {
   const config = JSON.parse(html.match(CONFIG_BLOCK)[1]);
   const tex = new TeX({ ...config.tex, packages: PACKAGES });
-  tex.postFilters.add(handwritten.filter, handwritten.priority);
   const chtml = new CHTML(config.chtml);
   const doc = mathjax.document(html.replace(CONFIG_BLOCK, ''), { InputJax: tex, OutputJax: chtml });
-
-  // MathJax scales math to the x-height of the surrounding font. Node can't measure it and assumes
-  // half the font size, which is right for the body font (Lora); for handwritten figures, use the
-  // handwriting font's, as the browser does during `make serve`.
-  doc.findMath().compile().getMetrics();
-  for (const item of doc.math) handwritten.setFigureMetrics(item, adaptor, chtml);
-  doc.render();
-
-  // Node can't measure fonts, so MathJax guessed the width of text in math: drop the guess and let
-  // the browser size it from the real font, as the page does in the browser during `make serve`
-  // (and the minimum widths of tables, such as aligned derivations, which were computed from those guesses)
-  const dropStyle = (tag, property) => {
-    for (const node of adaptor.tags(adaptor.body(doc.document), tag)) {
-      const style = (adaptor.getAttribute(node, 'style') || '')
-        .replace(new RegExp(`(^|;)\\s*${property}:[^;]*;?`), '$1').trim();
-      if (style) adaptor.setAttribute(node, 'style', style);
-      else adaptor.removeAttribute(node, 'style');
-    }
-  };
-  dropStyle('mjx-utext', 'width');
-  dropStyle('mjx-mtable', 'min-width');
+  if (config.handwritten) renderHandwritten(doc, tex, chtml);
+  else doc.render();
 
   const errors = [];
   for (const item of doc.math) {
@@ -87,6 +70,33 @@ function renderPage(html) {
   }
 
   return { out, count: Array.from(doc.math).length, errors };
+}
+
+// Handwritten figures: the same steps as the browser does during `make serve` (see _includes/mathjax.html).
+function renderHandwritten(doc, tex, chtml) {
+  const handwritten = require('../js/handwritten-math.js');
+  tex.postFilters.add(handwritten.filter, handwritten.priority);
+
+  // MathJax scales math to the x-height of the surrounding font. Node can't measure it and assumes
+  // half the font size, which is right for the body font (Lora); for handwritten figures, use the
+  // handwriting font's, as the browser does.
+  doc.findMath().compile().getMetrics();
+  for (const item of doc.math) handwritten.setFigureMetrics(item, adaptor, chtml);
+  doc.render();
+
+  // Node can't measure fonts, so MathJax guessed the width of text in math: drop the guess and let
+  // the browser size it from the real font, as the browser does (and the minimum widths of tables, such
+  // as aligned derivations, which were computed from those guesses)
+  const dropStyle = (tag, property) => {
+    for (const node of adaptor.tags(adaptor.body(doc.document), tag)) {
+      const style = (adaptor.getAttribute(node, 'style') || '')
+        .replace(new RegExp(`(^|;)\\s*${property}:[^;]*;?`), '$1').trim();
+      if (style) adaptor.setAttribute(node, 'style', style);
+      else adaptor.removeAttribute(node, 'style');
+    }
+  };
+  dropStyle('mjx-utext', 'width');
+  dropStyle('mjx-mtable', 'min-width');
 }
 
 const siteDir = process.argv[2] || '_site';

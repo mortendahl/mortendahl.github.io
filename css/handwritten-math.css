@@ -1,0 +1,51 @@
+/*
+ * Handwritten figures written in TeX: display math inside <div class="hw">, drawn in the handwriting font
+ * by js/handwritten-math.js while MathJax does the layout.
+ * Loaded on posts with `handwritten: true` (see _includes/head.html), unless _config.yml turns handwritten
+ * math off (`handwritten_math: false`); without this file, such figures are plain MathJax display math.
+ */
+
+/* the figure */
+.hw {
+    width: max-content;
+    max-width: 100%;
+    margin: 0.8em auto;
+    /* room for superscripts and subscripts: the horizontal scroll box clips anything outside it */
+    padding: 0.4em 0 0.3em;
+    overflow-x: auto;
+    font-family: 'Indie Flower', cursive;
+    font-size: clamp(13px, 2.9vw, 22px);
+    letter-spacing: 0.05em;
+    word-spacing: 0.05em;
+    line-height: 1.6;
+    color: #8c8c8c;
+    -webkit-text-stroke: 0.03em currentColor;
+    white-space: nowrap;
+}
+/* neutral colours; the others come from the shared math palette (math-blue, math-green, ...) */
+.hw .c-black  { color: #222; }
+.hw .c-grey   { color: #8c8c8c; }
+
+/* text in math uses the text font around it: the handwriting font in figures, the body font elsewhere.
+   MathJax can't tell the font when rendering at build time, so it's set here. */
+body { --math-text-font: 'Lora', 'Times New Roman', serif; }
+.hw { --math-text-font: 'Indie Flower', cursive; }
+mjx-container[jax="CHTML"] mjx-utext { font-family: var(--math-text-font) !important; }
+
+/* MathJax does the layout and js/handwritten-math.js turns every symbol into handwritten text,
+   with these classes on operators */
+.hw > mjx-container[jax="CHTML"][display="true"] {
+    margin: 0;
+    /* room for the handwriting font's long descenders, which reach below MathJax's estimate */
+    padding: 0.1em 0 0.35em;
+}
+.hw mjx-utext { letter-spacing: 0.05em; }
+.hw .hw-rel { margin: 0 0.5em; }
+.hw .hw-bin { margin: 0 0.35em; }
+.hw .hw-punct { margin-right: 0.4em; }
+.hw .hw-note { font-size: 80%; }
+
+/* narrow screens: smaller */
+@media (max-width: 600px) {
+    .hw { font-size: 14px; }
+}

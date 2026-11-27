@@ -6,41 +6,45 @@ The MathJax settings live in the JSON block below so that both ways of rendering
 - with `make build`, which sets `prerender_math` via _config.prerender.yml, `_scripts/prerender-math.js`
   renders the math into the page as HTML and CSS and removes this block, so readers don't run MathJax.
 
-Both use MathJax's CHTML output with the same two adjustments:
-- math inside handwritten figures (class "hw") is drawn in the handwriting font, by js/handwritten-math.js;
-- text in math (\text{...}) takes the surrounding font and its natural width, measured by the browser.
+Both use MathJax's CHTML output. On posts with handwritten figures (`handwritten: true`), unless the site
+turns it off (`handwritten_math: false` in _config.yml), both also draw math in figures in the handwriting
+font, with js/handwritten-math.js. That's the only part that relies on MathJax internals; without it, this
+is plain MathJax, configured with its documented options only.
 {% endcomment %}
+{% assign handwritten = false %}
+{% if page.handwritten %}{% unless site.handwritten_math == false %}{% assign handwritten = true %}{% endunless %}{% endif %}
 <script type="application/json" id="mathjax-config">
     {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]]{% if page.math_macros %}, "macros": {{ page.math_macros | jsonify }}{% endif %}},
-     "chtml": {"fontURL": "{{ "/js/mathjax/output/chtml/fonts/woff-v2" | prepend: site.baseurl }}", "mtextInheritFont": true}}
+     "chtml": {"fontURL": "{{ "/js/mathjax/output/chtml/fonts/woff-v2" | prepend: site.baseurl }}"{% if handwritten %}, "mtextInheritFont": true{% endif %}},
+     "handwritten": {{ handwritten }}}
 </script>
 {% unless site.prerender_math %}
-<script src="{{ "/js/handwritten-math.js" | prepend: site.baseurl }}"></script>
+{% if handwritten %}<script src="{{ "/js/handwritten-math.js" | prepend: site.baseurl }}"></script>{% endif %}
 <script>
     (function () {
         var config = JSON.parse(document.getElementById('mathjax-config').textContent);
+        MathJax = { tex: config.tex, chtml: config.chtml };
+        if (!config.handwritten) return;
+
+        // Handwritten figures: the same steps as _scripts/prerender-math.js does at build time.
         var setFigureMetrics = function (math, doc) { HandwrittenMath.setFigureMetrics(math, doc.adaptor, doc.outputJax); };
-        MathJax = {
-            tex: config.tex,
-            chtml: config.chtml,
-            options: {
-                renderActions: {
-                    // as in the build: after MathJax measures the fonts (110), before it lays out (150)
-                    figureMetrics: [111, function (doc) { for (var item of doc.math) setFigureMetrics(item, doc); }, setFigureMetrics]
-                }
+        MathJax.options = {
+            renderActions: {
+                // after MathJax measures the fonts (110), before it lays out (150)
+                figureMetrics: [111, function (doc) { for (var item of doc.math) setFigureMetrics(item, doc); }, setFigureMetrics]
+            }
+        };
+        MathJax.startup = {
+            ready: function () {
+                MathJax.startup.defaultReady();
+                MathJax.startup.input[0].postFilters.add(HandwrittenMath.filter, HandwrittenMath.priority);
             },
-            startup: {
-                ready: function () {
-                    MathJax.startup.defaultReady();
-                    MathJax.startup.input[0].postFilters.add(HandwrittenMath.filter, HandwrittenMath.priority);
-                },
-                pageReady: function () {
-                    return MathJax.startup.defaultPageReady().then(function () {
-                        // as in the build: let the browser size text in math from the real font
-                        document.querySelectorAll('mjx-utext').forEach(function (e) { e.style.removeProperty('width'); });
-                        document.querySelectorAll('mjx-mtable').forEach(function (e) { e.style.removeProperty('min-width'); });
-                    });
-                }
+            pageReady: function () {
+                return MathJax.startup.defaultPageReady().then(function () {
+                    // let the browser size text in math from the real font
+                    document.querySelectorAll('mjx-utext').forEach(function (e) { e.style.removeProperty('width'); });
+                    document.querySelectorAll('mjx-mtable').forEach(function (e) { e.style.removeProperty('min-width'); });
+                });
             }
         };
     })();

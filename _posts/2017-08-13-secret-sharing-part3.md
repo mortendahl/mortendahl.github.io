@@ -32,27 +32,21 @@ The robust reconstruct method for Shamir's scheme we end up with is as follows, 
 ```python
 def shamir_robust_reconstruct(shares):  
     # filter missing shares
-
     points_values = [ (p,v) for p,v in zip(POINTS, shares) if v is not None ]
     
     # decode remaining faulty
-
     points, values = zip(*points_values)
     polynomial, error_locator = gao_decoding(points, values, R, MAX_MANIPULATED)
     
     # check if recovery was possible
-
     if polynomial is None:
         # there were more errors than assumed by `MAX_ERRORS`
-
         raise Exception("Too many errors, cannot reconstruct")
     else:
         # recover secret
-
         secret = poly_eval(polynomial, 0)
     
         # find roots of error locator polynomial
-
         error_indices = [ i 
             for i,v in enumerate( poly_eval(error_locator, p) for p in POINTS ) 
             if v == 0 
@@ -260,18 +254,15 @@ With this in place we have our decoding algorithm!
 ```python
 def gao_decoding(points, values, max_degree, max_error_count):
     # interpolate faulty polynomial
-
     H = lagrange_interpolation(points, values)
     
     # compute f
-
     F = [1]
     for xi in points:
         Fi = [base_sub(0, xi), 1]
         F = poly_mul(F, Fi)
     
     # run EEA-like algorithm on (F,H) to find EEA triple
-
     R0, R1 = F, H
     S0, S1 = [1], []
     T0, T1 = [], [1]

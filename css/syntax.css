@@ -1,5 +1,4 @@
 /* to make lines scroll instead of wrap */
-/* from http://stackoverflow.com/a/23393920 */
 
 .highlight pre {
   overflow-x: auto;       /* this sets the scrolling in x */

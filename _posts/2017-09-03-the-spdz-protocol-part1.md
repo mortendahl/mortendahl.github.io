@@ -183,12 +183,10 @@ class PrivateValue:
             a, b, a_mul_b = generate_mul_triple()
 
             # local masking followed by communication of the reconstructed values
-
             alpha = (x - a).reconstruct()
             beta  = (y - b).reconstruct()
 
             # local re-combination
-
             return alpha.mul(beta) + \
                    alpha.mul(b) + \
                    a.mul(beta) + \

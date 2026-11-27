@@ -127,7 +127,6 @@ def dot(x, y):
     with tf.name_scope('dot'):
 
         # triple generation
-
         with tf.device(CRYPTO_PRODUCER):
             a = sample(x.shape)
             b = sample(y.shape)
@@ -137,7 +136,6 @@ def dot(x, y):
             ab0, ab1 = share(ab)
         
         # masking after distributing the triple
-        
         with tf.device(SERVER_0):
             alpha0 = crt_sub(x0, a0)
             beta0  = crt_sub(y0, b0)
@@ -147,7 +145,6 @@ def dot(x, y):
             beta1  = crt_sub(y1, b1)
 
         # recombination after exchanging alphas and betas
-
         with tf.device(SERVER_0):
             alpha = reconstruct(alpha0, alpha1)
             beta  = reconstruct(beta0, beta1)
@@ -282,7 +279,6 @@ def mask(x):
                 alpha1 = crt_sub(x1, a1)
 
             # exchange of alphas
-
             with tf.device(SERVER_0):
                 alpha_on_0 = reconstruct(alpha0, alpha1)
 
@@ -429,15 +425,12 @@ from tensorspdz import (
 )
 
 # publicly train `weights` and `bias`
-
 weights, bias = train_publicly()
 
 # define shape of unknown input
-
 shape_x = X.shape
 
 # construct graph for private prediction
-
 input_x, x = define_input(shape_x, name='x')
 
 init_w, w = define_variable(weights, name='w')
@@ -450,26 +443,21 @@ if use_caching:
 y = sigmoid(add(dot(x, w), b))
 
 # start session between all players
-
 with session() as sess:
 
     # share and distribute `weights` and `bias` to the two servers
-
     sess.run([init_w, init_b])
     
     if use_caching:
         # compute and store cached values
-
         sess.run(cache_populators)
 
     # prepare to use `X` as private input for prediction
-
     feed_dict = encode_input([
         (input_x, X)
     ])
 
     # run secure computation and reveal output
-
     y_pred = sess.run(reveal(y), feed_dict=feed_dict)
     
     print decode_output(y_pred)

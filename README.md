@@ -25,6 +25,22 @@ MathJax is loaded only on pages that ask for it. Add `math: true` to a post's fr
 
 A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\textcolor{#60BA46}{x}'` lets the post write `\x` for a green x. See the Paillier part 1 post for an example.
 
+### Code or math?
+
+The blog is code-first: use backticks when pointing at the code, and MathJax when stating something about the values. The test is "would I copy this into the Python code?" If yes, use backticks.
+
+1. Backticks for anything from the post's code: functions, variables, attributes and expressions that run as written, e.g. `add_cipher`, `ek.nn`, `c == enc(ek, x, r)`.
+2. MathJax for notation Python can't express directly or expresses badly: modular inverses and powers ($$x^{-1}$$, $$r^n$$), sets ($$\mathbb{Z}_n^*$$), magnitudes ($$2^{2048}$$), indexed families ($$r_1, r_2$$), and derivations where `=` means "equals" rather than assignment or `==`.
+3. Never mix the two within one expression or statement; pick one form for all of it.
+4. When math describes something the code implements, link them once, e.g. "the order of $$n$$, i.e. $$(p - 1)(q - 1)$$ (`order_of_n` in the code)".
+5. A bare variable in prose follows its paragraph: math in paragraphs about the scheme, backticks in paragraphs about the code.
+6. When in doubt, use backticks.
+7. Colors only appear in math, so they always mean "the same quantity as in the pictures". Code is never colored.
+
+The difference between the two forms is visible on its own: in code you call `enc(ek, x, r)`, while in math the key is dropped and it's $$\mathsf{enc}(x, r)$$; likewise `*` vs $$\cdot$$, `==` vs $$=$$, and `r1` vs $$r_1$$.
+
+### Self-hosting
+
 MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, so math pages don't depend on any external service.
 
 ## Third-party libraries

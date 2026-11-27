@@ -111,7 +111,7 @@ We further explore the scheme's security in part 3.
 
 ## Encryption
 
-While $$\n$$ fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only $$\n$$ but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them every time they're needed.
+While `n` fully defines the encryption key, for performance reasons it is interesting to keep a few extra values around in the in-memory representation. Concretely, for encryption keys we store not only `n` but also the derived `nn = n * n` and `g = 1 + n`, saving us from having to re-compute them every time they're needed.
 
 ```python
 class EncryptionKey:
@@ -135,7 +135,7 @@ def enc(ek, x, r):
     return c
 ```
 
-Note that we are doing all computations modulus $$\n^2$$. As we shall see below, many of the operations are done modulus $$\n^2$$, meaning arithmetic is done . This is critical for security and we shall return to it later. 
+Note that we are doing all computations modulus $$\n^2$$ (`ek.nn` in the code). As we shall see below, many of the operations are done modulus $$\n^2$$, meaning arithmetic is done . This is critical for security and we shall return to it later. 
 
 However, it is already clear at this point that our ciphertexts become relatively large: since $$\n$$ is at least ~2000 bits then every ciphertext is at least ~4000 bits, even if we're only encrypting a single bit! This blow-up is the main reason why Paillier encryption is computationally expensive since arithmetic on numbers this large is significantly more expensive than the native arithmetic on e.g. 64 bits numbers.
 
@@ -153,7 +153,7 @@ As it turns out, one loop iteration is *almost always* enough, to the point wher
 
 ## Decryption
 
-Turning next to decryption, again we start out by caching a few values derived from $$p$$ and $$q$$. Note that we really only need the order of $$\n$$, i.e. $$(p - 1)(q - 1)$$, but in part 2 we will have additional uses of them.
+Turning next to decryption, again we start out by caching a few values derived from `p` and `q`. Note that we really only need the order of $$\n$$, i.e. $$(p - 1)(q - 1)$$ (`order_of_n` in the code), but in part 2 we will have additional uses of them.
 
 ```python
 class DecryptionKey:
@@ -193,7 +193,7 @@ def extract(dk, c):
     return r
 ```
 
-When the scheme was first published this was mentioned as an interesting property on its own, but later literature have had less focus on this. As we see in part 4, one particular application that is still relevant is that it can serve as a simple proof that decryption was done correctly: if someone asks the key owner to decrypt a ciphertext $$c$$, and the key owner returns both plaintext $$\x$$ and randomness $$\r$$, then it is easy to verify that indeed $$c = \mathsf{enc}(\mathit{ek}, \x, \r)$$.
+When the scheme was first published this was mentioned as an interesting property on its own, but later literature have had less focus on this. As we see in part 4, one particular application that is still relevant is that it can serve as a simple proof that decryption was done correctly: if someone asks the key owner to decrypt a ciphertext $$c$$, and the key owner returns both plaintext $$\x$$ and randomness $$\r$$, then it is easy to verify that indeed `c == enc(ek, x, r)`.
 
 # Homomorphic Operations
 
@@ -203,7 +203,7 @@ This opens up for very powerful applications, including electronic voting, secur
 
 ## Addition
 
-Let us first see how one can do the above and compute the addition of two encrypted values, say $$c_1 = \mathsf{enc}(\mathit{ek}, \xa, \ra)$$ and $$c_2 = \mathsf{enc}(\mathit{ek}, \xb, \rb)$$.
+Let us first see how one can do the above and compute the addition of two encrypted values, say $$c_1 = \mathsf{enc}(\xa, \ra)$$ and $$c_2 = \mathsf{enc}(\xb, \rb)$$.
 
 To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
@@ -217,7 +217,7 @@ def add_cipher(ek, c1, c2):
     return c
 ```
 
-Note that `add_cipher` can also be used to compute the addition of a ciphertext and a plaintext value, by first encrypting the latter. In this particular case we might as well use $$1$$ as randomness when encrypting the plaintext value as shown in `add_plain`.
+Note that `add_cipher` can also be used to compute the addition of a ciphertext and a plaintext value, by first encrypting the latter. In this particular case we might as well use `1` as randomness when encrypting the plaintext value as shown in `add_plain`.
 
 ```python
 def add_plain(ek, c1, x2):
@@ -242,7 +242,7 @@ def neg_plain(ek, x):
     return ek.n - x
 ```
 
-The former computes the [multiplicative inverse](https://en.wikipedia.org/wiki/Multiplicative_inverse) and the latter the [additive inverse](https://en.wikipedia.org/wiki/Additive_inverse), which simply means that `c * neg_cipher(c) == 1` modulus $$\n^2$$, and `x + neg_plain(x) == 0` modulus $$\n$$. This basically allows us to turn $$\xa - \xb$$ into $$\xa + (-\xb)$$ and use the addition operations from earlier.
+The former computes the [multiplicative inverse](https://en.wikipedia.org/wiki/Multiplicative_inverse) $$c^{-1}$$ and the latter the [additive inverse](https://en.wikipedia.org/wiki/Additive_inverse) $$-\x$$, which simply means that $$c \cdot c^{-1} \equiv 1 \pmod{\n^2}$$ and $$\x + (-\x) \equiv 0 \pmod{\n}$$. This basically allows us to turn $$\xa - \xb$$ into $$\xa + (-\xb)$$ and use the addition operations from earlier.
 
 ```python
 def sub_cipher(ek, c1, c2):

@@ -14,8 +14,8 @@ math_macros:
   wt: ['\cdot \class{c-black}{#1}', 1]
   w: '\overset{w}{\class{c-black}{\begin{bmatrix}3\\2\\1\end{bmatrix}}}'
   ws: ['\class{c-grey}{\begin{bmatrix} \class{math-blue}{#1} & \class{math-green}{#2} & \class{math-orange}{#3} \\ \class{math-blue}{#4} & \class{math-green}{#5} & \class{math-orange}{#6} \end{bmatrix}}', 6]
-  row: ['\left[\; #1 + #2 + #3 \;\right]', 3]
-  col: ['\left[\;\begin{array}{c} #1 \wt{3} \\ + \\ #2 \wt{2} \\ + \\ #3 \wt{1} \end{array}\;\right]', 3]
+  row: ['\left(\; #1 + #2 + #3 \;\right)', 3]
+  col: ['\left(\;\begin{array}{c} #1 \wt{3} \\ + \\ #2 \wt{2} \\ + \\ #3 \wt{1} \end{array}\;\right)', 3]
   share: ['\class{math-#1}{\overset{\scriptsize\text{share}}{\longmapsto}}', 1]
   wsum: ['\class{math-#1}{\Big\downarrow}\,{\scriptsize\begin{array}{l}\text{weighted}\\[-0.3em]\text{sum}\end{array}}', 1]
   reconstruct: '\class{math-purple}{\overset{\scriptsize\text{reconstruct}}{\longmapsto}}'

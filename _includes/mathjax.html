@@ -19,9 +19,16 @@ Both use MathJax's CHTML output with the same two adjustments:
 <script>
     (function () {
         var config = JSON.parse(document.getElementById('mathjax-config').textContent);
+        var setFigureMetrics = function (math, doc) { HandwrittenMath.setFigureMetrics(math, doc.adaptor, doc.outputJax); };
         MathJax = {
             tex: config.tex,
             chtml: config.chtml,
+            options: {
+                renderActions: {
+                    // as in the build: after MathJax measures the fonts (110), before it lays out (150)
+                    figureMetrics: [111, function (doc) { for (var item of doc.math) setFigureMetrics(item, doc); }, setFigureMetrics]
+                }
+            },
             startup: {
                 ready: function () {
                     MathJax.startup.defaultReady();

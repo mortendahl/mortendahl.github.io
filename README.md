@@ -63,7 +63,7 @@ Color only what helps the explanation, and give a symbol the same color everywhe
 
 Derivations and other math shown on its own line are drawn as handwritten figures, in the Indie Flower font and styled like the original drawings. Add `handwritten: true` to the post's front matter, which loads `css/handwritten.css`. The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
 
-Write an equation or derivation in TeX, as display math inside a `<div class="hw">`, using the post's color macros like the rest of its math:
+Write an equation, derivation, vector or matrix in TeX, as display math inside a `<div class="hw">`, using the post's color macros like the rest of its math:
 
 ```html
 <div class="hw">
@@ -76,9 +76,13 @@ Write an equation or derivation in TeX, as display math inside a `<div class="hw
 </div>
 ```
 
-MathJax lays it out, and `js/handwritten-math.js` draws every symbol in the handwriting font instead of MathJax's fonts. Exponents stack over subscripts as in typeset math ($$r_1^n$$). Put a note such as "where t = r · s" in `\class{hw-note}{...}` to make it smaller. See Paillier part 1 for examples.
+MathJax lays it out, and `js/handwritten-math.js` draws every symbol in the handwriting font instead of MathJax's fonts, with two exceptions: brackets that grow with their contents (matrices, `\left[ ... \right]`) and arrows stay in MathJax's style, since they have to stretch. Exponents stack over subscripts as in typeset math ($$r_1^n$$). Put a note such as "where t = r · s" in `\class{hw-note}{...}` to make it smaller. See Paillier part 1 for derivations.
 
-Diagrams that aren't equations, such as vectors with arrows or networks, are drawn with the HTML and CSS classes in `css/handwritten.css` (inline SVG for networks). See Secure Aggregation part 1.
+When a post shows the same values in many figures, define each once as a macro and build the figures from those. Secure Aggregation part 1 does this for its example: `\vect{blue}{s_{01}}{644\\280}` is a labeled blue vector, defined once as `\sab`, so a figure reads `\xa \arr{blue} \saa , \sab , \sac`. See its front matter for the helpers (labeled vectors, colored arrows, weights, bracketed columns).
+
+Keep spacing out of CSS: MathJax sizes brackets from its own layout, so padding added with CSS makes contents stick out of them. Use TeX instead, such as `\\[0.6em]` for more room after a row. Derivations (`\begin{aligned}`) already get extra room between rows.
+
+Diagrams that aren't equations, such as networks, are drawn as inline SVG (`<div class="hw hw-svg">`). See Secure Aggregation part 1.
 
 MathJax without handwriting is for math inside sentences. Don't also show a derivation as MathJax display math when a figure shows it.
 

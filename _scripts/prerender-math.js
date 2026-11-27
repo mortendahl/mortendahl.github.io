@@ -46,15 +46,10 @@ function renderPage(html) {
   const doc = mathjax.document(html.replace(CONFIG_BLOCK, ''), { InputJax: tex, OutputJax: chtml });
 
   // MathJax scales math to the x-height of the surrounding font. Node can't measure it and assumes
-  // half the font size, which is right for the body font (Lora) but not for the handwriting font, so
-  // set it for math in handwritten figures, as the browser would measure it.
+  // half the font size, which is right for the body font (Lora); for handwritten figures, use the
+  // handwriting font's, as the browser does during `make serve`.
   doc.findMath().compile().getMetrics();
-  for (const item of doc.math) {
-    if (!handwritten.inFigure(item.start.node, adaptor)) continue;
-    const { em, containerWidth, lineWidth } = item.metrics;
-    item.setMetrics(em, em * handwritten.X_HEIGHT, containerWidth, lineWidth,
-                    handwritten.X_HEIGHT / chtml.font.params.x_height);
-  }
+  for (const item of doc.math) handwritten.setFigureMetrics(item, adaptor, chtml);
   doc.render();
 
   // Node can't measure fonts, so MathJax guessed the width of text in math: drop the guess and let

@@ -5,6 +5,37 @@ subtitle:   "Fully Decentralized for Stable Parties"
 date:       2019-01-02 12:00:00
 author:     "Morten Dahl"
 handwritten: true
+math:       true
+math_macros:
+  # helpers: \vect{color}{label}{entries} is a labeled column vector, \arr{color} a colored arrow,
+  # \wt{3} a weight, \w the weight vector, \ws{...} a matrix with one colored column per party
+  vect: ['\overset{#2}{\class{math-#1}{\begin{bmatrix}#3\end{bmatrix}}}', 3]
+  arr: ['\mathrel{\class{math-#1}{\longmapsto}}', 1]
+  wt: ['\cdot \class{c-black}{#1}', 1]
+  w: '\overset{w}{\class{c-black}{\begin{bmatrix}3\\2\\1\end{bmatrix}}}'
+  ws: ['\class{c-grey}{\begin{bmatrix} \class{math-blue}{#1} & \class{math-green}{#2} & \class{math-orange}{#3} \\ \class{math-blue}{#4} & \class{math-green}{#5} & \class{math-orange}{#6} \end{bmatrix}}', 6]
+  row: ['\left[\; #1 + #2 + #3 \;\right]', 3]
+  col: ['\left[\;\begin{array}{c} #1 \wt{3} \\ + \\ #2 \wt{2} \\ + \\ #3 \wt{1} \end{array}\;\right]', 3]
+  share: ['\class{math-#1}{\overset{\scriptsize\text{share}}{\longmapsto}}', 1]
+  wsum: ['\class{math-#1}{\Big\downarrow}\,{\scriptsize\begin{array}{l}\text{weighted}\\[-0.3em]\text{sum}\end{array}}', 1]
+  reconstruct: '\class{math-purple}{\overset{\scriptsize\text{reconstruct}}{\longmapsto}}'
+  # the example's values, defined once; macro names can only contain letters, so a, b, c stand for 0, 1, 2
+  xa: '\vect{blue}{x_0}{1\\2}'
+  xb: '\vect{green}{x_1}{10\\20}'
+  xc: '\vect{orange}{x_2}{100\\200}'
+  saa: '\vect{blue}{s_{00}}{465\\447}'
+  sab: '\vect{blue}{s_{01}}{644\\280}'
+  sac: '\vect{blue}{s_{02}}{894\\276}'
+  sba: '\vect{green}{s_{10}}{314\\679}'
+  sbb: '\vect{green}{s_{11}}{943\\883}'
+  sbc: '\vect{green}{s_{12}}{755\\460}'
+  sca: '\vect{orange}{s_{20}}{470\\455}'
+  scb: '\vect{orange}{s_{21}}{997\\496}'
+  scc: '\vect{orange}{s_{22}}{635\\250}'
+  ta: '\vect{purple}{t_0}{491\\151}'
+  tb: '\vect{purple}{t_1}{811\\99}'
+  tc: '\vect{purple}{t_2}{823\\997}'
+  'y': '\vect{purple}{y}{123\\246}'
 header-img: "assets/sda/constellation.png"
 summary:    "In this series of blog posts we go through how modern cryptography can be used to perform secure aggregation for private analytics and federated learning. As we will see, the right approach depends on the concrete scenario, and in this first part we start with the simpler case consisting of a network of stable parties."
 ---
@@ -106,14 +137,10 @@ For instance, secret `x0` may be shared into `[s00, s01, s02]`, where `s00` is t
 
 
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow math-blue"><span class="maps"></span></span>
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<div class="hw">
+\[
+\xa \arr{blue} \saa , \sab , \sac
+\]
 </div>
 <!-- <img src="/assets/sda/share.png" style="width: 40%"/> -->
 
@@ -127,77 +154,43 @@ def weighted_sum(shares, weights):
 
 For instance, say we have shared three secrets `x0`, `x1`, and `x2`:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow math-blue"><span class="maps"></span></span>
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat math-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow math-green"><span class="maps"></span></span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat math-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow math-orange"><span class="maps"></span></span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & \arr{blue} & \saa & , & \sab & , & \sac \\[0.6em]
+\xb & \arr{green} & \sba & , & \sbb & , & \sbc \\[0.6em]
+\xc & \arr{orange} & \sca & , & \scb & , & \scc
+\end{array}
+\]
 </div>
 
 By computing a weighted sum over each set of shares:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\saa & , & \sab & , & \sac \\[0.6em]
+\sba & , & \sbb & , & \sbc \\[0.6em]
+\sca & , & \scb & , & \scc
+\end{array}
+\]
 </div>
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">465</span><span class="math-green">314</span><span class="math-orange">470</span><span class="math-blue">447</span><span class="math-green">679</span><span class="math-orange">455</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-blue"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">644</span><span class="math-green">943</span><span class="math-orange">997</span><span class="math-blue">280</span><span class="math-green">883</span><span class="math-orange">496</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-green"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">894</span><span class="math-green">755</span><span class="math-orange">635</span><span class="math-blue">276</span><span class="math-green">460</span><span class="math-orange">250</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-orange"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\ws{465}{314}{470}{447}{679}{455} & \cdot & \w & \arr{blue} & \ta \\[0.6em]
+\ws{644}{943}{997}{280}{883}{496} & \cdot & \w & \arr{green} & \tb \\[0.6em]
+\ws{894}{755}{635}{276}{460}{250} & \cdot & \w & \arr{orange} & \tc
+\end{array}
+\]
 </div>
 
 we then end up with shares `t0`, `t1`, and `t2` of the weighted sum `(x0 * w0) + (x1 * w1) + (x2 * w2)`:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow math-purple"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+<div class="hw">
+\[
+\ta + \tb + \tc \arr{purple} \y
+\]
 </div>
 
 
@@ -266,77 +259,43 @@ We can look at a concrete execution to better see how and why this works. Here, 
 
 In the first step, each data owner shares its input vector into three random vectors, resulting in an imaginary `(3, 3, 2)` tensor `s`. For instance, sharing `x0` results in `s00`, `s01`, and `s02` where `s00 + s01 + s02 == x0` (modulus `Q`).
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow math-blue"><span class="maps"></span></span>
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat math-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow math-green"><span class="maps"></span></span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat math-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow math-orange"><span class="maps"></span></span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & \arr{blue} & \saa & , & \sab & , & \sac \\[0.6em]
+\xb & \arr{green} & \sba & , & \sbb & , & \sbc \\[0.6em]
+\xc & \arr{orange} & \sca & , & \scb & , & \scc
+\end{array}
+\]
 </div>
 
 In the next step, each owner then computes a weighted sum across one of the three columns, resulting in three new vectors `t0`, `t1`, and `t2`.
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\saa & , & \sab & , & \sac \\[0.6em]
+\sba & , & \sbb & , & \sbc \\[0.6em]
+\sca & , & \scb & , & \scc
+\end{array}
+\]
 </div>
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">465</span><span class="math-green">314</span><span class="math-orange">470</span><span class="math-blue">447</span><span class="math-green">679</span><span class="math-orange">455</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-blue"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">644</span><span class="math-green">943</span><span class="math-orange">997</span><span class="math-blue">280</span><span class="math-green">883</span><span class="math-orange">496</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-green"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="math-blue">894</span><span class="math-green">755</span><span class="math-orange">635</span><span class="math-blue">276</span><span class="math-green">460</span><span class="math-orange">250</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow math-orange"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccc}
+\ws{465}{314}{470}{447}{679}{455} & \cdot & \w & \arr{blue} & \ta \\[0.6em]
+\ws{644}{943}{997}{280}{883}{496} & \cdot & \w & \arr{green} & \tb \\[0.6em]
+\ws{894}{755}{635}{276}{460}{250} & \cdot & \w & \arr{orange} & \tc
+\end{array}
+\]
 </div>
 
 In the final step these three vectors are added together by the output receiver.
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow math-purple"><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+<div class="hw">
+\[
+\ta + \tb + \tc \arr{purple} \y
+\]
 </div>
 
 While this protocol already offers good performance, it can also be significantly optimized if we are willing to make some assumptions about the scenario in which it is used and the reliability of the parties involved. In particular, in the following sections we shall see how communication can be reduced significantly if it is repeatedly executed by the same parties.
@@ -356,97 +315,66 @@ it unfortunately also has a serious problem if we were to use it across e.g. the
 
 Say our goal is to compute `y` as defined by following expression, i.e. as the weighted sum of vectors `x0`, `x1`, `x2` using weights `3`, `2`, `1` respectively:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="c-black">· 3</span>
-<span>+</span>
-<span class="mat math-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="c-black">· 2</span>
-<span>+</span>
-<span class="mat math-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="c-black">· 1</span>
-<span style="display:flex;align-items:center;gap:0.5em">=&nbsp;<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+<div class="hw">
+\[
+\xa \wt{3} + \xb \wt{2} + \xc \wt{1} = \y
+\]
 </div>
 
 This can be done  by the following
 
 In the next section it will become obvious why one would do so, you could replace 
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);row-gap: 1em;">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span>=</span>
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span>+</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span>+</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat math-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span>=</span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span>+</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span>+</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat math-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span>=</span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span>+</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span>+</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccccc}
+\xa & = & \saa & + & \sab & + & \sac \\[0.6em]
+\xb & = & \sba & + & \sbb & + & \sbc \\[0.6em]
+\xc & = & \sca & + & \scb & + & \scc
+\end{array}
+\]
 </div>
 
 cd
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);">
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span>+</span><span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span>+</span><span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span></span>
-<span class="c-black">· 3</span>
-<span>+</span>
-<span></span>
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span>+</span><span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span>+</span><span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span></span>
-<span class="c-black">· 2</span>
-<span>+</span>
-<span></span>
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span>+</span><span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span>+</span><span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span></span>
-<span class="c-black">· 1</span>
-<span style="grid-column: 3; grid-row: 1 / span 5; display: flex; align-items: center; gap: 0.5em; margin-left: 0.6em">=&nbsp;<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+<div class="hw">
+\[
+\begin{array}{cc}
+\row{\saa}{\sab}{\sac} \wt{3} & \\[0.3em]
++ & \\[0.3em]
+\row{\sba}{\sbb}{\sbc} \wt{2} & = \quad \y \\[0.3em]
++ & \\[0.3em]
+\row{\sca}{\scb}{\scc} \wt{1} &
+\end{array}
+\]
 </div>
 
 cdscd
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(6, auto);">
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
-<span>+</span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
-<span>+</span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
-<span style="display:flex;align-items:center;gap:0.5em;margin-left:0.3em">=&nbsp;<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+<div class="hw">
+\[
+\col{\saa}{\sba}{\sca} + \col{\sab}{\sbb}{\scb} + \col{\sac}{\sbc}{\scc} = \y
+\]
 </div>
 
 cdscds
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);column-gap: 1.5em;">
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
-<span class="veq">=</span>
-<span class="veq">=</span>
-<span class="veq">=</span>
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccc}
+\col{\saa}{\sba}{\sca} & \col{\sab}{\sbb}{\scb} & \col{\sac}{\sbc}{\scc} \\[0.3em]
+\Vert & \Vert & \Vert \\[0.3em]
+\ta & \tb & \tc
+\end{array}
+\]
 </div>
 
 cdscds
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span>=</span>
-<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+<div class="hw">
+\[
+\ta + \tb + \tc = \y
+\]
 </div>
 
 
@@ -725,51 +653,15 @@ def weighted_sum(shares, weights):
     return np.dot(shares_as_matrix, weights) % Q
 ```
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
-<span class="mat math-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow math-blue"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat math-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat math-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span></span>
-<span></span>
-<span class="mat math-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow math-green"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat math-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat math-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span></span>
-<span></span>
-<span class="mat math-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow math-orange"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat math-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat math-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-<span></span>
-<span></span>
-<span></span>
-<span></span>
-<span class="vlab math-blue"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span class="vlab math-green"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span class="vlab math-orange"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span></span>
-<span></span>
-<span></span>
-<span class="mat math-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="low">,</span>
-<span class="mat math-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="low">,</span>
-<span class="mat math-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow math-purple"><span class="alab">reconstruct</span><span class="maps"></span></span>
-<span class="mat math-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+<div class="hw">
+\[
+\begin{array}{ccccccccc}
+\xa & \share{blue} & \saa & , & \sab & , & \sac & & \\[0.6em]
+\xb & \share{green} & \sba & , & \sbb & , & \sbc & & \\[0.6em]
+\xc & \share{orange} & \sca & , & \scb & , & \scc & & \\[0.6em]
+& & \wsum{blue} & & \wsum{green} & & \wsum{orange} & & \\[0.6em]
+& & \ta & , & \tb & , & \tc & \reconstruct & \y
+\end{array}
+\]
 </div>
 

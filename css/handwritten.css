@@ -12,7 +12,7 @@
     margin: 1.2em auto;
     overflow-x: auto;
     font-family: 'Indie Flower', cursive;
-    font-size: clamp(13px, 3.3vw, 25px);
+    font-size: clamp(13px, 2.9vw, 22px);
     letter-spacing: 0.05em;
     word-spacing: 0.05em;
     line-height: 1.6;
@@ -162,9 +162,47 @@
 /* "=" turned on its side, for equations read top to bottom */
 .hw .veq { display: inline-block; transform: rotate(90deg); }
 
+/* inline SVG drawings (network diagrams) */
+.hw-svg { width: auto; overflow: visible; }
+.hw-svg svg { display: block; width: 100%; height: auto; margin: 0 auto; }
+.hw-svg svg text { fill: currentColor; stroke: currentColor; stroke-width: 0.6; }
+.hw-svg svg .line { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; }
+.hw-svg svg .dashed { stroke-dasharray: 7 7; }
+
+/* owners sending a value to the receiver: owner | derivation over an arrow | receiver */
+.hw-route {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    column-gap: 0.5em;
+    row-gap: 1.2em;
+    padding-bottom: 0.7em;
+}
+.hw-route > .owner { align-self: end; justify-self: end; transform: translateY(0.55em); }
+.hw-route > .leg { display: flex; flex-direction: column; align-items: stretch; }
+.hw-route > .leg > .maps { width: 100%; border-left: none; margin-top: 0.3em; }
+.hw-route > .recv {
+    grid-column: 3;
+    display: flex;
+    align-items: center;
+    padding-left: 0.4em;
+    border-left: 0.09em solid;
+}
+.hw-route .o0 { grid-row: 1; } .hw-route .o1 { grid-row: 2; } .hw-route .o2 { grid-row: 3; }
+.hw-route > .recv { grid-row: 1 / span 3; }
+.hw-route .hw-eq { justify-content: start; row-gap: 0.15em; }
+.hw-route .hw-eq > :nth-child(3n+1) { justify-self: start; }
+.hw-route .minor { font-size: 80%; }
+
 /* narrow screens: smaller and tighter */
 @media (max-width: 600px) {
     .hw { font-size: 14px; }
     .hw .paren { padding-left: 0.4em; padding-right: 0.4em; column-gap: 0.3em; }
     .hw-grid { column-gap: 0.3em; }
+    .hw-route { grid-template-columns: auto auto; row-gap: 0.3em; }
+    .hw-route > .owner { grid-column: 1; justify-self: start; transform: none; }
+    .hw-route > .leg { grid-column: 1; margin-bottom: 0.8em; }
+    .hw-route > .recv { grid-column: 2; grid-row: 1 / span 6; }
+    .hw-route .o0.owner { grid-row: 1; } .hw-route .o0.leg { grid-row: 2; }
+    .hw-route .o1.owner { grid-row: 3; } .hw-route .o1.leg { grid-row: 4; }
+    .hw-route .o2.owner { grid-row: 5; } .hw-route .o2.leg { grid-row: 6; }
 }

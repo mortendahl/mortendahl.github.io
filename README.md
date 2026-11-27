@@ -44,16 +44,16 @@ Math is rendered in one of two ways, both using MathJax 3.2.2's CHTML output (HT
 
 The settings (TeX delimiters, a post's `math_macros`, where MathJax's fonts are, and whether the page has handwritten math) are written once into each math page by `_includes/mathjax.html`, and both ways read them from there. On posts with handwritten figures, both also draw the math in those figures in the handwriting font (see "Handwritten figures"); everything else is plain MathJax. The RSS feed is not rendered and still contains the raw TeX.
 
-A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `odd: ['\class{math-brown}{#1}', 1]` for `\odd{2x}`. See the Paillier part 1 and Secret Sharing part 2 posts for examples.
+A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\class{math-green}{x}'` lets the post write `\x` for a green x. A macro with arguments is a list of the definition and the number of arguments, e.g. `arr: ['\mathrel{\class{math-#1}{\longmapsto}}', 1]` lets the post write `\arr{blue}` for a blue arrow. See the Paillier part 1 and Secure Aggregation part 1 posts for examples.
 
 ### Colors
 
 Math is colored with CSS classes, `\class{math-blue}{...}` in TeX and `class="math-blue"` in handwritten figures, so the shades are defined once in `less/clean-blog.less` and are the same in every post and figure. They're the colors of the original hand-drawn equation images, slightly darkened, and are used by role:
 
-- `math-blue`: fixed public parameters, such as the modulus and generator ($$n$$ and $$g$$ in Paillier, $$Q$$ and $$\omega$$ in Secret Sharing).
-- `math-green` and `math-brown`: a first and a second value that the explanation keeps apart, such as plaintexts $$x_1$$ and $$x_2$$, or the even and odd halves $$B$$ and $$C$$ of a polynomial.
+- `math-blue`: fixed public parameters, such as the modulus and generator ($$n$$ and $$g$$ in Paillier).
+- `math-green` and `math-brown`: a first and a second value that the explanation keeps apart, such as plaintexts $$x_1$$ and $$x_2$$.
 - `math-red` and `math-orange`: a first and a second piece of randomness, such as $$r_1$$ and $$r_2$$.
-- `math-purple`: a third value, such as the third part $$D$$ of a polynomial.
+- `math-purple`: a third value, such as the combined randomness $$t = r \cdot s$$ in Paillier.
 
 In a post about several parties, such as secure aggregation, the colors instead tell the parties apart.
 

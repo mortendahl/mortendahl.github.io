@@ -23,6 +23,8 @@ The Gemfile uses the `github-pages` gem, so the local build uses the same gem ve
 
 MathJax is loaded only on pages that ask for it. Add `math: true` to a post's front matter, then write TeX between `$$ ... $$` (inline or as its own paragraph) or `$ ... $` (inline).
 
+A post can define its own TeX macros under `math_macros` in its front matter, written without the leading backslash and in single quotes so YAML keeps the backslashes, e.g. `x: '\textcolor{#60BA46}{x}'` lets the post write `\x` for a green x. See the Paillier part 1 post for an example.
+
 MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, so math pages don't depend on any external service.
 
 ## Third-party libraries

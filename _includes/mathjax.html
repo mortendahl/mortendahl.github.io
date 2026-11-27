@@ -2,7 +2,8 @@
 <script>
     MathJax = {
         tex: {
-            inlineMath: [['$', '$'], ['\\(', '\\)']]
+            inlineMath: [['$', '$'], ['\\(', '\\)']]{% if page.math_macros %},
+            macros: {{ page.math_macros | jsonify }}{% endif %}
         },
         svg: {
             fontCache: 'global'

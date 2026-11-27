@@ -25,6 +25,6 @@
 
     {% feed_meta %}
 
-    {% include mathjax.html %}
+    {% if page.math %}{% include mathjax.html %}{% endif %}
 
 </head>

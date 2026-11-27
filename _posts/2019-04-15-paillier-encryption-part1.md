@@ -154,12 +154,10 @@ class DecryptionKey:
         order_of_n = (p - 1) * (q - 1)
 
         # for decryption 
-
         self.d1 = order_of_n
         self.d2 = inverse(order_of_n, n)
 
         # for extraction 
-
         self.e = inverse(n, order_of_n)
 ```
 

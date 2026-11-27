@@ -21,11 +21,20 @@ header-img: "assets/paillier/autostereogram-space-shuttle.jpeg"
 summary:    "The Paillier homomorphic encryption scheme is not only interesting for allowing computation on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra. In this first part of a series we cover the basics and the homomorphic operations it supports."
 ---
 
+<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+<link href="/css/handwritten.css" rel="stylesheet">
 <style>
 img {
     margin-left: auto;
     margin-right: auto;
 }
+/* colours for the handwritten equations (see /css/handwritten.css) */
+.hw .g  { color: #1d47b8; }
+.hw .x  { color: #5cc43b; }
+.hw .x2 { color: #8b5a2b; }
+.hw .r  { color: #ee3124; }
+.hw .r2 { color: #f7a400; }
+.hw .t  { color: #a21cc4; }
 </style>
 
 <em><strong>TL;DR:</strong> the Paillier encryption scheme not only allows us to compute on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra; in this first post we dig into the basics.</em>
@@ -46,7 +55,7 @@ Paillier is a [public-key encryption scheme](https://en.wikipedia.org/wiki/Publi
 
 The encryption function $$\mathsf{enc}$$ maps a plaintext $$\x$$ and randomness $$\r$$ into a ciphertext $$c = \mathsf{enc}(\mathit{ek}, \x, \r)$$, which we often write simply as $$\mathsf{enc}(\x, \r)$$ for brevity. Having the randomness means that we end up with different ciphertexts even if we encrypt the same plaintext several times: if $$\ra$$ and $$\rb$$ are different then so are $$c_1 = \mathsf{enc}(\x, \ra)$$ and $$c_2 = \mathsf{enc}(\x, \rb)$$ despite both of them being encryptions of $$\x$$ under the same encryption key.
 
-<img src="/assets/paillier/probabilistic.png" style="width: 50%;"/>
+<div style="max-width: 525px; margin: 1.2em auto;"><svg viewBox="0 0 1050 690" style="display: block; width: 100%; height: auto;" role="img" aria-label="Encrypting the same plaintext x with three different values of r gives three different ciphertexts c1, c2 and c3"><defs><marker id="prob-ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="18" markerHeight="18" markerUnits="userSpaceOnUse" orient="auto"><path d="M0 1 L10 5 L0 9 z" fill="#111"/></marker></defs><text x="470" y="55" font-family="'Courier New', Courier, monospace" font-size="36" text-anchor="middle" fill="#111">c = Enc(x, r)</text><text x="142" y="210" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="bold" font-size="27" text-anchor="middle" fill="#111">Plaintexts</text><ellipse cx="142" cy="397" rx="115" ry="165" fill="none" stroke="#999" stroke-width="4"/><circle cx="122" cy="328" r="10" fill="#666"/><circle cx="193" cy="410" r="10" fill="#666"/><circle cx="122" cy="478" r="10" fill="#666"/><text x="142" y="305" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">x</text><text x="857" y="105" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif" font-weight="bold" font-size="27" text-anchor="middle" fill="#111">Ciphertexts</text><ellipse cx="857" cy="400" rx="178" ry="268" fill="none" stroke="#999" stroke-width="4"/><circle cx="852" cy="218" r="10" fill="#666"/><circle cx="952" cy="338" r="10" fill="#666"/><circle cx="735" cy="347" r="10" fill="#666"/><circle cx="822" cy="438" r="10" fill="#666"/><circle cx="908" cy="418" r="10" fill="#666"/><circle cx="963" cy="496" r="10" fill="#666"/><circle cx="788" cy="534" r="10" fill="#666"/><circle cx="868" cy="516" r="10" fill="#666"/><circle cx="891" cy="590" r="10" fill="#666"/><text x="862" y="195" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">c1</text><text x="968" y="308" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">c2</text><text x="832" y="408" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">c3</text><path d="M148 322 C 320 235, 560 195, 828 208" fill="none" stroke="#111" stroke-width="3" marker-end="url(#prob-ah)"/><text x="460" y="207" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">r1</text><path d="M150 332 C 400 275, 700 268, 928 330" fill="none" stroke="#111" stroke-width="3" marker-end="url(#prob-ah)"/><text x="518" y="275" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">r2</text><path d="M170 342 C 420 315, 650 330, 805 432" fill="none" stroke="#111" stroke-width="3" marker-end="url(#prob-ah)"/><text x="500" y="330" font-family="'Courier New', Courier, monospace" font-size="34" text-anchor="middle" fill="#111">r3</text></svg></div>
 
 <!-- This means that an adversary who obtains a ciphertext `c`, and even knows that there are only a few possibilities for the underlying `x`, cannot simply encrypt all plaintexts and compare the results to `c` without also taking a guess at the underlying randomness `r`. So as long as `r` has a sufficiently high [min-entropy](https://crypto.stackexchange.com/questions/63786/relation-between-entropy-and-min-entropy) from the adversary's perspective, this strategy becomes impractical. Concretely, for typical keypairs there are roughly 10<sup>600</sup> choices of `r`, meaning that every single plaintext `x` can be encrypted into roughly 10<sup>600</sup> different ciphertexts. -->
 
@@ -68,7 +77,9 @@ As we shall see later, the underlying security assumptions also imply that it is
 In summary, the randomness prevents adversaries from performing brute-force attacks since they cannot efficiently check whether each "guess" was correct, even in situations where $$\x$$ is known to be from a very small set of possibilities, say $$\x = 0$$ or $$\x = 1$$. Of course, there may also be other ways for an adversary to check a guess, or more generally learn something about $$\x$$ or $$\r$$ from $$c$$, and we shall return to security of the scheme in much more detail later.
 
 
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+</div>
 
 
 Below we will see concrete examples
@@ -123,7 +134,9 @@ class EncryptionKey:
 
 With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
-<img src="/assets/paillier/enc.png" style="width: 50%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+</div>
 
 that we can express in Python as follows:
 
@@ -207,7 +220,11 @@ Let us first see how one can do the above and compute the addition of two encryp
 
 To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
-<img src="/assets/paillier/add.png" style="width: 95%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r<sub>1</sub></span>) · enc(<span class="x2">x<sub>2</sub></span>, <span class="r2">r<sub>2</sub></span>)</span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup>) · (<span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup>)</span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)</span></span>
+</div>
 
 In other words, if we multiply ciphertext values $$c_1$$ and $$c_2$$ then we get exactly the same result as if we had encrypted $$\xa + \xb$$ using randomness $$\ra \cdot \rb$$!
 
@@ -226,7 +243,11 @@ def add_plain(ek, c1, x2):
     return c
 ```
 
-<img src="/assets/paillier/add-plain.png" style="width: 85%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r</span>)</span></span>
+</div>
 
 We now know how to add encrypted values together without decrypting anything! Note however, that the resulting ciphertexts have a slightly different form than freshly generated ones, with a randomness that is no longer a uniformly random value but rather a composite such as $$\ra \cdot \rb$$. This does not affect correctness nor the ability to decrypt, but in some applications it may leak extra information to an adversary and hence have consequences for security. We return to this issue below after having introduced more operations.
 
@@ -268,7 +289,11 @@ $$
 c^{\k} = (\g^{\x} \cdot \r^{\n})^{\k} = \g^{\x \cdot \k} \cdot (\r^{\k})^{\n} = \mathsf{enc}(\x \cdot \k, \r^{\k})
 $$
 
-<img src="/assets/paillier/mul-plain.png" style="width: 75%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>)<sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup>)<sup><span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span>, <span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)</span></span>
+</div>
 
 ```python
 def mul_plain(ek, c1, x2):
@@ -314,7 +339,12 @@ TODO: good examples of the above?
 
 Fortunately, we can easily define a *re-randomize* operation that makes any ciphertext look exactly like a freshly generated one, effectively erasing everything about how it was created. To do this we have to make sure the randomness component looks uniformly random given anything that the adversary may know. To do this we simply add a fresh encryption of zero $$\mathsf{enc}(0, \s)$$, which for $$\mathsf{enc}(\x, \r)$$ will give us an encryption $$\mathsf{enc}(\x, \r \cdot \s)$$; however, if $$\s$$ is independent and uniformly random then so is $$\r \cdot \s$$. We are essentially 
 
-<img src="/assets/paillier/re-randomize.png" style="width: 75%;"/>
+<div class="hw hw-eq">
+<span>enc(<span class="x">x</span>, <span class="r">r</span>) · <span class="r2">s</span><sup class="g">n</sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="r2">s</span><sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · (<span class="r">r</span> · <span class="r2">s</span>)<sup class="g">n</sup></span>
+<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="t">t</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x</span>, <span class="t">t</span>)</span></span>
+<span></span><span></span><span class="note">where <span class="t">t</span> = <span class="r">r</span> · <span class="r2">s</span></span>
+</div>
 
 ```python
 def rerandomize(ek, c, s):

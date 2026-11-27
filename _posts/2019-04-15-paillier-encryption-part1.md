@@ -217,11 +217,11 @@ To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To se
 
 <div class="hw">
 \[
-\begin{array}{rcccl}
-\mathsf{enc}(\xa, \ra) \cdot \mathsf{enc}(\xb, \rb) & = & (\g^{\xa} \cdot \ra^{\n}) \cdot (\g^{\xb} \cdot \rb^{\n}) & & \\[0.6em]
-& = & \g^{\xa} \cdot \g^{\xb} \cdot \ra^{\n} \cdot \rb^{\n} & & \\[0.6em]
-& = & \g^{\xa + \xb} \cdot (\ra \cdot \rb)^{\n} & = & \mathsf{enc}(\xa + \xb, \ra \cdot \rb)
-\end{array}
+\begin{aligned}
+\mathsf{enc}(\xa, \ra) \cdot \mathsf{enc}(\xb, \rb) &= (\g^{\xa} \cdot \ra^{\n}) \cdot (\g^{\xb} \cdot \rb^{\n}) \\
+&= \g^{\xa} \cdot \g^{\xb} \cdot \ra^{\n} \cdot \rb^{\n} \\
+&= \g^{\xa + \xb} \cdot (\ra \cdot \rb)^{\n} \quad = \quad \mathsf{enc}(\xa + \xb, \ra \cdot \rb)
+\end{aligned}
 \]
 </div>
 

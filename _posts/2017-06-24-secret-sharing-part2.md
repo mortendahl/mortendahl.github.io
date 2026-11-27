@@ -375,9 +375,9 @@ From this small amount of empirical data the FFT seems like the obvious choice a
 
 Since there are no security implications in re-using the same fixed set of parameters (i.e. $$Q$$ and the two generators) across applications, parameter generation is perhaps less important compared to for instance key generation in encryption schemes. Nonetheless, one of the benefits of secret sharing schemes is their ability to avoid big expansion factors by using parameters tailored to the use case; concretely, to pick a field of just the right size. As such we shall now fill in this final piece of the puzzle and see how a set of parameters fitting with the FFTs used in the packed scheme can be generated.
 
-Our main abstraction is the `generate_parameters` function which takes a desired minimum field size in bits, as well as the number of secrets `k` we which to packed together, the privacy threshold `t` we want, and the number `n` of shares to generate. Accounting for the value at point 1 that we are throwing away (see earlier), to be suitable for the two FFTs, we must then have that `k + t + 1` is a power of 2 and that `n + 1` is a power of 3.
+Our main abstraction is the `generate_parameters` function. It takes a desired minimum field size in bits, as well as the number $$K$$ of secrets we which to packed together, the privacy threshold $$T$$ we want, and the number $$N$$ of shares to generate (`k`, `t`, and `n` in the code). Accounting for the value at point 1 that we are throwing away (see earlier), to be suitable for the two FFTs, we must then have that $$K + T + 1$$ is a power of 2 and that $$N + 1$$ is a power of 3.
 
-To next make sure that our field has two subgroups with those number of elements, we simply need to find a field whose order is divided by both numbers. Specifically, since we're considering prime fields, we need to find a prime `q` such that its order `q-1` is divided by both sizes. Finally, we also need a generator `g` of the field, which can be turned into generators `omega_small` and `omega_large` of the subgroups.
+To next make sure that our field has two subgroups with those number of elements, we simply need to find a field whose order is divided by both numbers. Specifically, since we're considering prime fields, we need to find a prime $$Q$$ such that its order $$Q-1$$ is divided by both sizes (`q` in the code). Finally, we also need a generator `g` of the field, which can be turned into generators `omega_small` and `omega_large` of the subgroups.
 
 ```python
 def generate_parameters(min_bitsize, k, t, n):
@@ -394,7 +394,7 @@ def generate_parameters(min_bitsize, k, t, n):
     return q, omega_small, omega_large
 ```
 
-Finding our `q` and `g` is done by `find_prime_field`, which works by first finding a prime of the right size and with the right order. To then also find the generator we need a piece of auxiliary information, namely the prime factors in the order.
+Finding the prime and the generator is done by `find_prime_field`, which works by first finding a prime of the right size and with the right order. To then also find the generator we need a piece of auxiliary information, namely the prime factors in the order.
 
 ```python
 def find_prime_field(min_bitsize, order_divisor):
@@ -422,9 +422,9 @@ This leaves us with only a few remaining question regarding finding prime number
 
 ## Finding primes
 
-To find a prime `q` with the desired structure (i.e. of a certain minimum size and whose order `q-1` has a given divisor) we may either do rejection sampling of primes until we hit one that satisfies our need, or we may construct it from smaller parts so that it by design fits with what we need. The latter appears more efficient so that is what we will do here.
+To find a prime $$Q$$ with the desired structure (i.e. of a certain minimum size and whose order $$Q-1$$ has a given divisor $$d$$) we may either do rejection sampling of primes until we hit one that satisfies our need, or we may construct it from smaller parts so that it by design fits with what we need. The latter appears more efficient so that is what we will do here.
 
-Specifically, given `min_bitsize` and `order_divisor` we will do rejection sampling over two values `k1` and `k2` until `q = k1 * k2 * order_divisor + 1` is a [probable prime](https://en.wikipedia.org/wiki/Probable_prime). The `k1` is used to ensure that the minimum size is met, and `k2` is used to give us a bit of wiggle room -- it can in principle be omitted, but empirical tests show that it doesn't have to be very large it give an efficiency boost, at the expense of potentially overshooting the desired field size by a few bits. Finally, since we also need to know the prime factorization of `q - 1`, and since this in general is believed to be an [inherently slow process](https://en.wikipedia.org/wiki/Integer_factorization), we by construction ensure that `k1` is a prime so that we only have to factor `k2` and `order_divisor`, which we assume to be somewhat small and hence doable.
+Specifically, we will do rejection sampling over two values $$k_1$$ and $$k_2$$ until $$Q = k_1 \cdot k_2 \cdot d + 1$$ is a [probable prime](https://en.wikipedia.org/wiki/Probable_prime). In the code, `find_prime` gets the divisor as `order_divisor` and the minimum size as `min_bitsize`. The $$k_1$$ is used to ensure that the minimum size is met, and $$k_2$$ is used to give us a bit of wiggle room -- it can in principle be omitted, but empirical tests show that it doesn't have to be very large it give an efficiency boost, at the expense of potentially overshooting the desired field size by a few bits. Finally, since we also need to know the prime factorization of $$Q - 1$$, and since this in general is believed to be an [inherently slow process](https://en.wikipedia.org/wiki/Integer_factorization), we by construction ensure that $$k_1$$ is a prime so that we only have to factor $$k_2$$ and $$d$$, which we assume to be somewhat small and hence doable.
 
 ```python
 def find_prime(min_bitsize, order_divisor):

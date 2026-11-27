@@ -48,14 +48,22 @@ A post can define its own TeX macros under `math_macros` in its front matter, wr
 
 ### Colors
 
-Math is colored with CSS classes, `\class{math-blue}{...}` and so on, so the shades are defined once in `less/clean-blog.less` and are the same in every post. They're the colors of the hand-drawn equation images, and are used by role:
+Math is colored with CSS classes, `\class{math-blue}{...}` in TeX and `class="math-blue"` in handwritten figures, so the shades are defined once in `less/clean-blog.less` and are the same in every post and figure. They're the colors of the original hand-drawn equation images, slightly darkened, and are used by role:
 
 - `math-blue`: fixed public parameters, such as the modulus and generator ($$n$$ and $$g$$ in Paillier, $$Q$$ and $$\omega$$ in Secret Sharing).
 - `math-green` and `math-brown`: a first and a second value that the explanation keeps apart, such as plaintexts $$x_1$$ and $$x_2$$, or the even and odd halves $$B$$ and $$C$$ of a polynomial.
 - `math-red` and `math-orange`: a first and a second piece of randomness, such as $$r_1$$ and $$r_2$$.
 - `math-purple`: a third value, such as the third part $$D$$ of a polynomial.
 
+In a post about several parties, such as secure aggregation, the colors instead tell the parties apart.
+
 Color only what helps the explanation, and give a symbol the same color everywhere in a post.
+
+### Handwritten figures
+
+Derivations and other math shown on its own line are drawn as handwritten figures: HTML and CSS (inline SVG for diagrams) in the Indie Flower font, styled like the original drawings. Add `handwritten: true` to the post's front matter, which loads `css/handwritten.css`, and see Paillier part 1 and Secure Aggregation part 1 for examples. The font is self-hosted in `assets/fonts/indie-flower/` (SIL Open Font License).
+
+MathJax is for math inside sentences. Don't also show a derivation as MathJax display math when a figure shows it.
 
 ### Code or math?
 
@@ -68,13 +76,13 @@ The blog is code-first: use backticks when pointing at the code, and MathJax whe
 5. A name mentioned on its own in the prose keeps the same form throughout the post. Math names use the same letter and case as the code, so a fixed constant `Q` is $$Q$$ while a function argument `q` that is still being searched for is $$q$$. A name with a meaning in the math (such as $$n$$, $$x$$ or $$T$$) is always math, and a name that only exists in the code (such as `ek.nn`, `A_values` or `omega4`) is always code. Code expressions can still contain math names, e.g. `pow(r, ek.n, ek.nn)`, and vice versa.
 6. Stick to one form per sentence where possible. If a sentence needs both, move the code part into its own sentence ("In the code this is `A_values[i]`."). A short parenthetical link as in rule 4 is fine.
 7. When in doubt, use backticks.
-8. Colors only appear in math, and follow the roles under "Colors" above. Code is never colored.
+8. Colors only appear in math and handwritten figures, and follow the roles under "Colors" above. Code is never colored.
 
 The difference between the two forms is visible on its own: in code you call `enc(ek, x, r)`, while in math the key is dropped and it's $$\mathsf{enc}(x, r)$$; likewise `*` vs $$\cdot$$, `==` vs $$=$$, and `r1` vs $$r_1$$.
 
 ### Self-hosting
 
-MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, so math pages don't depend on any external service.
+MathJax is self-hosted in `js/mathjax/` (version in `js/mathjax/VERSION`) and includes all TeX extensions, and so is the handwriting font, so math pages don't depend on any external service.
 
 ## Third-party libraries
 

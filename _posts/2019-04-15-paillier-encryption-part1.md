@@ -5,11 +5,11 @@ subtitle:   "Basics of a Homomorphic Encryption Scheme"
 date:       2019-04-15 12:00:00
 author:     "Morten Dahl"
 math:       true
+handwritten: true
 math_macros:
   x: '\class{math-green}{x}'
   xa: '\class{math-green}{x}_{\class{math-green}{1}}'
   xb: '\class{math-brown}{x}_{\class{math-brown}{2}}'
-  k: '\class{math-brown}{k}'
   r: '\class{math-red}{r}'
   ra: '\class{math-red}{r}_{\class{math-red}{1}}'
   rb: '\class{math-orange}{r}_{\class{math-orange}{2}}'
@@ -21,20 +21,11 @@ header-img: "assets/paillier/autostereogram-space-shuttle.jpeg"
 summary:    "The Paillier homomorphic encryption scheme is not only interesting for allowing computation on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra. In this first part of a series we cover the basics and the homomorphic operations it supports."
 ---
 
-<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
-<link href="/css/handwritten.css" rel="stylesheet">
 <style>
 img {
     margin-left: auto;
     margin-right: auto;
 }
-/* colours for the handwritten equations (see /css/handwritten.css) */
-.hw .g  { color: #1d47b8; }
-.hw .x  { color: #5cc43b; }
-.hw .x2 { color: #8b5a2b; }
-.hw .r  { color: #ee3124; }
-.hw .r2 { color: #f7a400; }
-.hw .t  { color: #a21cc4; }
 </style>
 
 <em><strong>TL;DR:</strong> the Paillier encryption scheme not only allows us to compute on encrypted data, it also provides an excellent illustration of modern security assumptions and a beautiful application of abstract algebra; in this first post we dig into the basics.</em>
@@ -78,7 +69,7 @@ In summary, the randomness prevents adversaries from performing brute-force atta
 
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>)</span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
 </div>
 
 
@@ -135,7 +126,7 @@ class EncryptionKey:
 With this in place we can then express encryption. In mathematical terms this is done via the following equation:
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x</span>, <span class="r">r</span>)</span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
+<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>)</span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
 </div>
 
 that we can express in Python as follows:
@@ -221,9 +212,9 @@ Let us first see how one can do the above and compute the addition of two encryp
 To do this we multiply the two ciphertexts, letting $$c = c_1 \cdot c_2$$. To see that this indeed gives us what we want, we plug in our formula for encryption and get the following:
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r<sub>1</sub></span>) · enc(<span class="x2">x<sub>2</sub></span>, <span class="r2">r<sub>2</sub></span>)</span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup>) · (<span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup>)</span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r<sub>1</sub></span><sup class="g">n</sup> · <span class="r2">r<sub>2</sub></span><sup class="g">n</sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r<sub>1</sub></span> · <span class="r2">r<sub>2</sub></span>)</span></span>
+<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r<sub>1</sub></span>) · enc(<span class="math-brown">x<sub>2</sub></span>, <span class="math-orange">r<sub>2</sub></span>)</span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r<sub>1</sub></span><sup class="math-blue">n</sup>) · (<span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-orange">r<sub>2</sub></span><sup class="math-blue">n</sup>)</span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r<sub>1</sub></span><sup class="math-blue">n</sup> · <span class="math-orange">r<sub>2</sub></span><sup class="math-blue">n</sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r<sub>1</sub></span> · <span class="math-orange">r<sub>2</sub></span>)<sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r<sub>1</sub></span> · <span class="math-orange">r<sub>2</sub></span>)</span></span>
 </div>
 
 In other words, if we multiply ciphertext values $$c_1$$ and $$c_2$$ then we get exactly the same result as if we had encrypted $$\xa + \xb$$ using randomness $$\ra \cdot \rb$$!
@@ -244,9 +235,9 @@ def add_plain(ek, c1, x2):
 ```
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="g">g</span><sup><span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> + <span class="x2">x<sub>2</sub></span>, <span class="r">r</span>)</span></span>
+<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r</span>) · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>) · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-blue">g</span><sup><span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> + <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r</span>)</span></span>
 </div>
 
 We now know how to add encrypted values together without decrypting anything! Note however, that the resulting ciphertexts have a slightly different form than freshly generated ones, with a randomness that is no longer a uniformly random value but rather a composite such as $$\ra \cdot \rb$$. This does not affect correctness nor the ability to decrypt, but in some applications it may leak extra information to an adversary and hence have consequences for security. We return to this issue below after having introduced more operations.
@@ -283,16 +274,12 @@ Note that the resulting ciphertexts again have a slightly different form than fr
 
 The final operation supported by Paillier encryption is multiplication between a ciphertext and a plaintext. The fact that it is not known how to compute the multiplication of two encrypted values is what makes it a *partially homomorphic* scheme, and is what sets it apart from more recent *somewhat homomorphic* and *fully homomorphic* schemes where this is indeed possible.
 
-Given $$c = \mathsf{enc}(\x, \r)$$ and a $$\k$$ we compute
-
-$$
-c^{\k} = (\g^{\x} \cdot \r^{\n})^{\k} = \g^{\x \cdot \k} \cdot (\r^{\k})^{\n} = \mathsf{enc}(\x \cdot \k, \r^{\k})
-$$
+Given $$c_1 = \mathsf{enc}(\xa, \r)$$ and a plaintext $$\xb$$ we compute $$c_1^{\xb}$$ as follows:
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x<sub>1</sub></span>, <span class="r">r</span>)<sup><span class="x2">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup> · <span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x<sub>1</sub></span></sup>)<sup><span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup class="g">n</sup>)<sup><span class="x2">x<sub>2</sub></span></sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span></sup> · (<span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)<sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x<sub>1</sub></span> · <span class="x2">x<sub>2</sub></span>, <span class="r">r</span><sup><span class="x2">x<sub>2</sub></span></sup>)</span></span>
+<span>enc(<span class="math-green">x<sub>1</sub></span>, <span class="math-red">r</span>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span></sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r</span><sup class="math-blue">n</sup>)<sup><span class="math-brown">x<sub>2</sub></span></sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x<sub>1</sub></span> · <span class="math-brown">x<sub>2</sub></span></sup> · (<span class="math-red">r</span><sup><span class="math-brown">x<sub>2</sub></span></sup>)<sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x<sub>1</sub></span> · <span class="math-brown">x<sub>2</sub></span>, <span class="math-red">r</span><sup><span class="math-brown">x<sub>2</sub></span></sup>)</span></span>
 </div>
 
 ```python
@@ -340,10 +327,10 @@ TODO: good examples of the above?
 Fortunately, we can easily define a *re-randomize* operation that makes any ciphertext look exactly like a freshly generated one, effectively erasing everything about how it was created. To do this we have to make sure the randomness component looks uniformly random given anything that the adversary may know. To do this we simply add a fresh encryption of zero $$\mathsf{enc}(0, \s)$$, which for $$\mathsf{enc}(\x, \r)$$ will give us an encryption $$\mathsf{enc}(\x, \r \cdot \s)$$; however, if $$\s$$ is independent and uniformly random then so is $$\r \cdot \s$$. We are essentially 
 
 <div class="hw hw-eq">
-<span>enc(<span class="x">x</span>, <span class="r">r</span>) · <span class="r2">s</span><sup class="g">n</sup></span><span>=</span><span>(<span class="g">g</span><sup><span class="x">x</span></sup> · <span class="r">r</span><sup class="g">n</sup>) · <span class="r2">s</span><sup class="g">n</sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · (<span class="r">r</span> · <span class="r2">s</span>)<sup class="g">n</sup></span>
-<span></span><span>=</span><span><span class="g">g</span><sup><span class="x">x</span></sup> · <span class="t">t</span><sup class="g">n</sup> <span class="then">=&nbsp; enc(<span class="x">x</span>, <span class="t">t</span>)</span></span>
-<span></span><span></span><span class="note">where <span class="t">t</span> = <span class="r">r</span> · <span class="r2">s</span></span>
+<span>enc(<span class="math-green">x</span>, <span class="math-red">r</span>) · <span class="math-orange">s</span><sup class="math-blue">n</sup></span><span>=</span><span>(<span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-red">r</span><sup class="math-blue">n</sup>) · <span class="math-orange">s</span><sup class="math-blue">n</sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · (<span class="math-red">r</span> · <span class="math-orange">s</span>)<sup class="math-blue">n</sup></span>
+<span></span><span>=</span><span><span class="math-blue">g</span><sup><span class="math-green">x</span></sup> · <span class="math-purple">t</span><sup class="math-blue">n</sup> <span class="then">=&nbsp; enc(<span class="math-green">x</span>, <span class="math-purple">t</span>)</span></span>
+<span></span><span></span><span class="note">where <span class="math-purple">t</span> = <span class="math-red">r</span> · <span class="math-orange">s</span></span>
 </div>
 
 ```python

@@ -8,8 +8,6 @@ header-img: "assets/sda/constellation.png"
 summary:    "In this series of blog posts we go through how modern cryptography can be used to perform secure aggregation for private analytics and federated learning. As we will see, the right approach depends on the concrete scenario, and in this first part we start with the simpler case consisting of a network of stable parties."
 ---
 
-<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
-<link href="/css/handwritten.css" rel="stylesheet">
 <style>
 img {
     margin-left: auto;
@@ -107,15 +105,7 @@ For instance, secret `x0` may be shared into `[s00, s01, s02]`, where `s00` is t
 
 
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow c-blue"><span class="maps"></span></span>
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-</div>
+<img src="/assets/sda/simple-share.png" style="width: 50%;"/>
 <!-- <img src="/assets/sda/share.png" style="width: 40%"/> -->
 
 We also take advantage of the fact that the scheme allows us to compute on secret values by computing on the shares, i.e. while they remain encrypted. In particular, that we can compute a weighted sum of secret values by computing a weighted sum over each corresponding set of shares.
@@ -128,78 +118,15 @@ def weighted_sum(shares, weights):
 
 For instance, say we have shared three secrets `x0`, `x1`, and `x2`:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow c-blue"><span class="maps"></span></span>
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow c-green"><span class="maps"></span></span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow c-orange"><span class="maps"></span></span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-</div>
+<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
 
 By computing a weighted sum over each set of shares:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-</div>
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">465</span><span class="c-green">314</span><span class="c-orange">470</span><span class="c-blue">447</span><span class="c-green">679</span><span class="c-orange">455</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-blue"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">644</span><span class="c-green">943</span><span class="c-orange">997</span><span class="c-blue">280</span><span class="c-green">883</span><span class="c-orange">496</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-green"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">894</span><span class="c-green">755</span><span class="c-orange">635</span><span class="c-blue">276</span><span class="c-green">460</span><span class="c-orange">250</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-orange"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-</div>
+<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
 
 we then end up with shares `t0`, `t1`, and `t2` of the weighted sum `(x0 * w0) + (x1 * w1) + (x2 * w2)`:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow c-purple"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
-</div>
+<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
 
 
 For simplicity we here assume three data owners, but the same approach works for any number of owners.
@@ -208,19 +135,11 @@ For simplicity we here assume three data owners, but the same approach works for
 
 In the first step, each data owner secret shares its input and sends a share to each of the other owners (including keeping one for itself).
 
-<div class="hw hw-svg" style="max-width: 400px"><svg viewBox="0 0 660 780" role="img" aria-label="Three data owners in a triangle, each sending a value to every other owner"><defs><marker id="hw-ah-b-a" class="c-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-g-a" class="c-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-o-a" class="c-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-p-a" class="c-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker></defs><text class="c-blue" x="320" y="205" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">0</tspan></text><text class="c-green" x="545" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">1</tspan></text><text class="c-orange" x="100" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">2</tspan></text><path class="line c-blue" d="M215 250 Q115 350 70 525" marker-end="url(#hw-ah-b-a)"/><text class="c-blue" x="55" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">02</tspan></text><path class="line c-orange" d="M155 530 Q265 430 300 255" marker-end="url(#hw-ah-o-a)"/><text class="c-orange" x="215" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">20</tspan></text><path class="line c-green" d="M490 530 Q380 430 350 255" marker-end="url(#hw-ah-g-a)"/><text class="c-green" x="450" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">10</tspan></text><path class="line c-blue" d="M430 250 Q530 350 570 525" marker-end="url(#hw-ah-b-a)"/><text class="c-blue" x="585" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">01</tspan></text><path class="line c-orange" d="M215 560 Q330 505 445 550" marker-end="url(#hw-ah-o-a)"/><text class="c-orange" x="335" y="505" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">21</tspan></text><path class="line c-green" d="M450 610 Q330 665 215 615" marker-end="url(#hw-ah-g-a)"/><text class="c-green" x="335" y="680" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">12</tspan></text><path class="line c-blue" d="M345 145 C 375 60, 255 60, 290 140" marker-end="url(#hw-ah-b-a)"/><text class="c-blue" x="315" y="62" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">00</tspan></text><path class="line c-green" d="M560 620 C 595 700, 505 705, 525 630" marker-end="url(#hw-ah-g-a)"/><text class="c-green" x="550" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">11</tspan></text><path class="line c-orange" d="M115 620 C 150 700, 60 705, 80 630" marker-end="url(#hw-ah-o-a)"/><text class="c-orange" x="105" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">22</tspan></text></svg></div>
+<img src="/assets/sda/simple-step1.png" style="width: 40%"/>
 
 Once all shares have been distributed, i.e. every owner has a share from every other owner, they each compute a weighted sum. These sums are in fact shares of the output, which they send to the output receiver.
 
-<div class="hw hw-route">
-<span class="owner o0 c-blue">Owner<sub>0</sub></span>
-<span class="leg o0"><span class="hw-eq"><span><span class="c-purple">t<sub>0</sub></span></span><span>=</span><span><span class="c-blue">s<sub>00</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>10</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>20</sub></span> <span class="c-black">w<sub>2</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="owner o1 c-green">Owner<sub>1</sub></span>
-<span class="leg o1"><span class="hw-eq"><span><span class="c-purple">t<sub>1</sub></span></span><span>=</span><span><span class="c-blue">s<sub>01</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>11</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>21</sub></span> <span class="c-black">w<sub>2</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="owner o2 c-orange">Owner<sub>2</sub></span>
-<span class="leg o2"><span class="hw-eq"><span><span class="c-purple">t<sub>2</sub></span></span><span>=</span><span><span class="c-blue">s<sub>02</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>12</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>22</sub></span> <span class="c-black">w<sub>2</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="recv c-purple">Receiver</span>
-</div>
+<img src="/assets/sda/simple-step2.png" style="width: 100%"/>
 
 Finally, having received a share from every owner, the output receiver can reconstruct to learn the result.
 
@@ -275,78 +194,15 @@ We can look at a concrete execution to better see how and why this works. Here, 
 
 In the first step, each data owner shares its input vector into three random vectors, resulting in an imaginary `(3, 3, 2)` tensor `s`. For instance, sharing `x0` results in `s00`, `s01`, and `s02` where `s00 + s01 + s02 == x0` (modulus `Q`).
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow c-blue"><span class="maps"></span></span>
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow c-green"><span class="maps"></span></span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow c-orange"><span class="maps"></span></span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-</div>
+<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
 
 In the next step, each owner then computes a weighted sum across one of the three columns, resulting in three new vectors `t0`, `t1`, and `t2`.
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-</div>
-<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">465</span><span class="c-green">314</span><span class="c-orange">470</span><span class="c-blue">447</span><span class="c-green">679</span><span class="c-orange">455</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-blue"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">644</span><span class="c-green">943</span><span class="c-orange">997</span><span class="c-blue">280</span><span class="c-green">883</span><span class="c-orange">496</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-green"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">894</span><span class="c-green">755</span><span class="c-orange">635</span><span class="c-blue">276</span><span class="c-green">460</span><span class="c-orange">250</span></span></span>
-<span>·</span>
-<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
-<span class="arrow c-orange"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-</div>
+<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
 
 In the final step these three vectors are added together by the output receiver.
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow c-purple"><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
-</div>
+<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
 
 While this protocol already offers good performance, it can also be significantly optimized if we are willing to make some assumptions about the scenario in which it is used and the reliability of the parties involved. In particular, in the following sections we shall see how communication can be reduced significantly if it is repeatedly executed by the same parties.
 
@@ -365,98 +221,29 @@ it unfortunately also has a serious problem if we were to use it across e.g. the
 
 Say our goal is to compute `y` as defined by following expression, i.e. as the weighted sum of vectors `x0`, `x1`, `x2` using weights `3`, `2`, `1` respectively:
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="c-black">· 3</span>
-<span>+</span>
-<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="c-black">· 2</span>
-<span>+</span>
-<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="c-black">· 1</span>
-<span style="display:flex;align-items:center;gap:0.5em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
-</div>
+<img src="/assets/sda/basic-idea0.png" style="width: 60%;"/>
 
 This can be done  by the following
 
 In the next section it will become obvious why one would do so, you could replace 
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);row-gap: 1em;">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span>=</span>
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span>+</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span>+</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span>=</span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span>+</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span>+</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span>=</span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span>+</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span>+</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-</div>
+<img src="/assets/sda/basic-idea1.png" style="width: 50%;"/>
 
 cd
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);">
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span></span>
-<span class="c-black">· 3</span>
-<span>+</span>
-<span></span>
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span></span>
-<span class="c-black">· 2</span>
-<span>+</span>
-<span></span>
-<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span></span>
-<span class="c-black">· 1</span>
-<span style="grid-column: 3; grid-row: 1 / span 5; display: flex; align-items: center; gap: 0.5em; margin-left: 0.6em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
-</div>
+<img src="/assets/sda/basic-idea2.png" style="width: 60%;"/>
 
 cdscd
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(6, auto);">
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
-<span>+</span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
-<span>+</span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
-<span style="display:flex;align-items:center;gap:0.5em;margin-left:0.3em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
-</div>
+<img src="/assets/sda/basic-idea3.png" style="width: 70%;"/>
 
 cdscds
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);column-gap: 1.5em;">
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
-<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
-<span class="veq">=</span>
-<span class="veq">=</span>
-<span class="veq">=</span>
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-</div>
+<img src="/assets/sda/basic-idea4.png" style="width: 70%;"/>
 
 cdscds
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span>+</span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span>=</span>
-<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
-</div>
+<img src="/assets/sda/basic-idea5.png" style="width: 55%;"/>
 
 
 # Optimizing For Server Setting
@@ -477,16 +264,7 @@ def additive_share(secret, number_of_shares, index_of_masked_secret=0):
            shares[index_of_masked_secret:]
 ```
 
-<div class="hw hw-svg" style="max-width: 400px"><svg viewBox="0 0 660 780" role="img" aria-label="Three data owners in a triangle, each sending a value to every other owner"><defs><marker id="hw-ah-b-b" class="c-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-g-b" class="c-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-o-b" class="c-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-p-b" class="c-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker></defs><text class="c-blue" x="320" y="205" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">0</tspan></text><text class="c-green" x="545" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">1</tspan></text><text class="c-orange" x="100" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">2</tspan></text><path class="line c-blue" d="M215 250 Q115 350 70 525" marker-end="url(#hw-ah-b-b)"/><text class="c-blue" x="55" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">02</tspan></text><path class="line c-orange" d="M155 530 Q265 430 300 255" marker-end="url(#hw-ah-o-b)"/><text class="c-orange" x="215" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">20</tspan></text><path class="line c-green" d="M490 530 Q380 430 350 255" marker-end="url(#hw-ah-g-b)"/><text class="c-green" x="450" y="420" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">10</tspan></text><path class="line c-blue" d="M430 250 Q530 350 570 525" marker-end="url(#hw-ah-b-b)"/><text class="c-blue" x="585" y="380" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">01</tspan></text><path class="line c-orange" d="M215 560 Q330 505 445 550" marker-end="url(#hw-ah-o-b)"/><text class="c-orange" x="335" y="505" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">21</tspan></text><path class="line c-green" d="M450 610 Q330 665 215 615" marker-end="url(#hw-ah-g-b)"/><text class="c-green" x="335" y="680" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">12</tspan></text><path class="line c-blue" d="M345 145 C 375 60, 255 60, 290 140" marker-end="url(#hw-ah-b-b)"/><text class="c-blue" x="315" y="62" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">00</tspan></text><path class="line c-green" d="M560 620 C 595 700, 505 705, 525 630" marker-end="url(#hw-ah-g-b)"/><text class="c-green" x="550" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">11</tspan></text><path class="line c-orange" d="M115 620 C 150 700, 60 705, 80 630" marker-end="url(#hw-ah-o-b)"/><text class="c-orange" x="105" y="760" font-size="38" text-anchor="middle"><tspan>s</tspan><tspan dy="0.3em" font-size="0.62em">22</tspan></text></svg></div>
-<div class="hw hw-route">
-<span class="owner o0 c-blue">Owner<sub>0</sub></span>
-<span class="leg o0"><span class="hw-eq"><span><span class="c-purple">t<sub>0</sub></span></span><span>=</span><span><span class="c-blue">s<sub>00</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>10</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>20</sub></span> <span class="c-black">w<sub>2</sub></span></span><span></span><span class="minor">=</span><span class="minor">(x<sub>0</sub> - s<sub>01</sub> - s<sub>02</sub>) w<sub>0</sub> + s<sub>10</sub> w<sub>1</sub> + s<sub>20</sub> w<sub>2</sub></span><span></span><span class="minor">=</span><span class="minor">x<sub>0</sub> w<sub>0</sub> + (0 - s<sub>01</sub> - s<sub>02</sub>) w<sub>0</sub> + s<sub>10</sub> w<sub>1</sub> + s<sub>20</sub> w<sub>2</sub></span><span></span><span>=</span><span><span class="c-blue">x<sub>0</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-blue">m<sub>0</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="owner o1 c-green">Owner<sub>1</sub></span>
-<span class="leg o1"><span class="hw-eq"><span><span class="c-purple">t<sub>1</sub></span></span><span>=</span><span><span class="c-blue">s<sub>01</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>11</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>21</sub></span> <span class="c-black">w<sub>2</sub></span></span><span></span><span class="minor">=</span><span class="minor">s<sub>01</sub> w<sub>0</sub> + (x<sub>1</sub> - s<sub>10</sub> - s<sub>12</sub>) w<sub>1</sub> + s<sub>21</sub> w<sub>2</sub></span><span></span><span class="minor">=</span><span class="minor">x<sub>1</sub> w<sub>1</sub> + s<sub>01</sub> w<sub>0</sub> + (0 - s<sub>10</sub> - s<sub>12</sub>) w<sub>1</sub> + s<sub>21</sub> w<sub>2</sub></span><span></span><span>=</span><span><span class="c-green">x<sub>1</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-green">m<sub>1</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="owner o2 c-orange">Owner<sub>2</sub></span>
-<span class="leg o2"><span class="hw-eq"><span><span class="c-purple">t<sub>2</sub></span></span><span>=</span><span><span class="c-blue">s<sub>02</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-green">s<sub>12</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-orange">s<sub>22</sub></span> <span class="c-black">w<sub>2</sub></span></span><span></span><span class="minor">=</span><span class="minor">s<sub>02</sub> w<sub>0</sub> + s<sub>12</sub> w<sub>1</sub> + (x<sub>2</sub> - s<sub>20</sub> - s<sub>21</sub>) w<sub>2</sub></span><span></span><span class="minor">=</span><span class="minor">x<sub>2</sub> w<sub>2</sub> + s<sub>02</sub> w<sub>0</sub> + s<sub>12</sub> w<sub>1</sub> + (0 - s<sub>20</sub> - s<sub>21</sub>) w<sub>2</sub></span><span></span><span>=</span><span><span class="c-orange">x<sub>2</sub></span> <span class="c-black">w<sub>2</sub></span> + <span class="c-orange">m<sub>2</sub></span></span></span><span class="maps c-purple"></span></span>
-<span class="recv c-purple">Receiver</span>
-</div>
+<img src="/assets/sda/zero-mask.png" style="width: 100%;"/>
 
 ```python
 class DataOwner(Player):
@@ -662,16 +440,7 @@ Above we were expanding a small random seed into a much larger value that from a
 
 The overall flow in the protocol looks the same, yet now the exchange between the owners for mask generation is replaced by a much rarer *key setup*. This process simply sees each owner sampling and distributing fresh keys, which are stored for future use. In particular, by giving these keys to a PRF together with an iteration number `i`, fresh masks can be generated and used for masks: `e(k, i)`. 
 
-<div class="hw hw-svg" style="max-width: 400px"><svg viewBox="0 140 660 580" role="img" aria-label="Three data owners in a triangle, each sharing a key with every other owner"><defs><marker id="hw-ah-b-c" class="c-blue" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-g-c" class="c-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-o-c" class="c-orange" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker><marker id="hw-ah-p-c" class="c-purple" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse" markerUnits="userSpaceOnUse" style="overflow:visible"><path d="M0 0 L9 5 L0 10" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" transform="scale(2.2) translate(-4.5 -2.5)"/></marker></defs><text class="c-blue" x="320" y="205" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">0</tspan></text><text class="c-green" x="545" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">1</tspan></text><text class="c-orange" x="100" y="580" font-size="46" text-anchor="middle"><tspan>Owner</tspan><tspan dy="0.3em" font-size="0.62em">2</tspan></text><path class="line dashed c-blue" d="M215 250 Q115 350 70 525" marker-end="url(#hw-ah-b-c)"/><text class="c-blue" x="55" y="380" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">02</tspan></text><path class="line dashed c-orange" d="M155 530 Q265 430 300 255" marker-end="url(#hw-ah-o-c)"/><text class="c-orange" x="215" y="420" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">20</tspan></text><path class="line dashed c-green" d="M490 530 Q380 430 350 255" marker-end="url(#hw-ah-g-c)"/><text class="c-green" x="450" y="420" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">10</tspan></text><path class="line dashed c-blue" d="M430 250 Q530 350 570 525" marker-end="url(#hw-ah-b-c)"/><text class="c-blue" x="585" y="380" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">01</tspan></text><path class="line dashed c-orange" d="M215 560 Q330 505 445 550" marker-end="url(#hw-ah-o-c)"/><text class="c-orange" x="335" y="505" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">21</tspan></text><path class="line dashed c-green" d="M450 610 Q330 665 215 615" marker-end="url(#hw-ah-g-c)"/><text class="c-green" x="335" y="680" font-size="38" text-anchor="middle"><tspan>k</tspan><tspan dy="0.3em" font-size="0.62em">12</tspan></text></svg></div>
-<div class="hw hw-route">
-<span class="owner o0 c-blue">Owner<sub>0</sub></span>
-<span class="leg o0"><span class="hw-eq"><span><span class="c-purple">t<sub>0</sub></span></span><span>=</span><span><span class="c-blue">x<sub>0</sub></span> <span class="c-black">w<sub>0</sub></span> + <span class="c-blue">m<sub>0</sub></span></span><span></span><span class="minor">=</span><span class="minor">x<sub>0</sub> w<sub>0</sub></span><span></span><span></span><span class="minor">&nbsp;&nbsp;+ e(k<sub>01</sub>, i) + e(k<sub>02</sub>, i)</span><span></span><span></span><span class="minor">&nbsp;&nbsp;- e(k<sub>10</sub>, i) - e(k<sub>20</sub>, i)</span></span><span class="maps c-purple"></span></span>
-<span class="owner o1 c-green">Owner<sub>1</sub></span>
-<span class="leg o1"><span class="hw-eq"><span><span class="c-purple">t<sub>1</sub></span></span><span>=</span><span><span class="c-green">x<sub>1</sub></span> <span class="c-black">w<sub>1</sub></span> + <span class="c-green">m<sub>1</sub></span></span><span></span><span class="minor">=</span><span class="minor">x<sub>1</sub> w<sub>1</sub></span><span></span><span></span><span class="minor">&nbsp;&nbsp;+ e(k<sub>10</sub>, i) + e(k<sub>12</sub>, i)</span><span></span><span></span><span class="minor">&nbsp;&nbsp;- e(k<sub>01</sub>, i) - e(k<sub>21</sub>, i)</span></span><span class="maps c-purple"></span></span>
-<span class="owner o2 c-orange">Owner<sub>2</sub></span>
-<span class="leg o2"><span class="hw-eq"><span><span class="c-purple">t<sub>2</sub></span></span><span>=</span><span><span class="c-orange">x<sub>2</sub></span> <span class="c-black">w<sub>2</sub></span> + <span class="c-orange">m<sub>2</sub></span></span><span></span><span class="minor">=</span><span class="minor">x<sub>2</sub> w<sub>2</sub></span><span></span><span></span><span class="minor">&nbsp;&nbsp;+ e(k<sub>20</sub>, i) + e(k<sub>21</sub>, i)</span><span></span><span></span><span class="minor">&nbsp;&nbsp;- e(k<sub>02</sub>, i) - e(k<sub>12</sub>, i)</span></span><span class="maps c-purple"></span></span>
-<span class="recv c-purple">Receiver</span>
-</div>
+<img src="/assets/sda/keyed.png" style="width: 100%;"/>
 
 ```python
 class DataOwner(Player):
@@ -752,51 +521,5 @@ def weighted_sum(shares, weights):
     return np.dot(shares_as_matrix, weights) % Q
 ```
 
-<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
-<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
-<span class="arrow c-blue"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
-<span class="low">,</span>
-<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
-<span></span>
-<span></span>
-<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
-<span class="arrow c-green"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
-<span class="low">,</span>
-<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
-<span></span>
-<span></span>
-<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
-<span class="arrow c-orange"><span class="alab">share</span><span class="maps"></span></span>
-<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
-<span class="low">,</span>
-<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
-<span></span>
-<span></span>
-<span></span>
-<span></span>
-<span class="vlab c-blue"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span class="vlab c-green"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span class="vlab c-orange"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
-<span></span>
-<span></span>
-<span></span>
-<span></span>
-<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
-<span class="low">,</span>
-<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
-<span class="low">,</span>
-<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
-<span class="arrow c-purple"><span class="alab">reconstruct</span><span class="maps"></span></span>
-<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
-</div>
+<img src="/assets/sda/simple.png" style="width: 75%;"/>
 

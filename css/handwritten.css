@@ -63,6 +63,8 @@
 }
 .hw mjx-utext { letter-spacing: 0.05em; }
 .hw .hw-rel { margin: 0 0.5em; }
+/* an "=" alone in its own column of an array is already spaced by the gap between columns */
+.hw mjx-mtd > .hw-rel:first-child:nth-last-child(2) { margin: 0; }
 .hw .hw-bin { margin: 0 0.35em; }
 .hw .hw-punct { margin-right: 0.4em; }
 .hw .hw-note { font-size: 80%; }

@@ -8,6 +8,8 @@ header-img: "assets/sda/constellation.png"
 summary:    "In this series of blog posts we go through how modern cryptography can be used to perform secure aggregation for private analytics and federated learning. As we will see, the right approach depends on the concrete scenario, and in this first part we start with the simpler case consisting of a network of stable parties."
 ---
 
+<link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+<link href="/css/handwritten.css" rel="stylesheet">
 <style>
 img {
     margin-left: auto;
@@ -105,7 +107,15 @@ For instance, secret `x0` may be shared into `[s00, s01, s02]`, where `s00` is t
 
 
 
-<img src="/assets/sda/simple-share.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span class="arrow c-blue"><span class="maps"></span></span>
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+</div>
 <!-- <img src="/assets/sda/share.png" style="width: 40%"/> -->
 
 We also take advantage of the fact that the scheme allows us to compute on secret values by computing on the shares, i.e. while they remain encrypted. In particular, that we can compute a weighted sum of secret values by computing a weighted sum over each corresponding set of shares.
@@ -118,15 +128,78 @@ def weighted_sum(shares, weights):
 
 For instance, say we have shared three secrets `x0`, `x1`, and `x2`:
 
-<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span class="arrow c-blue"><span class="maps"></span></span>
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
+<span class="arrow c-green"><span class="maps"></span></span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
+<span class="arrow c-orange"><span class="maps"></span></span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+</div>
 
 By computing a weighted sum over each set of shares:
 
-<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+</div>
+<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">465</span><span class="c-green">314</span><span class="c-orange">470</span><span class="c-blue">447</span><span class="c-green">679</span><span class="c-orange">455</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-blue"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">644</span><span class="c-green">943</span><span class="c-orange">997</span><span class="c-blue">280</span><span class="c-green">883</span><span class="c-orange">496</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-green"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">894</span><span class="c-green">755</span><span class="c-orange">635</span><span class="c-blue">276</span><span class="c-green">460</span><span class="c-orange">250</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-orange"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+</div>
 
 we then end up with shares `t0`, `t1`, and `t2` of the weighted sum `(x0 * w0) + (x1 * w1) + (x2 * w2)`:
 
-<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<span class="arrow c-purple"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+</div>
 
 
 For simplicity we here assume three data owners, but the same approach works for any number of owners.
@@ -194,15 +267,78 @@ We can look at a concrete execution to better see how and why this works. Here, 
 
 In the first step, each data owner shares its input vector into three random vectors, resulting in an imaginary `(3, 3, 2)` tensor `s`. For instance, sharing `x0` results in `s00`, `s01`, and `s02` where `s00 + s01 + s02 == x0` (modulus `Q`).
 
-<img src="/assets/sda/example-step1.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span class="arrow c-blue"><span class="maps"></span></span>
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
+<span class="arrow c-green"><span class="maps"></span></span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
+<span class="arrow c-orange"><span class="maps"></span></span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+</div>
 
 In the next step, each owner then computes a weighted sum across one of the three columns, resulting in three new vectors `t0`, `t1`, and `t2`.
 
-<img src="/assets/sda/example-step2.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+</div>
+<div class="hw hw-grid" style="grid-template-columns: repeat(5, auto);">
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">465</span><span class="c-green">314</span><span class="c-orange">470</span><span class="c-blue">447</span><span class="c-green">679</span><span class="c-orange">455</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-blue"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">644</span><span class="c-green">943</span><span class="c-orange">997</span><span class="c-blue">280</span><span class="c-green">883</span><span class="c-orange">496</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-green"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span class="mat c-grey"><span class="br" style="grid-template-columns: repeat(3, auto)"><span class="c-blue">894</span><span class="c-green">755</span><span class="c-orange">635</span><span class="c-blue">276</span><span class="c-green">460</span><span class="c-orange">250</span></span></span>
+<span>·</span>
+<span class="mat c-black"><span class="lbl">w</span><span class="br"><span>3</span><span>2</span><span>1</span></span></span>
+<span class="arrow c-orange"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+</div>
 
 In the final step these three vectors are added together by the output receiver.
 
-<img src="/assets/sda/example-step3.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<span class="arrow c-purple"><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+</div>
 
 While this protocol already offers good performance, it can also be significantly optimized if we are willing to make some assumptions about the scenario in which it is used and the reliability of the parties involved. In particular, in the following sections we shall see how communication can be reduced significantly if it is repeatedly executed by the same parties.
 
@@ -221,29 +357,98 @@ it unfortunately also has a serious problem if we were to use it across e.g. the
 
 Say our goal is to compute `y` as defined by following expression, i.e. as the weighted sum of vectors `x0`, `x1`, `x2` using weights `3`, `2`, `1` respectively:
 
-<img src="/assets/sda/basic-idea0.png" style="width: 60%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span class="c-black">· 3</span>
+<span>+</span>
+<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
+<span class="c-black">· 2</span>
+<span>+</span>
+<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
+<span class="c-black">· 1</span>
+<span style="display:flex;align-items:center;gap:0.5em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+</div>
 
 This can be done  by the following
 
 In the next section it will become obvious why one would do so, you could replace 
 
-<img src="/assets/sda/basic-idea1.png" style="width: 50%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);row-gap: 1em;">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span>=</span>
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span>+</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span>+</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
+<span>=</span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span>+</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span>+</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
+<span>=</span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span>+</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span>+</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+</div>
 
 cd
 
-<img src="/assets/sda/basic-idea2.png" style="width: 60%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);">
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span>+</span><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span></span>
+<span class="c-black">· 3</span>
+<span>+</span>
+<span></span>
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span>+</span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span></span>
+<span class="c-black">· 2</span>
+<span>+</span>
+<span></span>
+<span class="paren" style="grid-template-columns: repeat(5, auto)"><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span>+</span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span></span>
+<span class="c-black">· 1</span>
+<span style="grid-column: 3; grid-row: 1 / span 5; display: flex; align-items: center; gap: 0.5em; margin-left: 0.6em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+</div>
 
 cdscd
 
-<img src="/assets/sda/basic-idea3.png" style="width: 70%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(6, auto);">
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
+<span>+</span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
+<span>+</span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
+<span style="display:flex;align-items:center;gap:0.5em;margin-left:0.3em">=&nbsp;<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span></span>
+</div>
 
 cdscds
 
-<img src="/assets/sda/basic-idea4.png" style="width: 70%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(3, auto);column-gap: 1.5em;">
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span><span class="c-black">· 1</span></span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span><span class="c-black">· 1</span></span>
+<span class="paren" style="grid-template-columns: repeat(2, auto)"><span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span><span class="c-black">· 3</span><span>+</span><span></span><span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span><span class="c-black">· 2</span><span>+</span><span></span><span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span><span class="c-black">· 1</span></span>
+<span class="veq">=</span>
+<span class="veq">=</span>
+<span class="veq">=</span>
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+</div>
 
 cdscds
 
-<img src="/assets/sda/basic-idea5.png" style="width: 55%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(7, auto);">
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span>+</span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<span>=</span>
+<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+</div>
 
 
 # Optimizing For Server Setting
@@ -521,5 +726,51 @@ def weighted_sum(shares, weights):
     return np.dot(shares_as_matrix, weights) % Q
 ```
 
-<img src="/assets/sda/simple.png" style="width: 75%;"/>
+<div class="hw hw-grid" style="grid-template-columns: repeat(9, auto);">
+<span class="mat c-blue"><span class="lbl">x<sub>0</sub></span><span class="br"><span>1</span><span>2</span></span></span>
+<span class="arrow c-blue"><span class="alab">share</span><span class="maps"></span></span>
+<span class="mat c-blue"><span class="lbl">s<sub>00</sub></span><span class="br"><span>465</span><span>447</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>01</sub></span><span class="br"><span>644</span><span>280</span></span></span>
+<span class="low">,</span>
+<span class="mat c-blue"><span class="lbl">s<sub>02</sub></span><span class="br"><span>894</span><span>276</span></span></span>
+<span></span>
+<span></span>
+<span class="mat c-green"><span class="lbl">x<sub>1</sub></span><span class="br"><span>10</span><span>20</span></span></span>
+<span class="arrow c-green"><span class="alab">share</span><span class="maps"></span></span>
+<span class="mat c-green"><span class="lbl">s<sub>10</sub></span><span class="br"><span>314</span><span>679</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>11</sub></span><span class="br"><span>943</span><span>883</span></span></span>
+<span class="low">,</span>
+<span class="mat c-green"><span class="lbl">s<sub>12</sub></span><span class="br"><span>755</span><span>460</span></span></span>
+<span></span>
+<span></span>
+<span class="mat c-orange"><span class="lbl">x<sub>2</sub></span><span class="br"><span>100</span><span>200</span></span></span>
+<span class="arrow c-orange"><span class="alab">share</span><span class="maps"></span></span>
+<span class="mat c-orange"><span class="lbl">s<sub>20</sub></span><span class="br"><span>470</span><span>455</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>21</sub></span><span class="br"><span>997</span><span>496</span></span></span>
+<span class="low">,</span>
+<span class="mat c-orange"><span class="lbl">s<sub>22</sub></span><span class="br"><span>635</span><span>250</span></span></span>
+<span></span>
+<span></span>
+<span></span>
+<span></span>
+<span class="vlab c-blue"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
+<span></span>
+<span class="vlab c-green"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
+<span></span>
+<span class="vlab c-orange"><span class="down"></span><span class="alab">weighted<br>sum</span></span>
+<span></span>
+<span></span>
+<span></span>
+<span></span>
+<span class="mat c-purple"><span class="lbl">t<sub>0</sub></span><span class="br"><span>491</span><span>151</span></span></span>
+<span class="low">,</span>
+<span class="mat c-purple"><span class="lbl">t<sub>1</sub></span><span class="br"><span>811</span><span>99</span></span></span>
+<span class="low">,</span>
+<span class="mat c-purple"><span class="lbl">t<sub>2</sub></span><span class="br"><span>823</span><span>997</span></span></span>
+<span class="arrow c-purple"><span class="alab">reconstruct</span><span class="maps"></span></span>
+<span class="mat c-purple"><span class="lbl">y</span><span class="br"><span>123</span><span>246</span></span></span>
+</div>
 

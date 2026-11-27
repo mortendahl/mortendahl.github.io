@@ -1,0 +1,170 @@
+/*
+ * Handwritten-style equations and matrices, drawn with HTML and CSS only.
+ * Posts using these classes must also load the Indie Flower font:
+ *   <link href="https://fonts.googleapis.com/css2?family=Indie+Flower&display=swap" rel="stylesheet">
+ *   <link href="/css/handwritten.css" rel="stylesheet">
+ */
+
+/* container shared by all figures */
+.hw {
+    width: max-content;
+    max-width: 100%;
+    margin: 1.2em auto;
+    overflow-x: auto;
+    font-family: 'Indie Flower', cursive;
+    font-size: clamp(13px, 3.3vw, 25px);
+    letter-spacing: 0.05em;
+    word-spacing: 0.05em;
+    line-height: 1.6;
+    color: #8c8c8c;
+    -webkit-text-stroke: 0.03em currentColor;
+    white-space: nowrap;
+}
+.hw sup { font-size: 70%; line-height: 0; vertical-align: 0.75em; margin-left: 0.05em; }
+.hw sub { font-size: 65%; line-height: 0; vertical-align: -0.3em; margin-right: 0.1em; }
+
+/* colours */
+.hw .c-blue   { color: #2443b0; }
+.hw .c-green  { color: #6ab443; }
+.hw .c-orange { color: #f0a01e; }
+.hw .c-purple { color: #9a1bc2; }
+.hw .c-black  { color: #222; }
+.hw .c-grey   { color: #8c8c8c; }
+
+/* multi-line derivations with aligned "=" signs: three cells per row */
+.hw-eq {
+    display: grid;
+    grid-template-columns: auto auto auto;
+    align-items: baseline;
+    column-gap: 0.6em;
+    row-gap: 0.5em;
+}
+.hw-eq > :nth-child(3n+1) { justify-self: end; }
+.hw-eq .then { margin-left: 1.2em; }
+.hw-eq .note { font-size: 80%; padding-top: 0.3em; }
+@media (max-width: 600px) {
+    .hw-eq .then { display: block; margin: 0.3em 0 0; }
+}
+
+/* free-form figures: column count is set inline per figure */
+.hw-grid {
+    display: grid;
+    align-items: center;
+    justify-items: center;
+    column-gap: 0.45em;
+    row-gap: 0.35em;
+}
+.hw-grid > .low { align-self: end; }
+
+/* bracketed vectors and matrices, with an optional label above */
+.hw .mat {
+    position: relative;
+    display: inline-block;
+    margin-top: 1.1em;
+    vertical-align: middle;
+}
+.hw .mat > .lbl {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 80%;
+    line-height: 1.3;
+    color: #8c8c8c;
+}
+.hw .br {
+    --bw: 0.09em;
+    display: inline-grid;
+    justify-items: center;
+    column-gap: 0.9em;
+    padding: 0.1em 0.4em;
+    line-height: 1.5;
+    border-left: var(--bw) solid;
+    border-right: var(--bw) solid;
+    background:
+        linear-gradient(currentColor, currentColor) top left / 0.3em var(--bw) no-repeat,
+        linear-gradient(currentColor, currentColor) bottom left / 0.3em var(--bw) no-repeat,
+        linear-gradient(currentColor, currentColor) top right / 0.3em var(--bw) no-repeat,
+        linear-gradient(currentColor, currentColor) bottom right / 0.3em var(--bw) no-repeat;
+}
+
+/* large round parentheses around a group */
+.hw .paren {
+    display: inline-grid;
+    align-items: center;
+    justify-items: center;
+    column-gap: 0.45em;
+    row-gap: 0.2em;
+    padding: 0.2em 0.8em 0.5em;
+    border-left: 0.09em solid #8c8c8c;
+    border-right: 0.09em solid #8c8c8c;
+    border-radius: 1.6em / 50%;
+}
+
+/* "maps to" arrows, optionally labelled */
+.hw .arrow {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    line-height: 1;
+}
+.hw .arrow > .alab { font-size: 45%; color: #8c8c8c; margin-bottom: 0.2em; }
+.hw .maps {
+    position: relative;
+    display: inline-block;
+    width: 2.2em;
+    height: 0.5em;
+    border-left: 0.09em solid;
+    background: linear-gradient(currentColor, currentColor) left center / 100% 0.09em no-repeat;
+}
+.hw .maps::after {
+    content: '';
+    position: absolute;
+    right: 0.03em;
+    top: 50%;
+    width: 0.35em;
+    height: 0.35em;
+    border-top: 0.09em solid;
+    border-right: 0.09em solid;
+    transform: translateY(-50%) rotate(45deg);
+}
+.hw .down {
+    position: relative;
+    display: inline-block;
+    width: 0.5em;
+    height: 2.2em;
+    border-top: 0.09em solid;
+    background: linear-gradient(currentColor, currentColor) center top / 0.09em 100% no-repeat;
+}
+.hw .down::after {
+    content: '';
+    position: absolute;
+    bottom: 0.03em;
+    left: 50%;
+    width: 0.35em;
+    height: 0.35em;
+    border-bottom: 0.09em solid;
+    border-right: 0.09em solid;
+    transform: translateX(-50%) rotate(45deg);
+}
+.hw .vlab { position: relative; display: inline-block; }
+.hw .vlab > .alab {
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 0.25em;
+    font-size: 45%;
+    line-height: 1.2;
+    color: #8c8c8c;
+}
+
+/* "=" turned on its side, for equations read top to bottom */
+.hw .veq { display: inline-block; transform: rotate(90deg); }
+
+/* narrow screens: smaller and tighter */
+@media (max-width: 600px) {
+    .hw { font-size: 14px; }
+    .hw .paren { padding-left: 0.4em; padding-right: 0.4em; column-gap: 0.3em; }
+    .hw-grid { column-gap: 0.3em; }
+}
